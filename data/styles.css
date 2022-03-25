@@ -1,0 +1,136 @@
+body {
+	/* text-align: center; */
+	background-color: lightcyan;
+}
+div.head {
+	text-align: center;
+	margin: 0em auto;
+	font-size: x-large;
+	background-color: beige;
+	border-bottom: black dotted;
+	padding: 0.5em 0;
+}
+div.head div {
+	font-size: medium;
+}
+div.footer {
+	text-align: center;
+	margin: 1em auto;
+	border-top: black dotted;
+	padding-top: 0.5em;
+}
+div.menu {
+	text-align: center;
+}
+div.menu a, div.footer a, button {
+	background-color: aqua;
+	padding: 0.5em;
+	margin: 1em auto;
+	min-width: 10em;
+	display: block;
+	max-width: 20em;
+	text-decoration: none;
+	border-radius: 0.5em;
+	color: black;
+	font-family: sans;
+	border-style: groove;
+	border-color: silver;
+	border-width: medium;
+}
+div.menu a:active, div.footer a:active, button:active {
+	background-color: lightblue;
+}
+p::first-letter {
+	font-size: 130%;
+	margin-left: 1em;
+}
+div.logs {
+	min-width: 15em;
+	max-width: 25em;
+	margin: 0.5em auto;
+}
+table.params {
+	border-collapse: collapse;
+	min-width: 15em;
+	max-width: 40em;
+	margin: 0.5em auto;
+}
+table.params td, table.params th {
+	border-bottom: 1px solid silver;
+}
+table.params tr>:first-child {
+	text-align: left;
+}
+table.params tr {
+	text-align: right;
+}
+table.params input {
+	width: 6em;
+}
+table.generic {
+	min-width: 15em;
+	max-width: 40em;
+	margin: 0.5em auto;
+}
+.big {
+	font-size: x-large;
+	font-weight: bold;
+}
+.bbig {
+	font-size: xx-large;
+	font-weight: bold;
+}
+.small {
+	font-size: small;
+}
+.off {
+	color: gray;
+}
+.left {
+	text-align: left;
+}
+.center {
+	text-align: center !important;
+}
+.right {
+	text-align: right;
+}
+.i {
+	font-style: italic;
+}
+.b {
+	font-weight: bold;
+}
+input.ss {
+	width: 4em;
+}
+div.color_demo {
+	width: 1.5em;
+	height: 1em;
+	border: solid 1px silver;
+	float: right;
+}
+.bigt {
+	font-size: large;
+}
+.top_line {
+	border-top: solid 1px silver;
+}
+input.long {
+	width: 98% !important;
+}
+.red {
+	color: red;
+}
+.green {
+	color: green;
+}
+.blue {
+	color: blue;
+}
+ 
+@media screen and (max-width: 640px) {
+	body {
+		font-family: sans;
+	}
+}

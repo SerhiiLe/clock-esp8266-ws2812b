@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<header>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Set running string</title>
+	<style>
+		div#shadow {background-color:rgba(0,0,0,0.8); z-index:2000; width:100%; height:100%; position:absolute; left:0; top:0;}
+		div#shadow div {position: absolute; top: 50%; transform: translate(-50%, -50%); left: 50%; margin-right: -50%; font-size: x-large; color: yellow;}
+	</style>
+	<link rel="stylesheet" href="styles.css">
+	<link rel="shortcut icon" href="favicon.ico"/>
+	<link rel="icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<script src="functions.js" type="text/javascript" encoding="UTF-8"></script>
+</header>
+<html>
+	<body>
+		<div class="head">
+			Управление часами.
+			<div>настройка режима бегущей строки</div>
+		</div>
+		<div class="content">
+			<table class="params" id="list">
+				<thead>
+					<tr>
+						<th>Текст</th>
+						<th>Вкл.</th>
+					</tr>
+				</thead>
+				<tbody id="list_items">
+				</tbody>
+			</table>
+			<div id="edit" style="display:none;">
+				<form action="save_text" autocomplete="off" method="post" name="settings">
+					<input type="hidden" name="target" value="">
+					<table class="params">
+						<tbody>
+							<tr>
+								<td colspan="2" style="text-align: center;">
+									<input type="text" name="text" value="" class="long">
+								</td>
+							</tr>
+							<tr>
+								<td>Периодичность показа в секундах (30..3600)</td>
+								<td><input name="period" value="60"></td>
+							</tr>
+							<tr>
+								<td>Режим цвета</td>
+								<td>
+									<select name="color_mode" onchange="show_color_block()">
+										<option value="0">Один</option>
+										<option value="1">Радуга</option>
+										<option value="2">Разные</option>
+									</select>
+								</td>
+							</tr>
+							<tr class="color0">
+								<td>Цвет цифр (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="color"></div></td>
+								<td><input name="color" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
+							</tr>
+							<tr>
+								<td>Режим повтора</td>
+								<td>
+									<select name="rmode" id="rmode" onchange="select_days()">
+										<option value="0">всегда</option>
+										<option value="1">по дате</option>
+										<option value="2">по дням</option>
+										<option value="3">1 день</option>
+									</select>
+								</td>
+							</tr>
+							<tr class="sel_day">
+								<td>Число месяца (от 1 до 31)</td>
+								<td><input type="number" name="sel_day" value="1"></td>
+							</tr>
+							<tr class="sel_days"><td>Понедельник</td><td><input type="checkbox" name="mo" value="1"></td></tr>
+							<tr class="sel_days"><td>Вторник</td><td><input type="checkbox" name="tu" value="1"></td></tr>
+							<tr class="sel_days"><td>Среда</td><td><input type="checkbox" name="we" value="1"></td></tr>
+							<tr class="sel_days"><td>Четверг</td><td><input type="checkbox" name="th" value="1"></td></tr>
+							<tr class="sel_days"><td>Пятница</td><td><input type="checkbox" name="fr" value="1"></td></tr>
+							<tr class="sel_days"><td>Суббота</td><td><input type="checkbox" name="sa" value="1"></td></tr>
+							<tr class="sel_days"><td>Воскресенье</td><td><input type="checkbox" name="su" value="1"></td></tr>
+						</tbody>
+					</table>
+					<button>Сохранить</button>
+				</form>
+			</div>
+		</div>
+		<div class="footer">
+			<a href="index.html" id="return">Вернуться</a>
+		</div>
+		<div id="shadow"><div>Загрузка...</div></div>	
+	</body>
+<script type="text/javascript" encoding="UTF-8">
+function show_color_block() {
+	switch(document.forms["settings"].elements["color_mode"].value) {
+		case "0":
+			toggle_by_class("color0",true);
+			break;
+		default:
+			toggle_by_class("color0",false);
+	}
+}
+function show_edit(i) {
+	if(! $g("e"+i).checked) return;
+	var f = document.forms["settings"];
+	f.elements["target"].value = i;
+	f.elements["text"].value = doc[i].t;
+	f.elements["period"].value = doc[i].p;
+	f.elements["color_mode"].selectedIndex = doc[i].cm;
+	f.elements["color"].value = doc[i].c;
+	init_color_demo();
+	show_color_block();
+	var t = (doc[i].r >> 7) & 3;
+	f.elements["rmode"].selectedIndex = t;
+	select_days();
+	var bit = 1;
+	var days = ["su","mo","tu","we","th","fr","sa"];
+	for(t=0; t<7; t++) {
+		if(doc[i].r & bit) f.elements[days[t]].checked = true;
+		else f.elements[days[t]].checked = false;
+		bit = bit << 1;
+	}
+	f.elements["sel_day"].value = (doc[i].r >> 10) & 31;
+	$g("return").setAttribute("onclick","ret();return false;");
+	$g("list").style.display = "none";
+	$g("edit").style.display = "block";
+}
+function select_days() {
+	switch($g("rmode").value) {
+		case "0":
+		case "3":
+			toggle_by_class("sel_days",false);
+			toggle_by_class("sel_day",false);
+			break;
+		case "1":
+			toggle_by_class("sel_days",false);
+			toggle_by_class("sel_day",true);
+			break;
+		case "2":
+			toggle_by_class("sel_days",true);
+			toggle_by_class("sel_day",false);
+	}
+}
+var doc = [];
+function start() {
+	if (typeof ajaxRequest !== "undefined") { 
+		doc = JSON.parse(httpGet("texts.json"));
+		var li = $g("list_items");
+		for(var i=0; i<doc.length; i++) {
+			var sp1 = $ee("div",(doc[i].t.length? doc[i].t: "&lt;Пусто&gt;"));
+			var sp2 = $e("div",{class:"small top_line"});
+			switch((doc[i].r >> 7) & 3) {
+				case 1:
+					sp2.innerHTML = "каждого " + (doc[i].r >> 10) + "-го числа";
+					break;
+				case 2:
+					var days = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+					var bit = 2;
+					sp2.innerHTML = "По:";
+					for(var t=1; t<7; t++) {
+						if(doc[i].r & bit) sp2.innerHTML += " "+days[t];
+						bit = bit << 1;
+					}
+					if(doc[i].r & 1) sp2.innerHTML += " "+days[0];
+					break;
+				case 3:
+					sp2.innerHTML = "до конца дня";
+					break;
+				default:
+					sp2.innerHTML = "пока включён";
+			}
+			var fl = doc[i].r & 512;
+			var td1 = $em("td",[sp1,sp2],{class:(fl?"on":"off"),id:"t"+i,onclick:"show_edit("+i+")"});
+			var input = $e("input",{type:"checkbox",id:"e"+i,onchange:"toggle_edit("+i+",1)"});
+			if(fl) input.checked = true;
+			li.appendChild($em("tr",[td1,$ee("td",input)]));
+		}
+		$g("shadow").style.display = "none";
+	} else setTimeout(start, 100);
+}
+start();
+</script>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<header>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Set alarms</title>
+	<style>
+		div#shadow {background-color:rgba(0,0,0,0.8); z-index:2000; width:100%; height:100%; position:absolute; left:0; top:0;}
+		div#shadow div {position: absolute; top: 50%; transform: translate(-50%, -50%); left: 50%; margin-right: -50%; font-size: x-large; color: yellow;}
+	</style>
+	<link rel="stylesheet" href="styles.css">
+	<link rel="shortcut icon" href="favicon.ico"/>
+	<link rel="icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<script src="functions.js" type="text/javascript" encoding="UTF-8"></script>
+</header>
+<html>
+	<body>
+		<div class="head">
+			Управление часами.
+			<div>установка будильников</div>
+		</div>
+		<div class="content">
+			<table class="params" id="list">
+				<thead>
+					<tr>
+						<th>Время</th>
+						<th>Вкл.</th>
+					</tr>
+				</thead>
+				<tbody id="list_items">
+				</tbody>
+			</table>
+			<div id="edit" style="display:none;">
+				<form action="save_alarm" autocomplete="off" method="post" name="settings">
+					<input type="hidden" name="target" value="">
+					<input type="hidden" name="repeat" value="0" id="repeat">
+					<table class="params">
+						<tbody>
+							<tr>
+								<td colspan="2" style="text-align: center;">
+									<input type="time" name="time" value="00:00" class="bbig">
+								</td>
+							</tr>
+							<tr>
+								<td>Периодичность</td>
+								<td>
+									<select name="rmode" id="rmode" onchange="select_days()">
+										<option value="0">один раз</option>
+										<option value="1">каждый день</option>
+										<option value="2">по дням</option>
+									</select>
+								</td>
+							</tr>
+							<tr class="sel_days"><td>Понедельник</td><td><input type="checkbox" name="mo" value="1"></td></tr>
+							<tr class="sel_days"><td>Вторник</td><td><input type="checkbox" name="tu" value="1"></td></tr>
+							<tr class="sel_days"><td>Среда</td><td><input type="checkbox" name="we" value="1"></td></tr>
+							<tr class="sel_days"><td>Четверг</td><td><input type="checkbox" name="th" value="1"></td></tr>
+							<tr class="sel_days"><td>Пятница</td><td><input type="checkbox" name="fr" value="1"></td></tr>
+							<tr class="sel_days"><td>Суббота</td><td><input type="checkbox" name="sa" value="1"></td></tr>
+							<tr class="sel_days"><td>Воскресенье</td><td><input type="checkbox" name="su" value="1"></td></tr>
+							<tr>
+								<td>Мелодия будильника <button onclick="test_ring();return false;">проверить</button></td>
+								<td><input type="number" name="melody" value="1" id="cur"> из <span id="col">0</span></td>
+							</tr>
+							<tr>
+								<td colspan="2">
+									громкость: <span id="volume">0</span>
+									<input type="range" min="1" max="30" step="1" value="15" class="long" id="vol" oninput="sendVol()">
+								</td>
+							</tr>
+						</tbody>
+					</table>
+					<button>Сохранить</button>
+				</form>
+			</div>
+		</div>
+		<div class="footer">
+			<a href="index.html" id="return">Вернуться</a>
+		</div>
+		<div id="debug"><div>
+		<div id="shadow"><div>Загрузка...</div></div>
+	</body>
+<script type="text/javascript" encoding="UTF-8">
+function select_days() {
+	switch($g("rmode").value) {
+		case "0":
+		case "1":
+			toggle_by_class("sel_days",false);
+			break;
+		case "2":
+			toggle_by_class("sel_days",true);
+	}
+}
+var is_play = false;
+function test_ring() {
+	if(is_play) {
+		send(6);
+		is_play=false;
+	} else {
+		send(3);
+		is_play=true;
+	}
+}
+function show_edit(i) {
+	if(! $g("e"+i).checked) return;
+	var f = document.forms["settings"];
+	f.elements["target"].value = i;
+	f.elements["time"].value = print_time(i);
+	var t = (doc[i].s >> 7) & 3;
+	f.elements["rmode"].selectedIndex = t;
+	select_days();
+	var bit = 1;
+	var days = ["su","mo","tu","we","th","fr","sa"];
+	for(t=0; t<7; t++) {
+		if(doc[i].s & bit) f.elements[days[t]].checked = true;
+		else f.elements[days[t]].checked = false;
+		bit = bit << 1;
+	}
+	f.elements["melody"].value = doc[i].me;
+	$g("return").setAttribute("onclick","ret();return false;");
+	$g("list").style.display = "none";
+	$g("edit").style.display = "block";
+}
+function print_time(i) {
+	var h = doc[i].h;
+	var m = doc[i].m;
+	return (h<10?"0"+h:h)+":"+(m<10?"0"+m:m);
+}
+var doc = [];
+function start() {
+	if (typeof ajaxRequest !== "undefined") {
+		doc = JSON.parse(httpGet("alarms.json"));
+		var li = $g("list_items");
+		for(var i=0; i<doc.length; i++) {
+			var sp1 = $ee("span",print_time(i),{class:"big"});
+			var sp2 = $e("span",{class:"small"});
+			if(doc[i].s & 128) {
+				sp2.innerHTML = " Каждый день";
+			} else if(doc[i].s & 256) {
+				var days = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+				var bit = 2;
+				for(var t=1; t<7; t++) {
+					if(doc[i].s & bit) sp2.innerHTML += " "+days[t];
+					bit = bit << 1;
+				}
+				if(doc[i].s & 1) sp2.innerHTML += " "+days[0];
+			} else {
+				sp2.innerHTML = " Один раз";
+			}
+			var fl = doc[i].s & 512;
+			var td1 = $em("td",[sp1,sp2],{class:(fl?"on":"off"),id:"t"+i,onclick:"show_edit("+i+")"});
+			var input = $e("input",{type:"checkbox",id:"e"+i,onchange:"toggle_edit("+i+",0)"});
+			if(fl) input.checked = true;
+			li.appendChild($em("tr",[td1,$ee("td",input)]));
+		}
+		show(httpGet("play").split(":"));
+		$g("shadow").style.display = "none";
+	} else setTimeout(start, 100);
+}
+start();
+</script>
+</html>

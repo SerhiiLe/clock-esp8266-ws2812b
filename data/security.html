@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<header>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Clock security page</title>
+	<style>
+		div#shadow {background-color:rgba(0,0,0,0.8); z-index:2000; width:100%; height:100%; position:absolute; left:0; top:0;}
+		div#shadow div {position: absolute; top: 50%; transform: translate(-50%, -50%); left: 50%; margin-right: -50%; font-size: x-large; color: yellow;}
+	</style>
+	<link rel="stylesheet" href="styles.css">
+	<link rel="shortcut icon" href="favicon.ico"/>
+	<link rel="icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<script src="functions.js" type="text/javascript" encoding="UTF-8"></script>
+</header>
+<html>
+	<body>
+		<div class="head">
+			Охранные функции.
+		</div>
+		<div class="menu">
+			<a href="#" onclick="onoff('security'); return false;">Режим охраны (<span id="security"></span>)</a>
+			<a href="#" onclick="show_log(); return false;">Последние события</a>
+			<a href="#" onclick="show_allLog(); return false;">Все события</a>
+		</div>
+		<div id="log" class="logs"></div>
+		<div class="footer">
+			<a href="index.html">Вернуться</a>
+		</div>
+		<div id="shadow"><div>Загрузка...</div></div>
+	</body>
+<script type="text/javascript" encoding="UTF-8">
+var doc = {};
+var logs = [];
+var fl_s_log = fl_a_log = fl_logs = false;
+function load_logs(cb) {
+	if(fl_logs) {
+		cb();
+		return;
+	}
+	var cnt = 0;
+	for(var i=0; i<doc["logs_count"]; i++) {
+		(function(i) {
+			ajaxRequest("log"+i+".txt", "GET", null, function(ajaxResp) {
+				logs[i] = ajaxResp.responseText.split(/\r\n|\n|\r/);
+				cnt++;
+				if(cnt==doc["logs_count"]) {
+					fl_logs = true;
+					cb();
+				}
+			}, function(ajaxResp) {
+				cnt++;
+				if(cnt==doc["logs_count"]) {
+					fl_logs = true;
+					cb();
+				}
+			});
+		})(i);
+	}
+}
+function show_log() {
+	if(fl_s_log) return;
+	fl_a_log = false;
+	$g("log").innerHTML = "";
+	var cnt = 0;
+	load_logs(function() {
+		if( doc["sec_curFile"] in logs )
+			for(var i=logs[doc["sec_curFile"]].length-2; i>=Math.max(0,logs[doc["sec_curFile"]].length-21); i--) {
+				$g("log").appendChild($ee("div",logs[doc["sec_curFile"]][i]));
+				cnt++;
+			}
+		if(cnt<20) {
+			var ii = doc["sec_curFile"] ? doc["sec_curFile"]-1 : doc["logs_count"]-1;
+			if( ii in logs )
+				for(var i=logs[ii].length-2; i>=Math.max(0,logs[ii].length-21+cnt); i--) {
+					$g("log").appendChild($ee("div",logs[ii][i]));
+				}
+		}
+		fl_s_log = true;
+	});
+}
+function show_allLog() {
+	if(fl_a_log) return;
+	fl_s_log = false;
+	var cur_file = doc["sec_curFile"];
+	$g("log").innerHTML = "";
+	load_logs(function() {
+		for(var ii=0; ii<doc["logs_count"]; ii++) {
+			if( cur_file in logs )
+				for(var i=logs[cur_file].length-2; i>=0; i--)
+					$g("log").appendChild($ee("div",logs[cur_file][i]));
+			cur_file = cur_file ? cur_file-1 : doc["logs_count"]-1;
+		}
+		fl_a_log = true;
+	});
+}
+function start() {
+	if (typeof ajaxRequest !== "undefined") {
+		doc = JSON.parse(httpGet("security.json"));
+		$g("security").innerHTML = doc["sec_enable"] ? "On": "Off";
+		$g("shadow").style.display = "none";
+	} else setTimeout(start, 100);
+}
+start();
+</script>
+</html>

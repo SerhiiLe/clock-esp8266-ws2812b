@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<header>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Clock settings</title>
+	<style>
+		div#shadow {background-color:rgba(0,0,0,0.8); z-index:2000; width:100%; height:100%; position:absolute; left:0; top:0;}
+		div#shadow div {position: absolute; top: 50%; transform: translate(-50%, -50%); left: 50%; margin-right: -50%; font-size: x-large; color: yellow;}
+	</style>
+	<link rel="stylesheet" href="styles.css">
+	<link rel="shortcut icon" href="favicon.ico"/>
+	<link rel="icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<script src="functions.js" type="text/javascript" encoding="UTF-8"></script>
+</header>
+<html>
+	<body>
+		<div class="head">
+			Управление часами.
+			<div>общие настройки</div>
+		</div>
+		<div class="content">
+			<form action="save_settings" autocomplete="off" method="post" name="settings">
+				<table class="params">
+					<thead>
+						<tr>
+							<th>Параметр</th>
+							<th>Значение</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td colspan="2" class="center i b">Общие настройки</td>
+						</tr>
+						<tr>
+							<td>Текст, который будет прокручен после включения часов</td>
+							<td><input name="str_hello" type="text" value=""></td>
+						</tr>
+						<tr>
+							<td>Максимальное время работы будильника в минутах (от 1 до 30)</td>
+							<td><input name="max_alarm_time" type="number" value="5"></td>
+						</tr>
+						<tr>
+							<td>Время работы бегущей строки</td>
+							<td>
+								<select name="run_allow" onchange="show_run_block()">
+									<option value="0">Всегда</option>
+									<option value="1">от и до</option>
+									<option value="2">Откл.</option>
+								</select>
+							</td>
+						</tr>
+						<tr class="timerun">
+							<td>Время с которого отображать</td>
+							<td><input type="time" name="run_begin" value="00:00"></td>
+						</tr>
+						<tr class="timerun">
+							<td>Время до которого отображать</td>
+							<td><input type="time" name="run_end" value="00:00"></td>
+						</tr>
+						<tr>
+							<td>Включить индикатор движения</td>
+							<td><input name="show_move" type="checkbox" value="1"></td>
+						</tr>
+						<tr>
+							<td>Задержка реакции на движения (от 0 до 10 сек.)</td>
+							<td><input name="delay_move" type="number" value="4"></td>
+						</tr>
+						<tr>
+							<td colspan="2" class="center i b">Настройка времени</td>
+						</tr>
+						<tr>
+							<td>Временная зона (смещение относительно Гринвича) (от -12 до 12)</td>
+							<td><input name="tz_shift" type="number" value="0"></td>
+						</tr>
+						<tr>
+							<td>Летнее время</td>
+							<td><input name="tz_dst" type="checkbox" value="1"></td>
+						</tr>
+						<tr>
+							<td colspan="2" class="center i b">Отображение времени и даты</td>
+						</tr>
+						<tr>
+							<td>Сокращенный формат даты</td>
+							<td><input name="date_short" type="checkbox" value="1"></td>
+						</tr>
+						<tr>
+							<td>Периодичность вывода даты в секундах (время показа примерно 15сек) (>20)</td>
+							<td><input name="date_period" type="number" value="0"></td>
+						</tr>
+						<tr>
+							<td>Режим цвета времени</td>
+							<td>
+								<select name="time_color" onchange="show_color_block()">
+									<option value="0">Один</option>
+									<option value="1">Радуга</option>
+									<option value="2">Разные</option>
+									<option value="3">Свой</option>
+								</select>
+							</td>
+						</tr>
+						<tr class="color0">
+							<td>Цвет цифр (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="time_color0"></div></td>
+							<td><input name="time_color0" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
+						</tr>
+						<tr class="color3">
+							<td>Цвет цифры 1 часы (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="time_color1"></div></td>
+							<td><input name="time_color1" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
+						</tr>
+						<tr class="color3">
+							<td>Цвет цифры 2 часы (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="time_color2"></div></td>
+							<td><input name="time_color2" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
+						</tr>
+						<tr class="color3">
+							<td>Цвет разделителя (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="time_color3"></div></td>
+							<td><input name="time_color3" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
+						</tr>
+						<tr class="color3">
+							<td>Цвет цифры 1 минуты (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="time_color4"></div></td>
+							<td><input name="time_color4" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
+						</tr>
+						<tr class="color3">
+							<td>Цвет цифры 2 минуты (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="time_color5"></div></td>
+							<td><input name="time_color5" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
+						</tr>
+						<tr>
+							<td>Режим цвета даты</td>
+							<td>
+								<select name="date_color" onchange="show_color_block2()">
+									<option value="0">Один</option>
+									<option value="1">Радуга</option>
+									<option value="2">Разные</option>
+								</select>
+							</td>
+						</tr>
+						<tr class="color00">
+							<td>Цвет букв (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="date_color0"></div></td>
+							<td><input name="date_color0" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
+						</tr>
+						<tr>
+							<td colspan="2" class="center i b">Настройки экрана</td>
+						</tr>
+						<tr>
+							<td>Режим яркости экрана</td>
+							<td>
+								<select name="bright_mode" onchange="show_bright_block()">
+									<option value="0">Авто</option>
+									<option value="1">Лимит</option>
+									<option value="2">Ручное</option>
+								</select>
+							</td>
+						</tr>
+						<tr class="bright0">
+							<td colspan="2">
+								<span id="brN">Яркость</span>: <span id="brV">0</span>
+								<input type="range" min="0" max="255" step="1" value="30" class="long" name="bright0" id="brC" oninput="updateBr()">
+							</td>
+						</tr>
+						<tr class="bright1">
+							<td>Усиление датчика освещённости в процентах (от 1 до 250)</td>
+							<td><input name="br_boost" type="number" value="100"></td>
+						</tr>
+						<tr>
+							<td>Лимит по току в миллиамперах (от 200 до 15000)</td>
+							<td><input name="max_power" type="number" value="2000"></td>
+						</tr>
+						<tr>
+							<td>Перевернуть экран</td>
+							<td><input name="turn_display" type="checkbox" value="0"></td>
+						</tr>
+						<tr>
+							<td colspan="2" class="center i b">Периодичность</td>
+						</tr>
+						<tr>
+							<td>Периодичность синхронизации ntp в минутах.</td>
+							<td><input name="sync_time_period" type="number" value="60"></td>
+						</tr>
+						<tr>
+							<td>Задержка между обновлениями бегущей строки в миллисекундах, определяет скорость движения (>20)</td>
+							<td><input name="scroll_period" type="number" value="0"></td>
+						</tr>
+						<tr>
+							<td colspan="2" class="center i b">Уведомления в Telegram</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								Название / адрес бота:
+								<input name="tb_name" type="text" class="long">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								Chat ID (номера разрешенных чатов через запятую):
+								<input name="tb_chats" type="text" class="long">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								Bot token:
+								<input name="tb_token" type="text" class="long">
+							</td>
+						</tr>
+						<tr>
+							<td>Пароль для активации чата</td>
+							<td><input name="tb_secret" type="text" value=""></td>
+						</tr>
+						<tr>
+							<td>Периодичность опроса новых сообщений, в секундах (0=откл.)</td>
+							<td><input name="tb_rate" type="number" value="60"></td>
+						</tr>
+						<tr>
+							<td colspan="2" class="center i b">Доступ к настройкам</td>
+						</tr>
+						<tr>
+							<td>login</td>
+							<td><input name="web_login" type="text" value=""></td>
+						</tr>
+						<tr>
+							<td>password</td>
+							<td><input name="web_password" type="text" value=""></td>
+						</tr>
+					</tbody>
+				</table>
+				<button>Сохранить</button>
+			</form>
+		</div>
+		<div class="footer">
+			<a href="index.html">Вернуться</a>
+		</div>
+		<div id="shadow"><div>Загрузка...</div></div>
+	</body>
+<script type="text/javascript" encoding="UTF-8">
+function show_run_block() {
+	switch(document.forms["settings"].elements["run_allow"].value) {
+		case "0":
+		case "2":
+			toggle_by_class("timerun",false);
+			break;
+		default:
+			toggle_by_class("timerun",true);
+	}
+}
+function show_color_block() {
+	switch(document.forms["settings"].elements["time_color"].value) {
+		case "0":
+			toggle_by_class("color0",true);
+			toggle_by_class("color3",false);
+			break;
+		case "3":
+			toggle_by_class("color0",false);
+			toggle_by_class("color3",true);
+			break;
+		default:
+			toggle_by_class("color0",false);
+			toggle_by_class("color3",false);
+	}
+}
+function show_color_block2() {
+	switch(document.forms["settings"].elements["date_color"].value) {
+		case "0":
+			toggle_by_class("color00",true);
+			break;
+		default:
+			toggle_by_class("color00",false);
+	}
+}
+function updateBr() {
+	$g("brV").innerHTML = $g("brC").value;
+}
+function show_bright_block() {
+	switch(document.forms["settings"].elements["bright_mode"].value) {
+		case "0":
+			toggle_by_class("bright0",false);
+			toggle_by_class("bright1",true);
+			break;
+		case "1":
+			$g("brN").innerHTML = "Максимальная яркость"
+			toggle_by_class("bright0",true);
+			toggle_by_class("bright1",true);
+			break;
+		default:
+			$g("brN").innerHTML = "Яркость"
+			toggle_by_class("bright0",true);
+			toggle_by_class("bright1",false);
+	}
+}
+function start() {
+	if (typeof ajaxRequest !== "undefined") {
+		var doc = JSON.parse(httpGet("config.json"));
+		var f = document.forms["settings"];
+		for (var key in doc) {
+			if(f.elements[key].type=="checkbox") {
+				if( f.elements[key].checked && doc[key] == 0 )
+					f.elements[key].checked = false;
+				if( ! f.elements[key].checked && doc[key] != 0 )
+					f.elements[key].checked = true;
+			} else if(f.elements[key].type=="time") {
+				var h = Math.floor(doc[key]/60);
+				var m = doc[key]%60;
+				f.elements[key].value = (h<10?"0"+h:h) + ":" + (m<10?"0"+m:m);
+			} else
+				f.elements[key].value = doc[key];
+		}
+		show_run_block();
+		show_color_block();
+		show_color_block2();
+		show_bright_block();
+		init_color_demo();
+		updateBr();
+		$g("shadow").style.display = "none";
+	} else setTimeout(start, 100);
+}
+start();
+</script>
+</html>

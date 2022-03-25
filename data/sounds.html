@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<header>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Listen to sounds</title>
+	<style>
+		div#shadow {background-color:rgba(0,0,0,0.8); z-index:2000; width:100%; height:100%; position:absolute; left:0; top:0;}
+		div#shadow div {position: absolute; top: 50%; transform: translate(-50%, -50%); left: 50%; margin-right: -50%; font-size: x-large; color: yellow;}
+	</style>
+	<link rel="stylesheet" href="styles.css">
+	<link rel="shortcut icon" href="favicon.ico"/>
+	<link rel="icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<script src="functions.js" type="text/javascript" encoding="UTF-8"></script>
+</header>
+<html>
+	<body>
+		<div class="head">
+			Управление часами.
+			<div>прослушивание звуков</div>
+		</div>
+		<div class="content">
+			<table class="generic">
+				<tr>
+					<td colspan="2" class="center">
+						<input type="number" value="1" name="cur" class="big ss" id="cur" onkeypress="sendTr(event)"> из <span id="col">0</span>
+					</td>
+				</tr>
+				<tr>
+					<td><button onclick="send(1)">&lt;&lt;</button></td>
+					<td><button onclick="send(2)">&gt;&gt;</button></td>
+				</tr>
+				<tr>
+					<td><button onclick="send(3)">играть</button></td>
+					<td><button onclick="send(4)">пауза</button></td>
+				</tr>
+				<tr>
+					<td>
+						<select name="repeat" oninput="send(5)" id="repeat">
+							<option value="0">не повторять</option>
+							<option value="1">повторять одну</option>
+							<option value="2">повторять все</option>
+							<option value="3">случайная</option>
+						</select>
+					</td>
+					<td><button onclick="send(6)">остановить</button></td>
+				</tr>
+				<!-- <tr>
+					<td><button onclick="send(7)">Тише</button></td>
+					<td><button onclick="send(8)">Громче</button></td>
+				</tr> -->
+				<tr>
+					<td colspan="2">
+						громкость: <span id="volume">0</span>
+						<input type="range" min="1" max="30" step="1" value="15" class="long" id="vol" oninput="sendVol()">
+					</td>
+				</tr>
+			</table>
+		</div>
+		<div class="footer">
+			<a href="index.html">Вернуться</a>
+		</div>
+		<div id="shadow"><div>Загрузка...</div></div>
+	</body>
+<script type="text/javascript" encoding="UTF-8">
+function update_info() {
+	const interval = 10000; // период обновления
+	setInterval(() => {
+		var ctime = new Date().getTime();
+		if( ctime-stime < interval ) return;
+		send(0);
+		stime = ctime;
+	}, interval);
+}
+function sendTr(e) {
+	stime = new Date().getTime();
+	if(e.keyCode === 13)
+		send(3);
+}
+function start() {
+	if (typeof ajaxRequest !== "undefined") {
+		show(httpGet("play").split(":"));
+		update_info();
+		$g("shadow").style.display = "none";
+	} else setTimeout(start, 100);
+}
+start();
+</script>
+</html>

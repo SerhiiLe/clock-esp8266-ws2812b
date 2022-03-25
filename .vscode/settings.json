@@ -1,0 +1,21 @@
+{
+    "cSpell.words": [
+        "CHSV",
+        "CRGB",
+        "EMCU_PI",
+        "Gyver",
+        "Holded",
+        "leds",
+        "Milliamps",
+        "millis",
+        "Minim",
+        "NODEMCU",
+        "oled",
+        "RRGGBB",
+        "SENSOR",
+        "SSID",
+        "wifi"
+    ],
+    "editor.renderWhitespace": "trailing",
+    "editor.insertSpaces": false
+}

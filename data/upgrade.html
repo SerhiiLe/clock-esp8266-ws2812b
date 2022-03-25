@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<header>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Firmware upgrade</title>
+	<link rel="stylesheet" href="styles.css">
+	<link rel="shortcut icon" href="favicon.ico"/>
+	<link rel="icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<script src="functions.js" type="text/javascript" encoding="UTF-8"></script>
+</header>
+<html>
+	<body>
+		<div class="head">
+			Управление часами.
+			<div>обновление прошивки</div>
+		</div>
+		<div style="text-align: center;">
+			<form method='POST' action='/update' enctype='multipart/form-data'>
+				Firmware:<br>
+				<input type='file' accept='.bin,.bin.gz' name='firmware'>
+				<input type='submit' value='Update Firmware'>
+			</form>
+			<form method='POST' action='/update' enctype='multipart/form-data'>
+				FileSystem:<br>
+				<input type='file' accept='.bin,.bin.gz' name='filesystem'>
+				<input type='submit' value='Update FileSystem'>
+			</form>
+		</div>
+		<div class="footer">
+			<a href="maintenance.html">Вернуться</a>
+		</div>
+	</body>
+</html>
