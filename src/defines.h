@@ -12,6 +12,7 @@
 #define PIN_PHOTO_SENSOR A0 // фоторезистор
 #define PIN_BUTTON 12 // кнопка управления
 #define PIN_MOTION 14 // детектор движения (кнопка)
+#define SENSOR_BUTTON 1 // сенсорная кнопка - 1, обычная - 0
 #define PIN_5V 4 // детектор наличия питания (5 Вольт)
 #define PIN_RELAY 16 // реле выключатель питания матрицы
 #define RELAY_OP_TIME 10 // время срабатывания реле по даташиту. ms
@@ -59,6 +60,7 @@ extern bool fl_accelTelegram;
 extern bool ftp_isAllow;
 extern bool fl_5v;
 extern bool fl_allowLEDS;
+extern bool fl_timeNotSync;
 
 // таймеры должны быть доступны в разных местах
 #include "timerMinim.h"

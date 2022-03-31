@@ -7,12 +7,16 @@
 #include "clock.h"
 #include "ntp.h"
 
-// bool fl_500 = false;
+extern bool fl_timeNotSync;
 
 const char* clockCurrentText(char *a) {
-	tm t = getTime();
-	sprintf_P(a, PSTR("%02u%c%02u"), t.tm_hour, millis() & 512 ?':':' ', t.tm_min);
-	if(a[0] == '0') a[0] = ' ';
+	if( fl_timeNotSync ) {
+		sprintf_P(a, PSTR("--%c--"), millis() & 512 ?':':' ');
+	} else {
+		tm t = getTime();
+		sprintf_P(a, PSTR("%02u%c%02u"), t.tm_hour, millis() & 512 ?':':' ', t.tm_min);
+		if(a[0] == '0') a[0] = ' ';
+	}
 	return a;
 }
 

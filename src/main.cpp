@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief 
- * @version 1.0
- * @date 2022-03-13
+ * @version 1.1.0
+ * @date 2022-03-31
  * 
  * @copyright Copyright (c) 2021,2022
  * 
@@ -32,8 +32,11 @@
 #include "demo.h"
 #include "security.h"
 
+#if SENSOR_BUTTON == 1
 GButton btn(PIN_BUTTON, LOW_PULL, NORM_OPEN); // комбинация для сенсорной кнопки
-// GButton btn2(PIN_MOTION);
+#else
+GButton btn(PIN_BUTTON); // комбинация для обычной кнопки
+#endif
 
 timerMinim autoBrightnessTimer(300);	// Таймер отслеживания показаний датчика света при включенной авторегулировки яркости матрицы
 timerMinim clockTimer(512);				// Таймер, чтобы разделитель часов и минут мигал примерно каждую секунду
@@ -78,7 +81,6 @@ void digitalToggle(byte pin){
 void setup() {
 	Serial.begin(115200);
 	Serial.println(PSTR("Starting..."));
-	// pinMode(LED1, OUTPUT);
 	pinMode(LED_MOTION, OUTPUT);
 	pinMode(PIN_MOTION, INPUT);
 	pinMode(PIN_5V, INPUT);
@@ -88,7 +90,8 @@ void setup() {
 	display_setup();
 	randomSeed(analogRead(PIN_PHOTO_SENSOR)+analogRead(PIN_PHOTO_SENSOR));
 	screenIsFree = true;
-	initRString(PSTR("..."),1,8);
+	// initRString(PSTR("..."),1,8);
+	initRString(PSTR("boot"),1,5);
 	display_tick();
 	if( LittleFS.begin()) {
 		fs_isStarted = true; // встроенный диск подключился
@@ -138,11 +141,14 @@ void loop() {
 
 	if( mp3_isInit ) mp3_check();
 	btn.tick();
-	// btn2.tick();
 
-	if( wifi_isConnected && ( getTimeU() < 36000 || ntpSyncTimer.isReady() ) ) {
+	if( wifi_isConnected && ( fl_timeNotSync || ntpSyncTimer.isReady() ) ) {
 		// установка времени по ntp.
-		Serial.println(syncTime());
+		if( fl_timeNotSync ) {
+			// первичная установка времени. Если по каким-то причинам опрос не удался, повторять не чаще, чем раз 5 сек.
+			if( alarmStepTimer.isReady() ) Serial.println(syncTime());
+		} else // это плановая синхронизация, не критично, если опрос не прошел
+			Serial.println(syncTime());
 	}
 
 	if(btn.isHolded()) {
@@ -178,7 +184,6 @@ void loop() {
 			Serial.println(F("Double"));
 			if(fl_password_reset_req) {
 				web_password = "";
-				// save_config_main();
 				initRString(PSTR("Пароль временно отключен. Зайдите в настройки и задайте новый!"),CRGB::OrangeRed);
 			} else
 				fl_demo = !fl_demo;
@@ -227,9 +232,19 @@ void loop() {
 			fl_action_move = true;
 		}
 		if(!fl_5v) {
+			// если питания нет, а датчик движения сработал, то запитать матрицу от аккумулятора
 			fl_allowLEDS = cur_motion;
 			digitalWrite(PIN_RELAY, cur_motion);
-			if(fl_allowLEDS) delay(RELAY_OP_TIME); // задержка на время срабатывания рэле
+			if(fl_allowLEDS) {
+				// если на экране должно быть время, то сразу его отрисовать
+				// иначе на экране будет непонятно что. Если бежит строка, то
+				// время обновления и так маленькое, естественным путём перерисует
+				if( screenIsFree ) {
+					delay(RELAY_OP_TIME); // задержка на время срабатывания рэле
+					screenIsFree = false;
+					display_tick();
+				}
+			}
 		}
 	}
 	// Задержка срабатывания действий при сработке датчика движения, для уменьшения ложных срабатываний

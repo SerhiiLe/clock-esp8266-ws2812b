@@ -9,6 +9,7 @@
 
 time_t start_time = 0;
 bool fl_needStartTime = true;
+bool fl_timeNotSync = true;
 
 time_t syncTime() {
 	int tz           = tz_shift;
@@ -33,6 +34,7 @@ time_t syncTime() {
 		if(sec_enable) save_log_file(SEC_TEXT_BOOT);
 		last_telegram = now;
 	}
+	fl_timeNotSync = false;
 	return now;
 }
 

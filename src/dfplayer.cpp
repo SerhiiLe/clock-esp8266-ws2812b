@@ -57,32 +57,33 @@ void mp3_init() {
 }
 
 void mp3_volume(uint8_t t, boolean p) {
-  int cur = 0, old = 0;
-  while(true) {
-	cur = dfPlayer.readVolume();
-	if( cur<0 ) {
-		mp3_init();
-		delay(10);
-		continue;
+	if( ! mp3_isInit ) mp3_init();
+  	int cur = 0, old = 0;
+	while(true) {
+		cur = dfPlayer.readVolume();
+		if( cur<0 ) {
+			mp3_init();
+			delay(10);
+			continue;
+		}
+		if( cur==t ) {
+			if (p) cur_Volume = t;
+			break;
+		}
+		if( cur==old ) {
+			delay(10);
+			continue;
+		}
+		old=cur;
+		if( cur<t ) {
+			dfPlayer.volumeUp();
+			delay(10);
+		}
+		if( cur>t ) {
+			dfPlayer.volumeDown();
+			delay(10);
+		}      
 	}
-	if( cur==t ) {
-		if (p) cur_Volume = t;
-		break;
-	}
-	if( cur==old ) {
-		delay(10);
-		continue;
-	}
-	old=cur;
-	if( cur<t ) {
-		dfPlayer.volumeUp();
-		delay(10);
-	}
-	if( cur>t ) {
-		dfPlayer.volumeDown();
-		delay(10);
-	}      
-  }
 }
 
 void mp3_play(int t) {

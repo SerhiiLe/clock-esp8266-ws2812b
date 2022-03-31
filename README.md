@@ -38,11 +38,18 @@
 Нет автоматического перехода зимнее/летнее время, его так давно хотят отменить, что я не вижу в этом смысла.
 
 ## Схема:
-[Схема тут.](https://github.com/SerhiiLe/clock-esp8266-ws2812b/blob/main/clock_diagram.pdf)
+[![Схема тут.](https://github.com/SerhiiLe/clock-esp8266-ws2812b/blob/main/clock_diagram.png)](https://github.com/SerhiiLe/clock-esp8266-ws2812b/blob/main/clock_diagram.pdf)
 
 Не вошло в схему:
 - Керамический конденсатор на 47пФ на питании датчика движения. Я не уверен, что он там нужен, впаял, в надежде улучшить стабильность срабатывания. Разницы не почувствовал.
 - На задней стенке корпуса часов приклеил кусок фольги, напротив датчика движения. Срабатывание стало устойчивее, ложных срабатываний стало меньше.
+
+Выглядит у меня примерно так:
+
+![front](https://github.com/SerhiiLe/clock-esp8266-ws2812b/blob/main/clock_f.jpg)
+![back](https://github.com/SerhiiLe/clock-esp8266-ws2812b/blob/main/clock_b.jpg)
+
+(сборка не мой конёк, нож + термоклей не дадут шедевр эстетики)
 
 ## Сборка:
 Проект собирается с помощью [PlatformIO](https://platformio.org/)

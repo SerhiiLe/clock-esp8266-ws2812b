@@ -30,15 +30,26 @@ bool screenIsFree = true; // экран свободен (текст полно�
 // интерпретатор кода символа в массиве fontHEX (для Arduino IDE 1.8.* и выше)
 // Символы записаны не по строкам, а по колонкам, для удобства отображения
 // letter - utf8 код символа, col - колонка, которую надо отобразить
-byte getFont(byte letter, uint8_t col) {
-	letter = letter - '0' + 16;   // перевод код символа из таблицы ASCII в номер согласно нумерации массива
-	if (letter <= 90) return pgm_read_byte(&(fontHEX[letter][col]));     // для английских букв и символов
-	else if (letter >= 112 && letter <= 159) {    // и пизд*ц для русских
-		return pgm_read_byte(&(fontHEX[letter - 17][col]));
-	} else if (letter >= 96 && letter <= 111) {
-		return pgm_read_byte(&(fontHEX[letter + 47][col]));
-	}
-	return 0;
+uint8_t getFont(uint32_t letter, uint8_t col) {
+	if( letter < 0x7f ) // для английских букв и символов
+		return pgm_read_byte(&(fontHEX[letter-32][col]));
+	else if( letter >= 0xd090 && letter <= 0xd0bf ) // А-Яа-п (utf-8 символы идут не по порядку, надо собирать из кусков)
+		return pgm_read_byte(&(fontHEX[letter - 0xd090 + 95][col]));
+	else if( letter >= 0xd180 && letter <= 0xd18f ) // р-я
+		return pgm_read_byte(&(fontHEX[letter - 0xd180 + 143][col]));
+	else if( letter == 0xd081 ) // Ё
+		return pgm_read_byte(&(fontHEX[159][col]));
+	else if( letter == 0xd191 ) // ё
+		return pgm_read_byte(&(fontHEX[160][col]));
+	else if( letter >= 0xd084 && letter <= 0xd087 ) // Є-Ї
+		return pgm_read_byte(&(fontHEX[letter - 0xd084 + 161][col]));
+	else if( letter >= 0xd194 && letter <= 0xd197 ) // є-ї
+		return pgm_read_byte(&(fontHEX[letter - 0xd194 + 165][col]));
+	else if( letter == 0xd290 || letter == 0xd291 ) // Ґґ
+		return pgm_read_byte(&(fontHEX[letter - 0xd290 + 169][col]));
+	else if( letter == 0xb0 ) // °
+		return pgm_read_byte(&(fontHEX[171][col]));
+	return pgm_read_byte(&(fontHEX[162][col])); // символ не найден, вывести пустой прямоугольник
 }
 
 // Отрисовка буквы с учётом выхода за край экрана
@@ -46,7 +57,7 @@ byte getFont(byte letter, uint8_t col) {
 // letter - буква, которую надо отобразить
 // offset - позиция на экране. Может быть отрицательной, если буква уже уехала или больше ширины, если ещё не доехала
 // color - режим цвета (1 - радуга, 2 - по букве) или номер цвета в CHSV (оттенок, насыщенность, яркость) (0,0,255 - белый)
-void drawLetter(uint8_t index, byte letter, int16_t offset, uint32_t color) {
+void drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t color) {
 	int8_t start_pos = 0, finish_pos = LET_WIDTH;
 	int8_t LH = LET_HEIGHT;
 	if (LH > HEIGHT) LH = HEIGHT;
@@ -85,16 +96,26 @@ void drawLetter(uint8_t index, byte letter, int16_t offset, uint32_t color) {
 // currentOffset: позиция с которой надо отобразить
 // screenIsFree: есть ли подготовленные данные, иначе пропускать
 bool drawString() {
-	// if(screenIsFree) return false;
-	byte i = 0, j = 0;
+	int16_t i = 0, j = 0;
+	uint32_t c;
 	while (_runningText[i] != '\0') {
-		if ((byte)_runningText[i] > 191) {    // работаем с русскими буквами! Пропуск байта выбора кодовой страницы
-			i++;
-		} else {
-			drawLetter(j, _runningText[i], currentOffset + j * (LET_WIDTH + SPACE), _currentColor);
-			i++;
-			j++;
+		// Выделение символа UTF-8
+		// 0xxxxxxx - 7 бит 1 байт, 110xxxxx - 10 бит 2 байта, 1110xxxx - 16 бит 3 байта, 11110xxx - 21 бит 4 байта
+		c = (byte)_runningText[i++];
+		if( c > 127  ) {
+			if( c >> 5 == 6 ) {
+				c = (c << 8) | (byte)_runningText[i++];
+			} else if( c >> 4 == 14 ) {
+				c = (c << 8) | (byte)_runningText[i++];
+				c = (c << 8) | (byte)_runningText[i++];
+			} else if( c >> 3 == 30 ) {
+				c = (c << 8) | (byte)_runningText[i++];
+				c = (c << 8) | (byte)_runningText[i++];
+				c = (c << 8) | (byte)_runningText[i++];
+			}
 		}
+		drawLetter(j, c, currentOffset + j * (LET_WIDTH + SPACE), _currentColor);
+		j++;
 	}
 
 	if(runningMode) {
