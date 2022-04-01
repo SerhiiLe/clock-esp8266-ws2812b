@@ -3,7 +3,7 @@
 Создано по мотивам проекта [GyverMatrixOS](https://alexgyver.ru/gyvermatrixbt/)
 и его портированной на ESP-8266 версии [GyverMatrixWiFi](https://github.com/vvip-68/GyverMatrixWiFi/).
 К сожалению эти проекты не для работы в обычном, нудном, режиме часов. В результате появился этот проект.
-Есть ещё развития проекта [GyverLamp](https://github.com/AlexGyver/GyverLamp)/[GyverPanelWiFi](https://github.com/vvip-68/GyverPanelWiFi/wiki)/[FireLamp](https://github.com/DmytroKorniienko/FireLamp_JeeUI), но у каждого есть свои нюансы, свои преимущества и недостатки, по этому - больше разных велосипедов!
+Есть ещё развития проекта [GyverLamp](https://github.com/AlexGyver/GyverLamp) / [GyverPanelWiFi](https://github.com/vvip-68/GyverPanelWiFi/wiki) / [FireLamp](https://github.com/DmytroKorniienko/FireLamp_JeeUI), но у каждого есть свои нюансы, свои преимущества и недостатки, по этому - больше разных велосипедов!
 В описаниях этих проектов есть много полезной информации по подключению, сборке как железной части, так и программной, полезно заглянуть на эти странички.
 
 ## Возможности часов:
@@ -51,6 +51,16 @@
 
 (сборка не мой конёк, нож + термоклей не дадут шедевр эстетики)
 
+[8x32 RGB WS2812B](https://ledplus.com.ua/ua/p1416606496-svetodiodnaya-matritsa-adresnaya.html),
+[3PIN M/F](https://ledplus.com.ua/ua/p1511573942-konnektor-3pin-provodami.html),
+[WiFi NodeMCU Lua V3](https://ledplus.com.ua/ua/p1013294902-modul-wifi-nodemcu.html) или [Wemos D1 mini](https://ledplus.com.ua/ua/p1162788418-plata-razrabotki-wemos.html),
+[MP3-TF-16P](https://ledplus.com.ua/ua/p1219714846-modul-plejera-mp3.html),
+[RCWL-0516](https://ledplus.com.ua/ua/p1259627889-datchik-dvizheniya-mikrovolnovyj.html),
+[TTP223B](https://ledplus.com.ua/ua/p1121404110-modul-sensornaya-knopka.html),
+[Модуль реле](https://ledplus.com.ua/ua/p1284992864-modul-rele-high.html),
+[TP4056](https://ledplus.com.ua/ua/p1307577265-modul-zaryadki-tp4056.html),
+[остальное](https://www.k206.net/catalog/)
+
 ## Сборка:
 Проект собирается с помощью [PlatformIO](https://platformio.org/)
 
@@ -72,5 +82,7 @@
 При первом запуске появится WiFi точка доступа "ClockAP". После подключения телефоном должна открыться страничка настроек. Если нет, то зайти броузером на 192.168.4.1.
 Затем выбрать свою WiFi сеть и ввести пароль. Часы должны подключится к WiFi. Посмотреть адрес, который получили часы можно сделав три клика по кнопке.
 Для удобства можно добавить этот IP как статический в настройках роутера.
+
+После сборки, обновлять прошивку можно по wifi через web. PlatformIO при сборке формирует файл прошивки, у меня, Documents/PlatformIO/Projects/Clock/.pio/build/esp01_1m/firmware.bin и файл файловой системы Documents/PlatformIO/Projects/Clock/.pio/build/esp01_1m/littlefs.bin
 
 # Слава Украине!

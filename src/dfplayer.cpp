@@ -58,7 +58,7 @@ void mp3_init() {
 
 void mp3_volume(uint8_t t, boolean p) {
 	if( ! mp3_isInit ) mp3_init();
-  	int cur = 0, old = 0;
+	int cur = 0, old = 0;
 	while(true) {
 		cur = dfPlayer.readVolume();
 		if( cur<0 ) {

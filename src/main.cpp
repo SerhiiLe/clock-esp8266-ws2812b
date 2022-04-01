@@ -18,9 +18,7 @@
 #include "defines.h"
 #include <GyverButton.h>
 #include <LittleFS.h>
-#if USE_FTP == 1
 #include <ftp.h>
-#endif
 
 #include "settings.h"
 #include "clock.h"
@@ -86,7 +84,7 @@ void setup() {
 	pinMode(PIN_5V, INPUT);
 	pinMode(PIN_RELAY, OUTPUT);
 	digitalWrite(PIN_RELAY, 0);
-	delay(RELAY_OP_TIME * 2); // задержка на время срабатывания (выключения) рэле. А вообще должно было стоять рэле LOW и тогда после старта оно бы сразу было выключено.
+	delay(RELAY_OP_TIME); // задержка на время срабатывания (выключения) рэле. А вообще должно было стоять рэле LOW и тогда после старта оно бы сразу было выключено.
 	display_setup();
 	randomSeed(analogRead(PIN_PHOTO_SENSOR)+analogRead(PIN_PHOTO_SENSOR));
 	screenIsFree = true;
@@ -132,9 +130,7 @@ void loop() {
 	wifi_process();
 	if( wifi_isConnected ) {
 		// запуск сервисов, которые должны запуститься после запуска сети. (сеть должна подниматься в фоне)
-#if (USE_FTP==1)
-		ftp_process(); // может тормозить
-#endif
+		ftp_process();
 		web_process();
 		if(telegramTimer.isReady()) tb_tick();
 	}
@@ -235,15 +231,13 @@ void loop() {
 			// если питания нет, а датчик движения сработал, то запитать матрицу от аккумулятора
 			fl_allowLEDS = cur_motion;
 			digitalWrite(PIN_RELAY, cur_motion);
-			if(fl_allowLEDS) {
+			if(fl_allowLEDS && screenIsFree) {
 				// если на экране должно быть время, то сразу его отрисовать
 				// иначе на экране будет непонятно что. Если бежит строка, то
 				// время обновления и так маленькое, естественным путём перерисует
-				if( screenIsFree ) {
-					delay(RELAY_OP_TIME); // задержка на время срабатывания рэле
-					screenIsFree = false;
-					display_tick();
-				}
+				delay(RELAY_OP_TIME); // задержка на время срабатывания рэле
+				screenIsFree = false;
+				display_tick();
 			}
 		}
 	}
