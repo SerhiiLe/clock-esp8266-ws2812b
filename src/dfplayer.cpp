@@ -11,19 +11,24 @@
 */
 
 #include <Arduino.h>
-#include <SoftwareSerial.h>
-#include <DFRobotDFPlayerMini.h>
 #include "defines.h"
 #include "dfplayer.h"
+#ifdef SRX
+#include <SoftwareSerial.h>
+#include <DFRobotDFPlayerMini.h>
 
 SoftwareSerial mp3Serial;
 DFRobotDFPlayerMini dfPlayer;
+#endif
 
 int mp3_all = 0;
 int mp3_current = 1;
 int8_t cur_Volume = 15;
 bool mp3_isInit = false;
 bool mp3_isReady = false;
+
+#ifdef SRX
+// плата установлена, описание функций
 
 boolean mp3_isplay() {
   return dfPlayer.readState() & 1;
@@ -257,3 +262,22 @@ void mp3_check() {
 		mp3_messages(dfPlayer.readType(), dfPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
 	}
 }
+
+#else
+// заглушки, если плата DFPlayer не установлена
+boolean mp3_isplay() {return false;}
+void mp3_volume(uint8_t t, boolean p) {}
+void mp3_init() {mp3_isInit = true; mp3_isReady = true;}
+void mp3_check() {}
+void mp3_play(int t) {}
+void mp3_reread() {}
+void mp3_update() {}
+void mp3_start() {}
+void mp3_pause() {}
+void mp3_stop() {}
+void mp3_enableLoop() {}
+void mp3_disableLoop() {}
+void mp3_enableLoopAll() {}
+void mp3_disableLoopAll() {}
+void mp3_randomAll() {}
+#endif

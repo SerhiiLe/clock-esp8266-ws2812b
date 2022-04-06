@@ -200,6 +200,18 @@ void save_settings() {
 			need_save = true;
 		}
 	}
+	name = F("wide_font");
+	if( HTTP.hasArg(name) ) {
+		if( wide_font == 0 ) {
+			wide_font = 1;
+			need_save = true;
+		}
+	} else {
+		if( wide_font > 0 ) {
+			wide_font = 0;
+			need_save = true;
+		}
+	}
 	name = F("show_move");
 	if( HTTP.hasArg(name) ) {
 		if( show_move == 0 ) {

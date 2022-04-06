@@ -75,6 +75,8 @@
 
 Возможно понадобится правка файла platformio.ini под Вашу систему.
 
+Если Ваша схема отличается или хочется что-то подкрутить под себя, то это делается в файле src/defines.h
+
 Компиляция и загрузка в микроконтроллер нажатием на стрелочку "PlatformIO:Upload" в нижней статусной строке.
 
 Создание и загрузка файловой системы: нажать на "голову муравья" слева (PlatformIO), выбрать пункт "Upload Filesystem Image".
@@ -83,6 +85,6 @@
 Затем выбрать свою WiFi сеть и ввести пароль. Часы должны подключится к WiFi. Посмотреть адрес, который получили часы можно сделав три клика по кнопке.
 Для удобства можно добавить этот IP как статический в настройках роутера.
 
-После сборки, обновлять прошивку можно по wifi через web. PlatformIO при сборке формирует файл прошивки, у меня, Documents/PlatformIO/Projects/Clock/.pio/build/esp01_1m/firmware.bin и файл файловой системы Documents/PlatformIO/Projects/Clock/.pio/build/esp01_1m/littlefs.bin
+После сборки, обновлять прошивку можно по wifi через web. PlatformIO при сборке формирует файл прошивки, например у меня это: Documents/PlatformIO/Projects/Clock/.pio/build/esp01_1m/firmware.bin и файл файловой системы Documents/PlatformIO/Projects/Clock/.pio/build/esp01_1m/littlefs.bin
 
 # Слава Украине!

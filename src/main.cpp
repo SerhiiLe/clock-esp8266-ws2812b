@@ -81,7 +81,9 @@ void setup() {
 	Serial.println(PSTR("Starting..."));
 	pinMode(LED_MOTION, OUTPUT);
 	pinMode(PIN_MOTION, INPUT);
+#ifdef PIN_5V
 	pinMode(PIN_5V, INPUT);
+#endif
 	pinMode(PIN_RELAY, OUTPUT);
 	digitalWrite(PIN_RELAY, 0);
 	delay(RELAY_OP_TIME); // задержка на время срабатывания (выключения) рэле. А вообще должно было стоять рэле LOW и тогда после старта оно бы сразу было выключено.
@@ -89,7 +91,7 @@ void setup() {
 	randomSeed(analogRead(PIN_PHOTO_SENSOR)+analogRead(PIN_PHOTO_SENSOR));
 	screenIsFree = true;
 	// initRString(PSTR("..."),1,8);
-	initRString(PSTR("boot"),1,5);
+	initRString(PSTR("boot"),1,7); //5
 	display_tick();
 	if( LittleFS.begin()) {
 		fs_isStarted = true; // встроенный диск подключился
@@ -205,6 +207,7 @@ void loop() {
 	}
 
 	// проверка наличия напряжения 5 Вольт
+#ifdef PIN_5V
 	if(digitalRead(PIN_5V) != fl_5v) {
 		fl_5v = ! fl_5v;
 		if(sec_enable) save_log_file(fl_5v ? SEC_TEXT_POWERED: SEC_TEXT_POWEROFF);
@@ -218,6 +221,7 @@ void loop() {
 			if(bright_mode==2) set_brightness(bright0);
 		}
 	}
+#endif
 
 	// проверка статуса датчика движения
 	if(digitalRead(PIN_MOTION) != cur_motion) {

@@ -1,21 +1,21 @@
 #ifndef defines_h
 #define defines_h
 
-#define DEBUG 0 // разрешение отладочных сообщений. Не используется
+#define DEBUG 0 // разрешение отладочных сообщений. Не используется. Сообщения выводятся в Serial всегда.
 
 /*** описание констант, которые описывают конкретное "железо" ***/
 
 #define PIN_LED 5 // LED матрица
 #define PIN_PHOTO_SENSOR A0 // фоторезистор
 #define PIN_BUTTON 12 // кнопка управления
-#define PIN_MOTION 14 // детектор движения (кнопка)
 #define SENSOR_BUTTON 1 // сенсорная кнопка - 1, обычная - 0
-#define PIN_5V 4 // детектор наличия питания (5 Вольт)
+#define PIN_MOTION 14 // детектор движения
+#define PIN_5V 4 // детектор наличия питания (5 Вольт). Закоментировать, если не подключен
 #define PIN_RELAY 16 // реле выключатель питания матрицы
 #define RELAY_OP_TIME 10 // время срабатывания реле по даташиту. ms
 #define LED_MOTION 0 // светодиод индикатор движения
-#define SRX 13 // software serial RX DFPlayer
-#define STX 15 //  software serial TX DFPlayer
+#define SRX 13 // software serial RX DFPlayer. Закоментировать, если не подключен
+#define STX 15 // software serial TX DFPlayer
 
 #define BRIGHTNESS 50		// стандартная максимальная яркость (0-255)
 #define DEFAULT_POWER 2000	// по умолчанию 2000 мА или 2А
@@ -81,6 +81,7 @@ extern uint8_t max_alarm_time;
 extern uint8_t run_allow;
 extern uint16_t run_begin;
 extern uint16_t run_end;
+extern uint8_t wide_font;
 extern uint8_t show_move;
 extern uint8_t delay_move;
 extern int8_t tz_shift;

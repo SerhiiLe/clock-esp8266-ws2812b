@@ -93,6 +93,7 @@ void load_config_main() {
 	run_allow = doc[F("run_allow")];
 	run_begin = doc[F("run_begin")];
 	run_end = doc[F("run_end")];
+	wide_font = doc[F("wide_font")];
 	show_move = doc[F("show_move")];
 	delay_move = doc[F("delay_move")];
 	tz_shift = doc[F("tz_shift")];
@@ -137,6 +138,7 @@ void save_config_main() {
 	doc[F("run_allow")] = run_allow;
 	doc[F("run_begin")] = run_begin;
 	doc[F("run_end")] = run_end;
+	doc[F("wide_font")] = wide_font;
 	doc[F("show_move")] = show_move;
 	doc[F("delay_move")] = delay_move;
 	doc[F("tz_shift")] = tz_shift;

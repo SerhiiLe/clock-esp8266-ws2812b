@@ -3,7 +3,8 @@
 #include <Arduino.h>
 
 #include "runningText.h"
-#include "fonts.h"
+#include "fontsF.h"
+#include "fontsV.h"
 #include "defines.h"
 
 // **************** НАСТРОЙКИ ****************
@@ -31,25 +32,30 @@ bool screenIsFree = true; // экран свободен (текст полно�
 // Символы записаны не по строкам, а по колонкам, для удобства отображения
 // letter - utf8 код символа, col - колонка, которую надо отобразить
 uint8_t getFont(uint32_t letter, uint8_t col) {
+	if(col == LET_WIDTH && wide_font ) return (LET_HEIGHT << 4) | LET_WIDTH;
+	uint16_t cn = 0;
 	if( letter < 0x7f ) // для английских букв и символов
-		return pgm_read_byte(&(fontHEX[letter-32][col]));
+		cn = letter-32;
 	else if( letter >= 0xd090 && letter <= 0xd0bf ) // А-Яа-п (utf-8 символы идут не по порядку, надо собирать из кусков)
-		return pgm_read_byte(&(fontHEX[letter - 0xd090 + 95][col]));
+		cn = letter - 0xd090 + 95;
 	else if( letter >= 0xd180 && letter <= 0xd18f ) // р-я
-		return pgm_read_byte(&(fontHEX[letter - 0xd180 + 143][col]));
+		cn = letter - 0xd180 + 143;
 	else if( letter == 0xd081 ) // Ё
-		return pgm_read_byte(&(fontHEX[159][col]));
+		cn = 159;
 	else if( letter == 0xd191 ) // ё
-		return pgm_read_byte(&(fontHEX[160][col]));
+		cn = 160;
 	else if( letter >= 0xd084 && letter <= 0xd087 ) // Є-Ї
-		return pgm_read_byte(&(fontHEX[letter - 0xd084 + 161][col]));
+		cn = letter - 0xd084 + 161;
 	else if( letter >= 0xd194 && letter <= 0xd197 ) // є-ї
-		return pgm_read_byte(&(fontHEX[letter - 0xd194 + 165][col]));
+		cn = letter - 0xd194 + 165;
 	else if( letter == 0xd290 || letter == 0xd291 ) // Ґґ
-		return pgm_read_byte(&(fontHEX[letter - 0xd290 + 169][col]));
+		cn = letter - 0xd290 + 169;
 	else if( letter == 0xb0 ) // °
-		return pgm_read_byte(&(fontHEX[171][col]));
-	return pgm_read_byte(&(fontHEX[162][col])); // символ не найден, вывести пустой прямоугольник
+		cn = 171;
+	else 
+		cn = 162; // символ не найден, вывести пустой прямоугольник
+	if( wide_font )	return pgm_read_byte(&(fontFix[cn][col]));
+	return pgm_read_byte(&(fontVar[cn][col]));
 }
 
 // Отрисовка буквы с учётом выхода за край экрана
@@ -57,11 +63,13 @@ uint8_t getFont(uint32_t letter, uint8_t col) {
 // letter - буква, которую надо отобразить
 // offset - позиция на экране. Может быть отрицательной, если буква уже уехала или больше ширины, если ещё не доехала
 // color - режим цвета (1 - радуга, 2 - по букве) или номер цвета в CHSV (оттенок, насыщенность, яркость) (0,0,255 - белый)
-void drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t color) {
-	int8_t start_pos = 0, finish_pos = LET_WIDTH;
-	int8_t LH = LET_HEIGHT;
+int16_t drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t color) {
+	uint8_t t = getFont(letter, LET_WIDTH);
+	int8_t LW = t & 0xF; // ширина буквы
+	int8_t start_pos = 0, finish_pos = LW;
+	int8_t LH = t >> 4; // высота буквы
 	if (LH > HEIGHT) LH = HEIGHT;
-	int8_t offset_y = (HEIGHT - LH) >> 1;     // по центру матрицы по высоте
+	int8_t offset_y = (HEIGHT - LH) >> 1; // по центру матрицы по высоте
 
  	CRGB letterColor;
 	if(color == 1) letterColor = CHSV(byte(offset << 3), 255, 255);
@@ -69,25 +77,26 @@ void drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t color) 
 	else if(color == 3) letterColor = show_time_col[index];
 	else letterColor = color;
 
-	if (offset < -LET_WIDTH || offset > WIDTH) return; // буква за пределами видимости, пропустить
-	if (offset < 0) start_pos = -offset;
-	if (offset > (WIDTH - LET_WIDTH)) finish_pos = WIDTH - offset;
+	if( offset < -LW || offset > WIDTH ) return LW; // буква за пределами видимости, пропустить
+	if( offset < 0 ) start_pos = -offset;
+	if( offset > WIDTH - LW ) finish_pos = WIDTH - offset;
 
-	for (byte i = start_pos; i < finish_pos; i++) {
+	for (int8_t x = start_pos; x < finish_pos; x++) {
 		byte thisByte;
-		if (MIRR_V) thisByte = getFont(letter, LET_WIDTH - 1 - i);
-		else thisByte = getFont(letter, i);
+		if (MIRR_V) thisByte = getFont(letter, LW - 1 - x);
+		else thisByte = getFont(letter, x);
 
-		for (byte j = 0; j < LH; j++) {
+		for (int8_t y = 0; y < LH; y++) {
 			bool thisBit;
 
-			if (MIRR_H)	thisBit = thisByte & (1 << j);
-			else thisBit = thisByte & (1 << (LH - 1 - j));
+			if (MIRR_H)	thisBit = thisByte & (1 << y);
+			else thisBit = thisByte & (1 << (LH - 1 - y));
 
-			// рисуем столбец (i - горизонтальная позиция, j - вертикальная)
-			if (thisBit) drawPixelXY(offset + i, offset_y + TEXT_HEIGHT + j, led_brightness > 1 && fl_5v ? letterColor: CRGB::Red);
+			// рисуем столбец (x - горизонтальная позиция, y - вертикальная)
+			if (thisBit) drawPixelXY(offset + x, offset_y + TEXT_HEIGHT + y, led_brightness > 1 && fl_5v ? letterColor: CRGB::Red);
 		}
 	}
+	return LW;
 }
 
 // отрисовка содержимого экрана с учётом подготовленных данных:
@@ -95,8 +104,8 @@ void drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t color) 
 // _runningText: буфер который надо отобразить
 // currentOffset: позиция с которой надо отобразить
 // screenIsFree: есть ли подготовленные данные, иначе пропускать
-bool drawString() {
-	int16_t i = 0, j = 0;
+void drawString() {
+	int16_t i = 0, j = 0, delta = 0;
 	uint32_t c;
 	while (_runningText[i] != '\0') {
 		// Выделение символа UTF-8
@@ -114,21 +123,19 @@ bool drawString() {
 				c = (c << 8) | (byte)_runningText[i++];
 			}
 		}
-		drawLetter(j, c, currentOffset + j * (LET_WIDTH + SPACE), _currentColor);
-		j++;
+		delta += drawLetter(j++, c, currentOffset + delta, _currentColor) + SPACE;
 	}
 
 	if(runningMode) {
 		screenIsFree = true;
 	} else {
 		currentOffset--;
-		if(currentOffset < -j * (LET_WIDTH + SPACE)) {    // строка убежала
+		if(currentOffset < -delta) { // строка убежала
 			if(runningMode==0)
 				currentOffset = WIDTH + LET_WIDTH;
 			screenIsFree = true;
 		}
 	}
-	return true;
 }
 
 void initRunning(uint32_t color, int16_t posX) {
@@ -137,7 +144,7 @@ void initRunning(uint32_t color, int16_t posX) {
 	runningMode = posX >= 0 && posX <= WIDTH;
 	currentOffset = runningMode ? posX: WIDTH;
 	if(_runningText[0]==32) currentOffset -= (LET_WIDTH + SPACE) >> 1;
-	if(_runningText[0]==49) currentOffset--;
+	if(_runningText[0]==49 && wide_font) currentOffset--;
 	screenIsFree = false;
 }
 // Инициализация строки, которая будет отображаться на экране
