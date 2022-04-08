@@ -74,7 +74,7 @@ int16_t drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t colo
  	CRGB letterColor;
 	if(color == 1) letterColor = CHSV(byte(offset << 3), 255, 255);
 	else if(color == 2) letterColor = CHSV(byte(index << 5), 255, 255);
-	else if(color == 3) letterColor = show_time_col[index];
+	else if(color == 3) letterColor = show_time_col[index % 5];
 	else letterColor = color;
 
 	if( offset < -LW || offset > WIDTH ) return LW; // буква за пределами видимости, пропустить

@@ -366,7 +366,7 @@ void loop() {
 	}
 	// если всё уже показано, то вывести время
 	if(!fl_demo && screenIsFree && clockTimer.isReady())
-		initRString(clockCurrentText(timeString), show_time_color > 0 ? show_time_color: show_time_color0, 2);
+		initRString(clockCurrentText(timeString), show_time_color > 0 ? show_time_color: show_time_color0, CLOCK_SHIFT);
 
 	if(fl_demo) {
 		if(demoTimer.isReady()) demo_tick();
