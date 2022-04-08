@@ -379,6 +379,29 @@ void save_settings() {
 			need_save = true;
 		}
 	}
+	name = F("volume_start");
+	if( HTTP.hasArg(name) ) {
+		if( HTTP.arg(name).toInt() != volume_start ) {
+			volume_start = constrain(HTTP.arg(name).toInt(), 1, 30);
+			need_save = true;
+		}
+	}
+	name = F("volume_finish");
+	if( HTTP.hasArg(name) ) {
+		if( HTTP.arg(name).toInt() != volume_finish ) {
+			volume_finish = constrain(HTTP.arg(name).toInt(), 1, 30);
+			need_save = true;
+		}
+	}
+	volume_finish = constrain(volume_finish, volume_start, 30);
+	name = F("volume_period");
+	if( HTTP.hasArg(name) ) {
+		if( HTTP.arg(name).toInt() != volume_period ) {
+			volume_period = constrain(HTTP.arg(name).toInt(), 1, 30);
+			alarmStepTimer.setInterval(1000U * volume_period);
+			need_save = true;
+		}
+	}
 	name = F("sync_time_period");
 	if( HTTP.hasArg(name) ) {
 		if( HTTP.arg(name).toInt() != sync_time_period ) {
@@ -451,9 +474,10 @@ void save_settings() {
 			need_web_restart = true;
 		}
 	}
-	if( need_save ) save_config_main();
 	HTTP.sendHeader(F("Location"),"/");
-	HTTP.send(303); 
+	HTTP.send(303);
+	delay(1);
+	if( need_save ) save_config_main();
 	initRString(PSTR("Настройки сохранены"));
 	if( sync_time ) syncTime();
 	if(fl_setTelegram) setup_telegram();
@@ -547,9 +571,10 @@ void save_alarm() {
 			}
 		}
 	}
-	if( need_save ) save_config_alarms();
 	HTTP.sendHeader(F("Location"),F("/alarms.html"));
 	HTTP.send(303);
+	delay(1);
+	if( need_save ) save_config_alarms();
 	mp3_stop();
 	initRString(PSTR("Будильник установлен"));
 }
@@ -630,9 +655,10 @@ void save_text() {
 			need_save = true;
 		}
 	}
-	if( need_save ) save_config_texts();
 	HTTP.sendHeader(F("Location"),F("/running.html"));
-	HTTP.send(303); 
+	HTTP.send(303);
+	delay(1);
+	if( need_save ) save_config_texts();
 	initRString(PSTR("Текст включен"));
 }
 

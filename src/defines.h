@@ -66,7 +66,8 @@ extern timerMinim ntpSyncTimer;         // Таймер синхронизаци
 extern timerMinim scrollTimer;          // Таймер задержки между обновлениями бегущей строки, определяет скорость движения
 extern timerMinim clockDate;            // Таймер периодичности вывода даты в виде бегущей строки (длительность примерно 15 секунд)
 extern timerMinim textTimer[];          // Таймеры бегущих строк
-extern timerMinim telegramTimer;
+extern timerMinim telegramTimer;		// Таймер периодичности опроса новых сообщений
+extern timerMinim alarmStepTimer;		// Таймер увеличения громкости будильника
 
 // управление плейером
 extern int mp3_all;
@@ -98,6 +99,9 @@ extern uint8_t bright0;
 extern uint8_t br_boost;
 extern uint32_t max_power;
 extern uint8_t turn_display;
+extern uint8_t volume_start;
+extern uint8_t volume_finish;
+extern uint8_t volume_period;
 extern uint16_t sync_time_period;
 extern uint16_t scroll_period;
 extern String tb_name;

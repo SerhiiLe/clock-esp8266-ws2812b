@@ -131,6 +131,12 @@ void loop() {
 
 	wifi_process();
 	if( wifi_isConnected ) {
+		// установка времени по ntp.
+		if( fl_timeNotSync )
+			// первичная установка времени. Если по каким-то причинам опрос не удался, повторять не чаще, чем раз в секунду.
+			if( alarmStepTimer.isReady() ) Serial.println(syncTime());
+		if(ntpSyncTimer.isReady()) // это плановая синхронизация, не критично, если опрос не прошел
+				Serial.println(syncTime());
 		// запуск сервисов, которые должны запуститься после запуска сети. (сеть должна подниматься в фоне)
 		ftp_process();
 		web_process();
@@ -139,15 +145,6 @@ void loop() {
 
 	if( mp3_isInit ) mp3_check();
 	btn.tick();
-
-	if( wifi_isConnected && ( fl_timeNotSync || ntpSyncTimer.isReady() ) ) {
-		// установка времени по ntp.
-		if( fl_timeNotSync ) {
-			// первичная установка времени. Если по каким-то причинам опрос не удался, повторять не чаще, чем раз 5 сек.
-			if( alarmStepTimer.isReady() ) Serial.println(syncTime());
-		} else // это плановая синхронизация, не критично, если опрос не прошел
-			Serial.println(syncTime());
-	}
 
 	if(btn.isHolded()) {
 		Serial.println("holded");
@@ -303,7 +300,7 @@ void loop() {
 						}
 						if(fl_doit) { // будильник сработал
 							if(alarmStartTime == 0) {
-								mp3_volume(5); // начинать с маленькой громкости
+								mp3_volume(volume_start); // начинать с маленькой громкости
 								delay(10);
 								mp3_play(alarms[i].melody); // запустить мелодию
 								delay(10);
@@ -325,7 +322,7 @@ void loop() {
 	}
 	// плавное увеличение громкости и ограничение на время работы будильника
 	if(alarmStartTime && alarmStepTimer.isReady()) {
-		if(cur_Volume<30) mp3_volume(++cur_Volume);
+		if(cur_Volume<volume_finish) mp3_volume(++cur_Volume);
 		if(alarmStartTime + max_alarm_time * 60 < getTimeU()) alarmsStop(); // будильник своё отработал, наверное не разбудил
 	}
 

@@ -107,7 +107,7 @@ int16_t drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t colo
 void drawString() {
 	int16_t i = 0, j = 0, delta = 0;
 	uint32_t c;
-	while (_runningText[i] != '\0') {
+	while (_runningText[i] != '\0' && i < MAX_LENGTH) {
 		// Выделение символа UTF-8
 		// 0xxxxxxx - 7 бит 1 байт, 110xxxxx - 10 бит 2 байта, 1110xxxx - 16 бит 3 байта, 11110xxx - 21 бит 4 байта
 		c = (byte)_runningText[i++];
@@ -139,11 +139,10 @@ void drawString() {
 }
 
 void initRunning(uint32_t color, int16_t posX) {
-	_runningText[MAX_LENGTH-1] = 0;
 	_currentColor = color > 3 ? maximizeBrightness(color): color;
 	runningMode = posX >= 0 && posX <= WIDTH;
 	currentOffset = runningMode ? posX: WIDTH;
-	if(_runningText[0]==32) currentOffset -= (LET_WIDTH + SPACE) >> 1;
+	if(_runningText[0]==32) currentOffset -= wide_font ? (LET_WIDTH + SPACE) >> 1: LET_WIDTH >> 1;
 	if(_runningText[0]==49 && wide_font) currentOffset--;
 	screenIsFree = false;
 }

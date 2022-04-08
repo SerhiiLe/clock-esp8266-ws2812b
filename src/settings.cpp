@@ -116,6 +116,9 @@ void load_config_main() {
 	max_power = doc[F("max_power")];
 	if(DEFAULT_POWER > 0) FastLED.setMaxPowerInVoltsAndMilliamps(5, max_power);
 	turn_display = doc[F("turn_display")];
+	volume_start = doc[F("volume_start")];
+	volume_finish = doc[F("volume_finish")];
+	volume_period = doc[F("volume_period")]; alarmStepTimer.setInterval(1000U * volume_period);
 	sync_time_period = doc[F("sync_time_period")]; ntpSyncTimer.setInterval(60000U * sync_time_period);
 	scroll_period = doc[F("scroll_period")]; scrollTimer.setInterval(scroll_period);
 	tb_name = doc[F("tb_name")].as<String>();
@@ -159,6 +162,9 @@ void save_config_main() {
 	doc[F("br_boost")] = br_boost;
 	doc[F("max_power")] = max_power;
 	doc[F("turn_display")] = turn_display;
+	doc[F("volume_start")] = volume_start;
+	doc[F("volume_finish")] = volume_finish;
+	doc[F("volume_period")] = volume_period;
 	doc[F("sync_time_period")] = sync_time_period;
 	doc[F("scroll_period")] = scroll_period;
 	doc[F("tb_name")] = tb_name;
