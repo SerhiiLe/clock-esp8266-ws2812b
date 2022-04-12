@@ -102,10 +102,8 @@ uint32_t maximizeBrightness(uint32_t color, uint8_t limit)  {
 
 // получить номер пикселя в ленте по координатам
 uint16_t getPixelNumber(int8_t x, int8_t y) {
-	if(turn_display) {
-		x = WIDTH - x - 1;
-		y = HEIGHT - y - 1;
-	}
+	if(turn_display & 1) x = WIDTH - x - 1;
+	if(turn_display & 2) y = HEIGHT - y - 1;
 	if ((THIS_Y % 2 == 0) || MATRIX_TYPE) {               // если чётная строка
 		return (THIS_Y * _WIDTH + THIS_X);
 	} else {                                              // если нечётная строка

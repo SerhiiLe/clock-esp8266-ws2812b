@@ -369,13 +369,8 @@ void save_settings() {
 	}
 	name = F("turn_display");
 	if( HTTP.hasArg(name) ) {
-		if( turn_display == 0 ) {
-			turn_display = 1;
-			need_save = true;
-		}
-	} else {
-		if( turn_display > 0 ) {
-			turn_display = 0;
+		if( HTTP.arg(name).toInt() != turn_display ) {
+			turn_display = constrain(HTTP.arg(name).toInt(), 0, 3);
 			need_save = true;
 		}
 	}

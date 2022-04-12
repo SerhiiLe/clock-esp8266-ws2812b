@@ -8,10 +8,6 @@
 #include "defines.h"
 
 // **************** НАСТРОЙКИ ****************
-#define MIRR_V 0          // отразить текст по вертикали (0 / 1)
-#define MIRR_H 0          // отразить текст по горизонтали (0 / 1)
-
-#define TEXT_HEIGHT 0     // высота, на которой бежит текст (от низа матрицы)
 #define LET_WIDTH 5       // ширина буквы шрифта
 #define LET_HEIGHT 8      // высота буквы шрифта
 #define SPACE 1           // пробел
@@ -69,7 +65,6 @@ int16_t drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t colo
 	int8_t start_pos = 0, finish_pos = LW;
 	int8_t LH = t >> 4; // высота буквы
 	if (LH > HEIGHT) LH = HEIGHT;
-	int8_t offset_y = (HEIGHT - LH) >> 1; // по центру матрицы по высоте
 
  	CRGB letterColor;
 	if(color == 1) letterColor = CHSV(byte(offset << 3), 255, 255);
@@ -82,19 +77,11 @@ int16_t drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t colo
 	if( offset > WIDTH - LW ) finish_pos = WIDTH - offset;
 
 	for (int8_t x = start_pos; x < finish_pos; x++) {
-		byte thisByte;
-		if (MIRR_V) thisByte = getFont(letter, LW - 1 - x);
-		else thisByte = getFont(letter, x);
-
-		for (int8_t y = 0; y < LH; y++) {
-			bool thisBit;
-
-			if (MIRR_H)	thisBit = thisByte & (1 << y);
-			else thisBit = thisByte & (1 << (LH - 1 - y));
-
-			// рисуем столбец (x - горизонтальная позиция, y - вертикальная)
-			if (thisBit) drawPixelXY(offset + x, offset_y + TEXT_HEIGHT + y, led_brightness > 1 && fl_5v ? letterColor: CRGB::Red);
-		}
+		// отрисовка столбца (x - горизонтальная позиция, y - вертикальная)
+		uint8_t fontColumn = getFont(letter, x);
+		for (int8_t y = 0; y < LH; y++)
+			if(fontColumn & (1 << (LH - 1 - y))) 
+				drawPixelXY(offset + x, TEXT_BASELINE + y, led_brightness > 1 && fl_5v ? letterColor: CRGB::Red);
 	}
 	return LW;
 }
