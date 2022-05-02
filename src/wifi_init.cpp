@@ -27,10 +27,10 @@ void wifi_setup() {
 	//automatically connect using saved credentials if they exist
 	//If connection fails it starts an access point with the specified name
 	if(wm.autoConnect()) {
-		Serial.println("connected...yeey :)");
+		LOG(println, PSTR("WiFi is connected :)"));
 	} else {
-		Serial.println("Wifi not connected");
-		if(wm.getWiFiIsSaved()) initRString(F("WiFi не подключился!"),CRGB::White);
+		LOG(println, PSTR("WiFi is not connected"));
+		if(wm.getWiFiIsSaved()) initRString(PSTR("WiFi не подключился!"),CRGB::White);
 		else wifi_startConfig(true);
 	}
 }
@@ -39,12 +39,12 @@ void wifi_process() {
 	if(WiFi.status() == WL_CONNECTED) {
 		if( ! wifi_isConnected ) {
 			wifi_isConnected = true;
-			Serial.println("Wifi connected");
+			LOG(println, PSTR("WiFi now is connected"));
 		}
 	} else {
 		if( wifi_isConnected ) {
 			wifi_isConnected = false;
-			Serial.println("No Wifi");
+			LOG(println, PSTR("No WiFi now"));
 		}
 		wm.process();
 	}
@@ -64,7 +64,7 @@ void wifi_startConfig(bool fl) {
 		}
 		wm.setConfigPortalBlocking(false);
 		wm.startConfigPortal(SSID);
-		Serial.println("ConfigPortal running");
+		LOG(println, PSTR("ConfigPortal is started"));
 		wifi_message = F("Для настройки WiFi подключитесь к \"")+String(SSID)+F("\", IP: 192.168.4.1");
 		initRString(wifi_message,CRGB::White);
 		wifi_isPortal = true;
@@ -75,7 +75,7 @@ void wifi_startConfig(bool fl) {
 			initRString(PSTR("WiFi для настройки отключен."),CRGB::White);
 			wifi_isPortal = false;
 			if(wm.getConfigPortalActive()) wm.stopConfigPortal();
-			Serial.println("Configportal stopped");
+			LOG(println, PSTR("ConfigPortal is stopped"));
 			return;
 		}
 		initRString(PSTR("Сначала надо настроить WiFi."),CRGB::White);

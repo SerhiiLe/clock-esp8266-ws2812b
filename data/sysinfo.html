@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<header>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>System information</title>
+	<style>
+		div#shadow {background-color:rgba(0,0,0,0.8); z-index:2000; width:100%; height:100%; position:absolute; left:0; top:0;}
+		div#shadow div {position: absolute; top: 50%; transform: translate(-50%, -50%); left: 50%; margin-right: -50%; font-size: x-large; color: yellow;}
+	</style>
+	<link rel="stylesheet" href="styles.css">
+	<link rel="shortcut icon" href="favicon.ico"/>
+	<link rel="icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<script src="functions.js" type="text/javascript" encoding="UTF-8"></script>
+</header>
+<html>
+	<body>
+		<div class="head">
+			Управление часами.
+			<div>Системная информация</div>
+		</div>
+		<div class="content">
+			<table class="params">
+				<tbody>
+					<tr>
+						<td>Uptime</td>
+						<td><span id="Uptime"></span></td>
+					</tr>
+					<tr>
+						<td>Time</td>
+						<td><span id="Time"></span></td>
+					</tr>
+					<tr>
+						<td>Date</td>
+						<td><span id="Date"></span></td>
+					</tr>
+					<tr>
+						<td>Illumination</td>
+						<td><span id="Illumination"></span></td>
+					</tr>
+					<tr>
+						<td>Led Brightness</td>
+						<td><span id="LedBrightness"></span></td>
+					</tr>
+					<tr>
+						<td>Power</td>
+						<td><span id="fl_5v"></span></td>
+					</tr>
+					<tr>
+						<td>Free Heap</td>
+						<td><span id="FreeHeap"></span> bytes</td>
+					</tr>
+					<tr>
+						<td>Max Free Block Size</td>
+						<td><span id="MaxFreeBlockSize"></span> bytes</td>
+					</tr>
+					<tr>
+						<td>Heap Fragmentation</td>
+						<td><span id="HeapFragmentation"></span> %</td>
+					</tr>
+					<tr>
+						<td>Cpu Freq</td>
+						<td><span id="CpuFreqMHz"></span> MHz</td>
+					</tr>
+					<tr>
+						<td>Reset Reason</td>
+						<td><span id="ResetReason"></span></td>
+					</tr>
+					<tr>
+						<td>Platform Version</td>
+						<td><span id="FullVersion"></span></td>
+					</tr>
+				</tbody>
+			</table>
+			<button onclick="getInfo()">Обновить</button>
+		</div>
+		<div class="footer">
+			<a href="maintenance.html">Вернуться</a>
+		</div>
+		<div id="shadow"><div>Загрузка...</div></div>
+	</body>
+<script type="text/javascript" encoding="UTF-8">
+function parseInfo(doc) {
+	for (var key in doc) {
+		switch(key) {
+			case "Uptime": $g(key).innerHTML = doc[key].replace(/,/g, "<br>"); break;
+			case "Time": $g(key).innerHTML = doc[key].replace(/(\d+)\D(\d+)/g, "$1:$2"); break;
+			case "fl_5v": $g(key).innerHTML = doc[key] ? "Main": "Reserve"; break;
+			case "FullVersion": $g(key).innerHTML = doc[key].replace(/\//g, "<br>"); break;
+			default: $g(key).innerHTML = doc[key];
+		}
+	}
+}
+function getInfo() {
+	ajaxRequest("sysinfo","GET",null, function(ajaxResp) {
+		parseInfo(JSON.parse(httpGet("sysinfo")));
+	}, dummy);
+}
+function start() {
+	if (typeof ajaxRequest !== "undefined") {
+		parseInfo(JSON.parse(httpGet("sysinfo")));
+		$g("shadow").style.display = "none";
+	} else setTimeout(start, 100);
+}
+start();
+</script>
+</html>

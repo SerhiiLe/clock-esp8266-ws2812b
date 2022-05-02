@@ -144,9 +144,8 @@ void display_tick() {
 	do {
 		start = micros();
 		FastLED.show();
-		// if(abs((long)(micros()-start-REFRESH_TIME))>(REFRESH_TIME >> 2)) {
-		// 	Serial.printf_P(PSTR("время обновления: %d (%d)\n"),micros()-start, REFRESH_TIME);
-		// }
+		// if(abs((long)(micros()-start-REFRESH_TIME))>(REFRESH_TIME >> 2))
+			// LOG(printf_P, PSTR("время обновления: %d (%d)\n"), micros()-start, REFRESH_TIME);
 	} while (abs((long)(micros()-start-REFRESH_TIME))>(REFRESH_TIME >> 2));
 	// очистить буфер для заполнения новыми данными, чтобы не накладывались кадры
 	FastLED.clearData();

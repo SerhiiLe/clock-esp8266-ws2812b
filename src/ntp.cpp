@@ -11,21 +11,21 @@ time_t start_time = 0;
 bool fl_needStartTime = true;
 bool fl_timeNotSync = true;
 
-time_t syncTime() {
+void syncTime() {
 	int tz           = tz_shift;
 	int dst          = tz_dst;
 	time_t now       = time(nullptr);
 	unsigned timeout = 1000; // try for timeout
 	unsigned start   = millis();
 	configTime(tz * 3600, dst * 3600, "pool.ntp.org", "time.nist.gov");
-	Serial.print("Waiting for NTP time sync: ");
-	while (now < 86400 ) { // Сутки от 1го января 1970. Повторять пока время не установится
-		delay(20);
-		Serial.print(".");
+	LOG(print, PSTR("Waiting for NTP time sync: "));
+	while (now < 86400 ) { // Сутки от 1го января 1970. Ждать пока время не установится. При повторной синхронизации не ждать.
+		delay(20); // запрос происходит в асинхронном режиме и ждать первого обновления не обязательно, но для упрощения логики желательно
+		LOG(print, ".");
 		now = time(nullptr);
 		if((millis() - start) > timeout) {
-			Serial.println("\n[ERROR] Failed to get NTP time.");
-			return -1;
+			LOG(println, PSTR("\n[ERROR] Failed to get NTP time."));
+			return;
 		}
 	}
 	if(fl_needStartTime) {
@@ -35,7 +35,7 @@ time_t syncTime() {
 		last_telegram = now;
 	}
 	fl_timeNotSync = false;
-	return now;
+	LOG(println, now);
 }
 
 // Function that gets current epoch time

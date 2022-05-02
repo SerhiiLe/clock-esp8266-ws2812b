@@ -60,15 +60,9 @@ void load_config_main() {
 	File configFile = LittleFS.open(F("/config.json"), "r");
 	if (!configFile) {
 		// если файл не найден  
-		Serial.println(F("Failed to open main config file"));
+		LOG(println, PSTR("Failed to open main config file"));
 		//  Создаем файл запив в него данные по умолчанию
 		save_config_main();
-		return;
-	}
-	// Проверяем размер файла, будем использовать файл размером меньше 1024 байта
-	size_t size = configFile.size();
-	if (size > 820) {
-		Serial.println(F("Config file size is too large"));
 		return;
 	}
 
@@ -77,8 +71,7 @@ void load_config_main() {
 
 	// Test if parsing succeeds.
 	if (error) {
-		Serial.print(F("deserializeJson() failed: "));
-		Serial.println(error.f_str());
+		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());
 		return;
 	}
 
@@ -129,8 +122,7 @@ void load_config_main() {
 	web_login = doc[F("web_login")].as<String>();
 	web_password = doc[F("web_password")].as<String>();
 
-	Serial.print(F("размер объекта config: "));
-	Serial.println(doc.memoryUsage());
+	LOG(printf_P, PSTR("размер объекта config: %i\n"), doc.memoryUsage());
 }
 
 void save_config_main() {
@@ -177,7 +169,7 @@ void save_config_main() {
 
 	File configFile = LittleFS.open(F("/config.json"), "w"); // открытие файла на запись
 	if (!configFile) {
-		Serial.println("Failed to open config file for writing");
+		LOG(println, PSTR("Failed to open config file for writing"));
 		return;
 	}
 	serializeJson(doc, configFile); // Записываем строку json в файл
@@ -185,8 +177,7 @@ void save_config_main() {
 	configFile.close(); // не забыть закрыть файл
 	delay(2);
 
-	Serial.print(F("размер объекта config: "));
-	Serial.println(doc.memoryUsage());
+	LOG(printf_P, PSTR("размер объекта config: %i\n"), doc.memoryUsage());
 }
 
 void load_config_alarms() {
@@ -195,14 +186,9 @@ void load_config_alarms() {
 	File configFile = LittleFS.open(F("/alarms.json"), "r");
 	if (!configFile) {
 		// если файл не найден  
-		Serial.println(F("Failed to open config for alarms file"));
+		LOG(println, PSTR("Failed to open config for alarms file"));
 		//  Создаем файл запив в него данные по умолчанию
 		save_config_alarms();
-		return;
-	}
-	size_t size = configFile.size();
-	if (size > 512) {
-		Serial.println(F("Config file size is too large (alarms.json)"));
 		return;
 	}
 
@@ -211,8 +197,7 @@ void load_config_alarms() {
 	
 	// Test if parsing succeeds.
 	if (error) {
-		Serial.print(F("deserializeJson() failed: "));
-		Serial.println(error.f_str());
+		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());
 		return;
 	}
 
@@ -223,8 +208,7 @@ void load_config_alarms() {
 		alarms[i].melody = doc[i]["me"];
 	}
 
-	Serial.print(F("размер объекта alarms: "));
-	Serial.println(doc.memoryUsage());
+	LOG(printf_P, PSTR("размер объекта alarms: %i\n"), doc.memoryUsage());
 }
 
 void save_config_alarms() {
@@ -239,7 +223,7 @@ void save_config_alarms() {
 
 	File configFile = LittleFS.open(F("/alarms.json"), "w"); // открытие файла на запись
 	if (!configFile) {
-		Serial.println(F("Failed to open config file for writing"));
+		LOG(println, PSTR("Failed to open config file for writing"));
 		return;
 	}
 	serializeJson(doc, configFile); // Записываем строку json в файл
@@ -247,8 +231,7 @@ void save_config_alarms() {
 	configFile.close(); // не забыть закрыть файл
 	delay(2);
 
-	Serial.print(F("размер объекта alarms: "));
-	Serial.println(doc.memoryUsage());
+	LOG(printf_P, PSTR("размер объекта alarms: %i\n"), doc.memoryUsage());
 }
 
 void load_config_texts() {
@@ -257,14 +240,9 @@ void load_config_texts() {
 	File configFile = LittleFS.open(F("/texts.json"), "r");
 	if (!configFile) {
 		// если файл не найден  
-		Serial.println(F("Failed to open config for texts file"));
+		LOG(println, PSTR("Failed to open config for texts file"));
 		//  Создаем файл запив в него данные по умолчанию
 		save_config_texts();
-		return;
-	}
-	size_t size = configFile.size();
-	if (size > 1024) {
-		Serial.println(F("Config file size is too large (texts)"));
 		return;
 	}
 
@@ -273,8 +251,7 @@ void load_config_texts() {
 	
 	// Test if parsing succeeds.
 	if (error) {
-		Serial.print(F("deserializeJson() failed: "));
-		Serial.println(error.f_str());
+		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());
 		return;
 	}
 
@@ -288,9 +265,7 @@ void load_config_texts() {
 		textTimer[i].setInterval(texts[i].period*1000U);
 	}
 
-	Serial.print(F("размер объекта texts: "));
-	Serial.println(doc.memoryUsage());
-
+	LOG(printf_P, PSTR("размер объекта texts: %i\n"), doc.memoryUsage());
 }
 
 void save_config_texts() {
@@ -306,7 +281,7 @@ void save_config_texts() {
 
 	File configFile = LittleFS.open(F("/texts.json"), "w"); // открытие файла на запись
 	if (!configFile) {
-		Serial.println("Failed to open config file for writing (texts)");
+		LOG(println, PSTR("Failed to open config file for writing (texts)"));
 		return;
 	}
 	serializeJson(doc, configFile); // Записываем строку json в файл
@@ -314,8 +289,7 @@ void save_config_texts() {
 	configFile.close(); // не забыть закрыть файл
 	delay(2);
 
-	Serial.print(F("размер объекта texts: "));
-	Serial.println(doc.memoryUsage());
+	LOG(printf_P, PSTR("размер объекта texts: %i\n"), doc.memoryUsage());
 }
 
 void load_config_security() {
@@ -324,14 +298,9 @@ void load_config_security() {
 	File configFile = LittleFS.open(F("/security.json"), "r");
 	if (!configFile) {
 		// если файл не найден  
-		Serial.println(F("Failed to open config for texts file"));
+		LOG(println, PSTR("Failed to open config for texts file"));
 		//  Создаем файл запив в него данные по умолчанию
 		save_config_security();
-		return;
-	}
-	size_t size = configFile.size();
-	if (size > 100) {
-		Serial.println(F("Config file size is too large (security)"));
 		return;
 	}
 
@@ -340,16 +309,14 @@ void load_config_security() {
 	
 	// Test if parsing succeeds.
 	if (error) {
-		Serial.print(F("deserializeJson() failed: "));
-		Serial.println(error.f_str());
+		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());
 		return;
 	}
 
 	sec_enable = doc[F("sec_enable")];
 	sec_curFile = doc[F("sec_curFile")];
 
-	Serial.print(F("размер объекта security: "));
-	Serial.println(doc.memoryUsage());
+	LOG(printf_P, PSTR("размер объекта security: %i\n"), doc.memoryUsage());
 }
 
 void save_config_security() {
@@ -361,7 +328,7 @@ void save_config_security() {
 
 	File configFile = LittleFS.open(F("/security.json"), "w"); // открытие файла на запись
 	if (!configFile) {
-		Serial.println("Failed to open config file for writing (texts)");
+		LOG(println, PSTR("Failed to open config file for writing (texts)"));
 		return;
 	}
 	serializeJson(doc, configFile); // Записываем строку json в файл
@@ -369,8 +336,7 @@ void save_config_security() {
 	configFile.close(); // не забыть закрыть файл
 	delay(2);
 
-	Serial.print(F("размер объекта security: "));
-	Serial.println(doc.memoryUsage());
+	LOG(printf_P, PSTR("размер объекта security: %i\n"), doc.memoryUsage());
 }
 
 // чтение последних cnt строк лога
@@ -423,13 +389,13 @@ void save_log_file(uint8_t mt) {
 	File logFile = LittleFS.open(fileName, "a");
 	if (!logFile) {
 		// не получилось открыть файл на дополнение
-		Serial.println(F("Failed to open log file"));
+		LOG(println, PSTR("Failed to open log file"));
 		return;
 	}
 	// проверка, не превышен ли лимит размера файла, если да, то открыть второй файл.
 	size_t size = logFile.size();
 	if (size > SEC_LOG_MAXFILE) {
-		Serial.println(F("Log file size is too large, switch file"));
+		LOG(println, PSTR("Log file size is too large, switch file"));
 		logFile.close();
 		sec_curFile = (sec_curFile+1) % SEC_LOG_COUNT;
 		save_config_security();
@@ -437,7 +403,7 @@ void save_log_file(uint8_t mt) {
 		logFile = LittleFS.open(fileName, "w");
 		if (!logFile) {
 			// ошибка создания файла
-			Serial.println(F("Failed to open new log file"));
+			LOG(println, PSTR("Failed to open new log file"));
 			return;
 		}
 	}
@@ -455,7 +421,7 @@ void save_log_file(uint8_t mt) {
 	}
 	snprintf_P(str, SEC_LOG_MAX, PSTR("%04u-%02u-%02u %02u:%02u:%02u : %s"), t.tm_year +1900, t.tm_mon +1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, lm);
 
-	Serial.println(str);
+	LOG(println, str);
 	logFile.println(str);
 
 	logFile.flush();

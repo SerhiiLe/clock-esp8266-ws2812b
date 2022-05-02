@@ -82,6 +82,10 @@
 							<td><input name="tz_dst" type="checkbox" value="1"></td>
 						</tr>
 						<tr>
+							<td>Периодичность синхронизации ntp в минутах.</td>
+							<td><input name="sync_time_period" type="number" value="60"></td>
+						</tr>
+						<tr>
 							<td colspan="2" class="center i b">Отображение времени и даты</td>
 						</tr>
 						<tr>
@@ -161,7 +165,7 @@
 							</td>
 						</tr>
 						<tr class="bright1">
-							<td>Усиление датчика освещённости в процентах (от 1 до 250)</td>
+							<td>Усиление датчика освещённости в процентах (от 1 до 1000)</td>
 							<td><input name="br_boost" type="number" value="100"></td>
 						</tr>
 						<tr>
@@ -180,6 +184,10 @@
 							</td>
 						</tr>
 						<tr>
+							<td>Задержка между обновлениями бегущей строки в миллисекундах, определяет скорость движения (>20)</td>
+							<td><input name="scroll_period" type="number" value="0"></td>
+						</tr>
+						<tr>
 							<td colspan="2" class="center i b">Будильник</td>
 						</tr>
 						<tr>
@@ -193,17 +201,6 @@
 						<tr>
 							<td>Период увеличения громкости (от 1 до 30 сек.)</td>
 							<td><input name="volume_period" type="number" value="5"></td>
-						</tr>
-						<tr>
-							<td colspan="2" class="center i b">Периодичность</td>
-						</tr>
-						<tr>
-							<td>Периодичность синхронизации ntp в минутах.</td>
-							<td><input name="sync_time_period" type="number" value="60"></td>
-						</tr>
-						<tr>
-							<td>Задержка между обновлениями бегущей строки в миллисекундах, определяет скорость движения (>20)</td>
-							<td><input name="scroll_period" type="number" value="0"></td>
 						</tr>
 						<tr>
 							<td colspan="2" class="center i b">Уведомления в Telegram</td>

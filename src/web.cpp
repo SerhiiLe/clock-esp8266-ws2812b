@@ -14,6 +14,7 @@
 #include "ntp.h"
 #include "dfplayer.h"
 #include "security.h"
+#include "clock.h"
 
 ESP8266WebServer HTTP(80);
 ESP8266HTTPUpdateServer httpUpdater;
@@ -24,6 +25,7 @@ void save_alarm();
 void off_alarm();
 void save_text();
 void off_text();
+void sysinfo();
 void play();
 void maintence();
 void onoff();
@@ -58,6 +60,7 @@ void web_process() {
 		HTTP.on(F("/off_alarm"), off_alarm);
 		HTTP.on(F("/save_text"), save_text);
 		HTTP.on(F("/off_text"), off_text);
+		HTTP.on(F("/sysinfo"), sysinfo);
 		HTTP.on(F("/play"), play);
 		HTTP.on(F("/clear"), maintence);
 		HTTP.on(F("/onoff"), onoff);
@@ -355,7 +358,7 @@ void save_settings() {
 	name = F("br_boost");
 	if( HTTP.hasArg(name) ) {
 		if( HTTP.arg(name).toInt() != br_boost ) {
-			br_boost = constrain(HTTP.arg(name).toInt(), 1, 250);
+			br_boost = constrain(HTTP.arg(name).toInt(), 1, 1000);
 			need_save = true;
 		}
 	}
@@ -495,22 +498,22 @@ void maintence() {
 	initRString(PSTR("Сброс"));
 	if( HTTP.hasArg("t") ) {
 		if( HTTP.arg("t") == "t" && LittleFS.exists(F("/texts.json")) ) {
-			Serial.println(F("reset texts"));
+			LOG(println, PSTR("reset texts"));
 			LittleFS.remove(F("/texts.json"));
 			reboot_clock();
 		}
 		if( HTTP.arg("t") == "a" && LittleFS.exists(F("/alarms.json")) ) {
-			Serial.println(F("reset alarms"));
+			LOG(println, PSTR("reset alarms"));
 			LittleFS.remove(F("/alarms.json"));
 			reboot_clock();
 		}
 		if( HTTP.arg("t") == "c" && LittleFS.exists(F("/config.json")) ) {
-			Serial.println(F("reset settings"));
+			LOG(println, PSTR("reset settings"));
 			LittleFS.remove(F("/config.json"));
 			reboot_clock();
 		}
 		if( HTTP.arg("t") == "l" ) {
-			Serial.println(F("erase logs"));
+			LOG(println, PSTR("erase logs"));
 			char fileName[32];
 			for(int8_t i=0; i<SEC_LOG_COUNT; i++) {
 				sprintf_P(fileName, SEC_LOG_FILE, i);
@@ -585,7 +588,7 @@ void off_alarm() {
 			alarms[target].settings &= ~(512U);
 			save_config_alarms();
 			text_send("1");
-			initRString(PSTR("Будильник отключен"));
+			initRString(PSTR("Будильник отключён"));
 		}
 	} else
 		text_send("0");
@@ -654,7 +657,7 @@ void save_text() {
 	HTTP.send(303);
 	delay(1);
 	if( need_save ) save_config_texts();
-	initRString(PSTR("Текст включен"));
+	initRString(PSTR("Текст установлен"));
 }
 
 // отключение бегущей строки
@@ -668,7 +671,7 @@ void off_text() {
 			texts[target].repeat_mode &= ~(512U);
 			save_config_texts();
 			text_send("1");
-			initRString(PSTR("Текст отключен"));
+			initRString(PSTR("Текст отключён"));
 		}
 	} else
 		text_send("0");
@@ -786,4 +789,23 @@ void onoff() {
 		}
 	}
 	text_send(cond?"1":"0");
+}
+
+void sysinfo() {
+	if(is_no_auth()) return;
+	char buf[100];
+	HTTP.client().print(PSTR("HTTP/1.1 200\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n{"));
+	HTTP.client().printf_P(PSTR("\"Uptime\":\"%s\","), getUptime(buf));
+	HTTP.client().printf_P(PSTR("\"Time\":\"%s\","), clockCurrentText(buf));
+	HTTP.client().printf_P(PSTR("\"Date\":\"%s\","), dateCurrentTextLong(buf));
+	HTTP.client().printf_P(PSTR("\"Illumination\":%i,"), analogRead(PIN_PHOTO_SENSOR));
+	HTTP.client().printf_P(PSTR("\"LedBrightness\":%i,"), led_brightness);
+	HTTP.client().printf_P(PSTR("\"fl_5v\":%i,"), fl_5v);
+	HTTP.client().printf_P(PSTR("\"FreeHeap\":%i,"), ESP.getFreeHeap());
+	HTTP.client().printf_P(PSTR("\"MaxFreeBlockSize\":%i,"), ESP.getMaxFreeBlockSize());
+	HTTP.client().printf_P(PSTR("\"HeapFragmentation\":%i,"), ESP.getHeapFragmentation());
+	HTTP.client().printf_P(PSTR("\"CpuFreqMHz\":%i,"), ESP.getCpuFreqMHz());
+	HTTP.client().printf_P(PSTR("\"ResetReason\":\"%s\","), ESP.getResetReason().c_str());
+	HTTP.client().printf_P(PSTR("\"FullVersion\":\"%s\"}"), ESP.getFullVersion().c_str());
+	HTTP.client().stop();
 }

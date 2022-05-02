@@ -1,4 +1,8 @@
-// "охрана", информирование о срабатывании датчика движения
+/*
+	"охрана"
+	информирование о срабатывании датчика движения
+	работа с telegram
+*/
 
 #include <Arduino.h>
 #include <FastBot.h>
@@ -23,14 +27,15 @@ FastBot tb;
 void inMsg(FB_msg& msg);
 bool fl_secretWanted = false;
 time_t last_telegram = 0;
-bool fl_accelTelegram = false;
+time_t disable_telegram = 0;
 
+// Установка токена и списка подписаных чатов
 void setup_telegram() {
-	// tb.setChatID(tb_chats);
+	// tb.setChatID(tb_chats); // не нужно, так как передаётся при каждой отправке
 	tb.setToken(tb_token);
 }
 
-// инициализация бота
+// Инициализация бота
 void init_telegram() {
 	setup_telegram();
 	tb.setLimit(MAX_MESSAGES);
@@ -38,28 +43,43 @@ void init_telegram() {
 	tb.attach(inMsg);
 }
 
+// Опрос телеграмм в ожидании команд для обработки
 void tb_tick() {
-	tb.tickManual();
+	if(disable_telegram) {
+		if(getTimeU() - disable_telegram > TELEGRAM_BAN) disable_telegram = 0;
+	} else {
+		// проверка времени ускорения работы telegram
+		if(last_telegram)
+			if(getTimeU() - last_telegram > TELEGRAM_ACCELERATE) {
+				telegramTimer.setInterval(1000U * tb_rate);
+				last_telegram = 0;
+			}
+		// собственно сам запрос новых сообщений телеграм
+		if( tb.tickManual() != 1 ) disable_telegram = getTimeU();
+	}
 }
 
+// Отправка сообщения о сработке датчика во все подписанные чаты телеграмм
 void tb_send_msg(String s) {
 	if(sec_enable) {
-		Serial.print(F("Send to telegram: "));
-		Serial.println(tb.sendMessage(s,tb_chats));
-		// tb.sendMessage(s,tb_chats);
+		#ifdef DEBUG
+		LOG(printf_P, PSTR("Send to telegram: %i\n"), tb.sendMessage(s,tb_chats));
+		#else
+		tb.sendMessage(s,tb_chats);
+		#endif
 		save_log_file(SEC_TEXT_MOVE);
 	}
 }
 
+// Обработка входящего сообщения телеграмм
 void inMsg(FB_msg& msg) {
 	char buf[100];
 
 	// выводим ID чата, имя юзера и текст сообщения
-	Serial.printf_P(PSTR("From telegram:%s;%s;%s;%s;%s.\n"),msg.chatID,msg.username,msg.first_name,msg.ID,msg.text);
+	LOG(printf_P, PSTR("From telegram:%s;%s;%s;%s;%s.\n"),msg.chatID,msg.username,msg.first_name,msg.ID,msg.text);
 
-	if(!fl_accelTelegram && tb_rate > 10) {
-		telegramTimer.setInterval(10000);
-		fl_accelTelegram = true;
+	if(last_telegram == 0 && tb_rate > TELEGRAM_ACCELERATED) {
+		telegramTimer.setInterval(1000U * TELEGRAM_ACCELERATED);
 	}
 	last_telegram = getTimeU();
 
@@ -93,7 +113,8 @@ void inMsg(FB_msg& msg) {
 
 	if(fl_auth) {
 		if(msg.text.startsWith(F("last"))) {
-			tb.sendMessage(read_log_file(constrain(msg.text.substring(msg.text.lastIndexOf(" ")).toInt(), 1, 40)), msg.chatID);
+			// ограничение в 48 строк лога из-за ограничение на стек в 2кб. (48*40=1920 + переменные)
+			tb.sendMessage(read_log_file(constrain(msg.text.substring(msg.text.lastIndexOf(" ")).toInt(), 1, 48)), msg.chatID);
 			return;
 		} else
 		if(msg.text == F("uptime")) {
@@ -172,7 +193,7 @@ void inMsg(FB_msg& msg) {
 		return;
 	} else
 	if(msg.text == F("help")) {
-		Serial.println(tb.sendMessage(F("Все возможности в меню:%0AStart - показать меню,%0AStop - спрятать меню."), msg.chatID));
+		tb.sendMessage(F("Все возможности в меню:%0AStart - показать меню,%0AStop - спрятать меню."), msg.chatID);
 		return;
 	}
 	tb.sendMessage(F("Что? Не понятно..."), msg.chatID);

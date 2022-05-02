@@ -58,7 +58,7 @@ uint8_t getFont(uint32_t letter, uint8_t col) {
 // index - порядковый номер буквы в тексте, нужно для подсвечивания разными цветами
 // letter - буква, которую надо отобразить
 // offset - позиция на экране. Может быть отрицательной, если буква уже уехала или больше ширины, если ещё не доехала
-// color - режим цвета (1 - радуга, 2 - по букве) или номер цвета в CHSV (оттенок, насыщенность, яркость) (0,0,255 - белый)
+// color - режим цвета (1 - радуга: текст "переливается", 2 - по букве, 3 - режим циферблата: 2+1+2) или цвет в CRGB (прозрачность, красный, зелёный, синий)
 int16_t drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t color) {
 	uint8_t t = getFont(letter, LET_WIDTH);
 	int8_t LW = t & 0xF; // ширина буквы
@@ -67,7 +67,7 @@ int16_t drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t colo
 	if (LH > HEIGHT) LH = HEIGHT;
 
  	CRGB letterColor;
-	if(color == 1) letterColor = CHSV(byte(offset << 3), 255, 255);
+	if(color == 1) letterColor = CHSV(byte(offset << 3), 255, 255); // цвет в CHSV (прозрачность, оттенок, насыщенность, яркость) (0,0,255 - белый)
 	else if(color == 2) letterColor = CHSV(byte(index << 5), 255, 255);
 	else if(color == 3) letterColor = show_time_col[index % 5];
 	else letterColor = color;
@@ -90,7 +90,7 @@ int16_t drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t colo
 // runningMode: true - разовый вывод, false - прокрутка текста
 // _runningText: буфер который надо отобразить
 // currentOffset: позиция с которой надо отобразить
-// screenIsFree: есть ли подготовленные данные, иначе пропускать
+// screenIsFree: отрисовка завершена, экран свободен для нового задания
 void drawString() {
 	int16_t i = 0, j = 0, delta = 0;
 	uint32_t c;

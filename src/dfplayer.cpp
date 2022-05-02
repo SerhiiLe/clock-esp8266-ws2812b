@@ -39,8 +39,10 @@ void mp3_update() {
 		mp3_current = dfPlayer.readCurrentFileNumber();
 }
 
+// DFPlayer медленный и любит при каждом чихе отваливаться, по этому много проверок и задержек. Некрасиво, но работает достаточно устойчиво.
+
 void mp3_init() {
-	Serial.println(F("init mp3 player"));
+	LOG(println, PSTR("init mp3 player"));
 	if( mp3_isInit ) {
 		mp3Serial.flush();
 		dfPlayer.reset();
@@ -95,16 +97,14 @@ void mp3_play(int t) {
 	if( ! mp3_isInit ) mp3_init();
 	if( mp3_all == 0 ) return;
 	if( t < 1 || t > mp3_all ) return;
-	Serial.print(F("want track: "));
-	Serial.println(t);
+	LOG(printf_P, PSTR("want track: %i\n"),t);
 	if( ! mp3_isplay() ) dfPlayer.start();
 	delay(100);
 	if(dfPlayer.readCurrentFileNumber() != t) {
 		int cur = 0, old = 0, cnt = 0;
 		while(true) {
 			cur = dfPlayer.readCurrentFileNumber();
-			Serial.print(F("track: "));
-			Serial.println(cur);
+			LOG(printf_P, PSTR("track: %i\n"),cur);
 			if( cur<0 ) {
 				mp3_init();
 				delay(10);
@@ -183,76 +183,68 @@ void mp3_randomAll() {
 void mp3_messages(uint8_t type, int value) {
 switch (type) {
 	case TimeOut:
-		Serial.println(F("Time Out!"));
+		LOG(println, PSTR("Time Out!"));
 		break;
 	case WrongStack:
-		Serial.println(F("Stack Wrong!"));
+		LOG(println, PSTR("Stack Wrong!"));
 		break;
 	case DFPlayerCardInserted:
-		Serial.println(F("Card Inserted!"));
+		LOG(println, PSTR("Card Inserted!"));
 		break;
 	case DFPlayerCardRemoved:
-		Serial.println(F("Card Removed!"));
+		LOG(println, PSTR("Card Removed!"));
 		mp3_all = 0;
 		break;
 	case DFPlayerCardOnline:
-		Serial.println(F("Card Online!"));
+		LOG(println, PSTR("Card Online!"));
 		mp3_reread();
 		break;
 	case DFPlayerUSBInserted:
-		Serial.println(F("USB Inserted!"));
+		LOG(println, PSTR("USB Inserted!"));
 		break;
 	case DFPlayerUSBRemoved:
-		Serial.println(F("USB Removed!"));
+		LOG(println, PSTR("USB Removed!"));
 		break;
 	case DFPlayerPlayFinished:
-		Serial.print(F("Number:"));
-		Serial.print(value);
-		Serial.println(F(" Play Finished!"));
+		LOG(printf_P, PSTR("Number: %i. Play Finished!\n"),value);
 		dfPlayer.stop();
 		break;
 	case DFPlayerFeedBack:
-		Serial.print(F("Feedback:"));
-		Serial.print(value);
-		Serial.println(F(" Play Finished!"));
+		LOG(printf_P, PSTR("Feedback: %i. Play Finished!\n"),value);
 		mp3_current = value;
 		// dfPlayer.stop();
 		break;
 	case DFPlayerError:
-		Serial.print(F("DFPlayerError:"));
+		LOG(print, PSTR("DFPlayerError:"));
 		switch (value) {
 			case Busy:
-				Serial.println(F("Card not found"));
+				LOG(println, PSTR("Card not found"));
 				break;
 			case Sleeping:
-				Serial.println(F("Sleeping"));
+				LOG(println, PSTR("Sleeping"));
 				break;
 			case SerialWrongStack:
-				Serial.println(F("Get Wrong Stack"));
+				LOG(println, PSTR("Get Wrong Stack"));
 				break;
 			case CheckSumNotMatch:
-				Serial.println(F("Check Sum Not Match"));
+				LOG(println, PSTR("Check Sum Not Match"));
 				break;
 			case FileIndexOut:
-				Serial.println(F("File Index Out of Bound"));
+				LOG(println, PSTR("File Index Out of Bound"));
 				break;
 			case FileMismatch:
-				Serial.println(F("Cannot Find File"));
+				LOG(println, PSTR("Cannot Find File"));
 				break;
 			case Advertise:
-				Serial.println(F("In Advertise"));
+				LOG(println, PSTR("In Advertise"));
 				break;
 			default:
-				Serial.print(F("Unknown error: "));
-				Serial.println(value);
+				LOG(printf_P, PSTR("Unknown error: %i\n"),value);
 				break;
 		}
 		break;
 	default:
-		Serial.print(F("Unknown: "));
-		Serial.print(type);
-		Serial.print(F(" val: "));
-		Serial.println(value);
+		LOG(printf_P, PSTR("Unknown: %i, val: %i\n"),type,value);
 		break;
 	}
 }

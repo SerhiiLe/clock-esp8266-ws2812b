@@ -20,7 +20,7 @@ String read_log_file(int16_t cnt);
 #define SEC_TEXT_BOOT 3		// часы включились (наверное был сбой питания)
 #define SEC_TEXT_POWERED 4	// питание включилось
 #define SEC_TEXT_POWEROFF 5	// питание отключилось
-#define SEC_LOG_MAX 50		// максимальная строка одной записи лога (достаточно должно быть 30, но с запасом)
+#define SEC_LOG_MAX 40		// максимальная строка одной записи лога (35 + символы склейки "%0A" + конец строки \0)
 #define SEC_LOG_MAXFILE 4096	// максимальный размер файла, после которого запись будет во второй файл. (запись по кругу)
 #define SEC_LOG_COUNT 3		// число файлов
 const char SEC_LOG_FILE[] PROGMEM = "/log%u.txt"; // шаблон имени файла

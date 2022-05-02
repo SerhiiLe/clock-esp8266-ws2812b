@@ -45,7 +45,7 @@ timerMinim textTimer[MAX_RUNNING];
 timerMinim alarmTimer(1000);			// для будильника, срабатывает каждую секунду
 timerMinim alarmStepTimer(5000);		// шаг увеличения громкости будильника
 timerMinim demoTimer(33);				// таймер для теста/демонстрации экрана
-timerMinim telegramTimer(1000U * tb_rate); // период опроса команд из Телеграм
+timerMinim telegramTimer(1000U * TELEGRAM_ACCELERATED);	// период опроса команд из Телеграм
 
 // файловая система подключена
 bool fs_isStarted = false;
@@ -72,10 +72,6 @@ bool fl_5v = true;
 // Разрешение отображения на матрице
 bool fl_allowLEDS = true;
 
-void digitalToggle(byte pin){
-  	digitalWrite(pin, !digitalRead(pin));
-}
-
 void setup() {
 	Serial.begin(115200);
 	Serial.println(PSTR("Starting..."));
@@ -85,7 +81,7 @@ void setup() {
 	pinMode(PIN_5V, INPUT);
 #endif
 	pinMode(PIN_RELAY, OUTPUT);
-	digitalWrite(PIN_RELAY, 0);
+	digitalWrite(PIN_RELAY, RELAY_OFF);
 	delay(RELAY_OP_TIME); // задержка на время срабатывания (выключения) рэле. А вообще должно было стоять рэле LOW и тогда после старта оно бы сразу было выключено.
 	display_setup();
 	randomSeed(analogRead(PIN_PHOTO_SENSOR)+analogRead(PIN_PHOTO_SENSOR));
@@ -95,9 +91,9 @@ void setup() {
 	display_tick();
 	if( LittleFS.begin()) {
 		fs_isStarted = true; // встроенный диск подключился
-		Serial.println(PSTR("LittleFS mounted"));
+		LOG(println, PSTR("LittleFS mounted"));
 	} else {
-		Serial.println(PSTR("ERROR LittleFS mount"));
+		LOG(println, PSTR("ERROR LittleFS mount"));
 		initRString(PSTR("Ошибка подключения встроенного диска!!!"));
 	}
 	load_config_main();
@@ -134,9 +130,9 @@ void loop() {
 		// установка времени по ntp.
 		if( fl_timeNotSync )
 			// первичная установка времени. Если по каким-то причинам опрос не удался, повторять не чаще, чем раз в секунду.
-			if( alarmStepTimer.isReady() ) Serial.println(syncTime());
+			if( alarmStepTimer.isReady() ) syncTime();
 		if(ntpSyncTimer.isReady()) // это плановая синхронизация, не критично, если опрос не прошел
-				Serial.println(syncTime());
+			syncTime();
 		// запуск сервисов, которые должны запуститься после запуска сети. (сеть должна подниматься в фоне)
 		ftp_process();
 		web_process();
@@ -147,7 +143,7 @@ void loop() {
 	btn.tick();
 
 	if(btn.isHolded()) {
-		Serial.println("holded");
+		LOG(println, PSTR("holded"));
 
 		if(wifi_isPortal) {
 			initRString(wifi_message,CRGB::White);
@@ -160,7 +156,7 @@ void loop() {
 	if(btn.hasClicks()) // проверка на наличие нажатий
 	switch (btn.getClicks()) {
 		case 1:
-			Serial.println(F("Single"));
+			LOG(println, PSTR("Single"));
 			if(wifi_isPortal) wifi_startConfig(false);
 			else
 			if(!wifi_isConnected)
@@ -176,7 +172,7 @@ void loop() {
 			fl_password_reset_req = false;
 			break;
 		case 2:
-			Serial.println(F("Double"));
+			LOG(println, PSTR("Double"));
 			if(fl_password_reset_req) {
 				web_password = "";
 				initRString(PSTR("Пароль временно отключен. Зайдите в настройки и задайте новый!"),CRGB::OrangeRed);
@@ -184,20 +180,20 @@ void loop() {
 				fl_demo = !fl_demo;
 			break;
 		case 3:
-			Serial.println(F("Triple"));
+			LOG(println, PSTR("Triple"));
 			if(fl_password_reset_req) {
 				if(!wifi_isPortal) wifi_startConfig(true);
 			} else
 				initRString("IP: "+wifi_currentIP());
 			break;
 		case 4:
-			Serial.println(F("Quadruple"));
+			LOG(println, PSTR("Quadruple"));
 			char buf[20];
-			sprintf(buf,"%i -> %i -> %i",analogRead(PIN_PHOTO_SENSOR), old_brightness*br_boost/100, led_brightness);
+			sprintf_P(buf,PSTR("%i -> %i -> %i"),analogRead(PIN_PHOTO_SENSOR), old_brightness*br_boost/100, led_brightness);
 			initRString(buf);
 			break;
 		case 5:
-			Serial.println(F("Fivefold"));
+			LOG(println, PSTR("Fivefold"));
 			initRString(PSTR("Сброс пароля! Для подтверждения - 2й клик! Или 3й для сброса WiFi. 1 клик - отмена."),CRGB::OrangeRed);
 			fl_password_reset_req = true;
 			break;
@@ -214,7 +210,7 @@ void loop() {
 			set_brightness(1);
 			old_brightness = 1;
 		} else {
-			digitalWrite(PIN_RELAY, 0);
+			digitalWrite(PIN_RELAY, RELAY_OFF);
 			if(bright_mode==2) set_brightness(bright0);
 		}
 	}
@@ -231,7 +227,7 @@ void loop() {
 		if(!fl_5v) {
 			// если питания нет, а датчик движения сработал, то запитать матрицу от аккумулятора
 			fl_allowLEDS = cur_motion;
-			digitalWrite(PIN_RELAY, cur_motion);
+			digitalWrite(PIN_RELAY, RELAY_OP(cur_motion));
 			if(fl_allowLEDS && screenIsFree) {
 				// если на экране должно быть время, то сразу его отрисовать
 				// иначе на экране будет непонятно что. Если бежит строка, то
@@ -274,12 +270,6 @@ void loop() {
 		// проверка времени работы бегущей строки
 		i = t.tm_hour*60+t.tm_min;
 		fl_run_allow = run_allow == 0 || (run_allow == 1 && i >= run_begin && i <= run_end);
-		// проверка времени ускорения работы telegram
-		if(fl_accelTelegram)
-			if(getTimeU() - last_telegram > TELEGRAM_TIMEOUT) {
-				telegramTimer.setInterval(1000U * tb_rate);
-				fl_accelTelegram = false;
-			}
 		// перебор всех будильников, чтобы найти активный
 		for(i=0; i<MAX_ALARMS; i++)
 			if(alarms[i].settings & 512) {
