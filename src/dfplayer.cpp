@@ -257,7 +257,7 @@ void mp3_check() {
 
 #else
 // заглушки, если плата DFPlayer не установлена
-boolean mp3_isplay() {return false;}
+boolean mp3_isplay() {return true;}
 void mp3_volume(uint8_t t, boolean p) {}
 void mp3_init() {mp3_isInit = true; mp3_isReady = true;}
 void mp3_check() {}

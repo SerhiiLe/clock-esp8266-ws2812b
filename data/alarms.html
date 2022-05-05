@@ -68,6 +68,9 @@
 									<input type="range" min="1" max="30" step="1" value="15" class="long" id="vol" oninput="sendVol()">
 								</td>
 							</tr>
+							<tr>
+								<td colspan="2">текст:<div style="float:right"><select name="txt" id="txt"></select></div></td>
+							</tr>
 						</tbody>
 					</table>
 					<button>Сохранить</button>
@@ -117,6 +120,7 @@ function show_edit(i) {
 		bit = bit << 1;
 	}
 	f.elements["melody"].value = doc[i].me;
+	f.elements["txt"].selectedIndex = doc[i].t+1;
 	$g("return").setAttribute("onclick","ret();return false;");
 	$g("list").style.display = "none";
 	$g("edit").style.display = "block";
@@ -126,9 +130,14 @@ function print_time(i) {
 	var m = doc[i].m;
 	return (h<10?"0"+h:h)+":"+(m<10?"0"+m:m);
 }
+var texts = [];
 var doc = [];
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
+		doc = JSON.parse(httpGet("texts.json"));
+		$g("txt").appendChild($ee("option","_нет_",{value:-1}));
+		for(var i=0; i<doc.length; i++)
+			$g("txt").appendChild($ee("option", doc[i].t.length>30 ? doc[i].t.substring(0,17)+"..."+doc[i].t.substring(doc[i].t.length-10): doc[i].t, {value:i}));
 		doc = JSON.parse(httpGet("alarms.json"));
 		var li = $g("list_items");
 		for(var i=0; i<doc.length; i++) {

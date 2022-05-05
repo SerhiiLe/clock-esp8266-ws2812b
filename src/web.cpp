@@ -568,6 +568,13 @@ void save_alarm() {
 				need_save = true;
 			}
 		}
+		name = F("txt");
+		if( HTTP.hasArg(name) ) {
+			if( HTTP.arg(name).toInt() != alarms[target].text ) {
+				alarms[target].text = constrain(HTTP.arg(name).toInt(), -1, MAX_RUNNING-1);
+				need_save = true;
+			}
+		}
 	}
 	HTTP.sendHeader(F("Location"),F("/alarms.html"));
 	HTTP.send(303);
@@ -758,7 +765,7 @@ void play() {
 			break;
 	}
 	char buff[20];
-	sprintf(buff,"%i:%i:%i",mp3_current,mp3_all,cur_Volume);
+	sprintf(buff,"%i:%i:%i:%i",mp3_current,mp3_all,cur_Volume,mp3_isplay());
 	text_send(buff);
 }
 

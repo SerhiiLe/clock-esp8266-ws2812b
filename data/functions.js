@@ -83,6 +83,8 @@ function show(a) {
 	vol = a[2];
 	$g("volume").innerHTML = vol;
 	$g("vol").value = vol;
+	var status = $g("status");
+	if(status) status.innerHTML = a[3] == "0" ? "":"*";
 };
 var stime;
 function sendVol() {

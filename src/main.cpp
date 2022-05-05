@@ -36,7 +36,7 @@ GButton btn(PIN_BUTTON, LOW_PULL, NORM_OPEN); // комбинация для с�
 GButton btn(PIN_BUTTON); // комбинация для обычной кнопки
 #endif
 
-timerMinim autoBrightnessTimer(300);	// Таймер отслеживания показаний датчика света при включенной авторегулировки яркости матрицы
+timerMinim autoBrightnessTimer(250);	// Таймер отслеживания показаний датчика света при включенной авторегулировки яркости матрицы
 timerMinim clockTimer(512);				// Таймер, чтобы разделитель часов и минут мигал примерно каждую секунду
 timerMinim scrollTimer(scroll_period);	// Таймер обновления бегущей строки
 timerMinim ntpSyncTimer(60000U * sync_time_period);  // Таймер синхронизации времени с NTP-сервером
@@ -52,7 +52,7 @@ bool fs_isStarted = false;
 // время начала работы будильника
 time_t alarmStartTime = 0;
 // яркость прошлого цикла
-uint16_t old_brightness = 2000;
+int16_t old_brightness = 2000;
 // состояние датчика движения
 bool cur_motion = false;
 // время последней сработки датчика движения
@@ -71,6 +71,8 @@ bool fl_password_reset_req = false;
 bool fl_5v = true;
 // Разрешение отображения на матрице
 bool fl_allowLEDS = true;
+// Текущая мелодия будильника, которая должна играть
+uint8_t active_alarm = 0;
 
 void setup() {
 	Serial.begin(115200);
@@ -248,7 +250,7 @@ void loop() {
 	}
 
 	if(autoBrightnessTimer.isReady() && fl_5v) {
-		uint16_t cur_brightness = analogRead(PIN_PHOTO_SENSOR);
+		int16_t cur_brightness = analogRead(PIN_PHOTO_SENSOR);
 		if(abs(cur_brightness-old_brightness)>1) {
 			// усиление показаний датчика
 			uint16_t val = br_boost!=100 ? cur_brightness*br_boost/100: cur_brightness;
@@ -290,11 +292,13 @@ void loop() {
 						}
 						if(fl_doit) { // будильник сработал
 							if(alarmStartTime == 0) {
+								active_alarm = i;
 								mp3_volume(volume_start); // начинать с маленькой громкости
+								mp3_reread(); // перечитать количество треков, почему-то без этого может не запуститься
+								mp3_enableLoop(); // зациклить мелодию
 								delay(10);
 								mp3_play(alarms[i].melody); // запустить мелодию
-								delay(10);
-								mp3_enableLoop(); // зациклить мелодию
+								alarmStepTimer.reset();
 								alarmStartTime = getTimeU(); // чтобы избежать конфликтов между будильниками на одно время и отсчитывать максимальное время работы
 							}
 							alarms[i].settings = alarms[i].settings | 1024; // установить флаг активности
@@ -312,7 +316,21 @@ void loop() {
 	}
 	// плавное увеличение громкости и ограничение на время работы будильника
 	if(alarmStartTime && alarmStepTimer.isReady()) {
-		if(cur_Volume<volume_finish) mp3_volume(++cur_Volume);
+		i = alarms[active_alarm].text;
+		if(screenIsFree && i >= 0) {
+			// вывод текста только на время работы будильника
+			initRString(texts[i].text, texts[i].color_mode > 0 ? texts[i].color_mode: texts[i].color);
+		}
+		if(!mp3_isplay()) {
+			// мелодия не запустилась, повторить весь цикл сначала. Редко, но случается :(
+			mp3_reread();
+			mp3_enableLoop();
+			delay(10);
+			mp3_play(alarms[active_alarm].melody);
+			alarmStartTime = getTimeU();
+		} else
+			// мелодия играет, увеличить громкость на единицу
+			if(cur_Volume<volume_finish) mp3_volume(++cur_Volume);
 		if(alarmStartTime + max_alarm_time * 60 < getTimeU()) alarmsStop(); // будильник своё отработал, наверное не разбудил
 	}
 

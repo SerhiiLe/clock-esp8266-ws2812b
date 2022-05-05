@@ -206,6 +206,7 @@ void load_config_alarms() {
 		alarms[i].hour = doc[i]["h"];
 		alarms[i].minute = doc[i]["m"];
 		alarms[i].melody = doc[i]["me"];
+		alarms[i].text = doc[i]["t"];
 	}
 
 	LOG(printf_P, PSTR("размер объекта alarms: %i\n"), doc.memoryUsage());
@@ -219,6 +220,7 @@ void save_config_alarms() {
 		doc[i]["h"] = alarms[i].hour;
 		doc[i]["m"] = alarms[i].minute;
 		doc[i]["me"] = alarms[i].melody;
+		doc[i]["t"] = alarms[i].text;
 	}
 
 	File configFile = LittleFS.open(F("/alarms.json"), "w"); // открытие файла на запись

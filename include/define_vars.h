@@ -76,6 +76,7 @@ struct cur_alarm {
 	uint8_t hour = 0;	// часы
 	uint8_t minute = 0;	// минуты
 	uint16_t melody = 0;	// номер мелодии
+	int8_t text = -1;	// номер текста, который выводится при срабатывании
 };
 extern cur_alarm alarms[];
 
