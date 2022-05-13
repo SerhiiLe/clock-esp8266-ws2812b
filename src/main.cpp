@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief 
- * @version 1.1.0
- * @date 2022-03-31
+ * @version 1.2.0
+ * @date 2022-05-13
  * 
  * @copyright Copyright (c) 2021,2022
  * 
@@ -251,7 +251,8 @@ void loop() {
 
 	if(autoBrightnessTimer.isReady() && fl_5v) {
 		int16_t cur_brightness = analogRead(PIN_PHOTO_SENSOR);
-		if(abs(cur_brightness-old_brightness)>1) {
+		// загрубление датчика освещённости. Чем ярче, тем больше разброс показаний
+		if(abs(cur_brightness-old_brightness)>(cur_brightness>0?(cur_brightness>>4)+1:0)) {
 			// усиление показаний датчика
 			uint16_t val = br_boost!=100 ? cur_brightness*br_boost/100: cur_brightness;
 			switch(bright_mode) {
@@ -262,8 +263,8 @@ void loop() {
 				set_brightness(constrain((( val * bright0 ) >> 10) + 1, 1,255));
 				break;
 			}
+			old_brightness = cur_brightness;
 		}
-		old_brightness = cur_brightness;
 	}
 
 	if(alarmTimer.isReady()) {
@@ -336,7 +337,7 @@ void loop() {
 
 	// если экран освободился, то выбор, что сейчас надо выводить.
 	// проверка разрешения выводить бегущую строку
-	if(fl_run_allow) {
+	if(fl_run_allow && alarmStartTime == 0) {
 		fl_save = false;
 		// в приоритете бегущая строка
 		for(i=0; i<MAX_RUNNING; i++)
