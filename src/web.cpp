@@ -135,6 +135,11 @@ bool fileSend(String path) {
 	else if(path.endsWith(F(".ico"))) ct = PSTR("image/x-icon");
 	else ct = PSTR("text/plain");
 	// открытие файла на чтение
+	if(!fs_isStarted) {
+		// файловая система не загружена, переход на страничку обновления
+		HTTP.client().printf_P(PSTR("HTTP/1.1 200\r\nContent-Type: %s\r\nContent-Length: 80\r\nConnection: close\r\n\r\n<html><body><h1><a href='/update'>File system not exist!</a></h1></body></html>"),ct);
+		return true;
+	}
 	if(LittleFS.exists(path)) {
 		File file = LittleFS.open(path, "r");
 		// файл существует и открыт, выделение буфера передачи и отсылка заголовка
@@ -272,7 +277,7 @@ void save_settings() {
 	name = F("date_period");
 	if( HTTP.hasArg(name) ) {
 		if( HTTP.arg(name).toInt() != show_date_period ) {
-			show_date_period = constrain(HTTP.arg(name).toInt(), 20, 1440);
+			show_date_period = constrain(HTTP.arg(name).toInt(), 20, 1439);
 			clockDate.setInterval(1000U * show_date_period);
 			need_save = true;
 		}
@@ -400,11 +405,19 @@ void save_settings() {
 			need_save = true;
 		}
 	}
+	name = F("timeout_mp3");
+	if( HTTP.hasArg(name) ) {
+		if( HTTP.arg(name).toInt() != timeout_mp3 ) {
+			timeout_mp3 = constrain(HTTP.arg(name).toInt(), 1, 255);
+			timeoutMp3Timer.setInterval(86400000U * timeout_mp3);
+			need_save = true;
+		}
+	}
 	name = F("sync_time_period");
 	if( HTTP.hasArg(name) ) {
 		if( HTTP.arg(name).toInt() != sync_time_period ) {
-			sync_time_period = constrain(HTTP.arg(name).toInt(), 20, 1440);
-			ntpSyncTimer.setInterval(60000U * sync_time_period);
+			sync_time_period = constrain(HTTP.arg(name).toInt(), 1, 255);
+			ntpSyncTimer.setInterval(86400000U * sync_time_period);
 			need_save = true;
 		}
 	}

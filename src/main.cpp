@@ -39,13 +39,14 @@ GButton btn(PIN_BUTTON); // комбинация для обычной кноп�
 timerMinim autoBrightnessTimer(250);	// Таймер отслеживания показаний датчика света при включенной авторегулировки яркости матрицы
 timerMinim clockTimer(512);				// Таймер, чтобы разделитель часов и минут мигал примерно каждую секунду
 timerMinim scrollTimer(scroll_period);	// Таймер обновления бегущей строки
-timerMinim ntpSyncTimer(60000U * sync_time_period);  // Таймер синхронизации времени с NTP-сервером
+timerMinim ntpSyncTimer(86400000U * sync_time_period);  // Таймер синхронизации времени с NTP-сервером
 timerMinim clockDate(1000U * show_date_period); // периодичность вывода даты в секундах
 timerMinim textTimer[MAX_RUNNING];
 timerMinim alarmTimer(1000);			// для будильника, срабатывает каждую секунду
 timerMinim alarmStepTimer(5000);		// шаг увеличения громкости будильника
 timerMinim demoTimer(33);				// таймер для теста/демонстрации экрана
 timerMinim telegramTimer(1000U * TELEGRAM_ACCELERATED);	// период опроса команд из Телеграм
+timerMinim timeoutMp3Timer(86400000U * timeout_mp3); // таймер принудительного сброса mp3
 
 // файловая система подключена
 bool fs_isStarted = false;
@@ -98,10 +99,23 @@ void setup() {
 		LOG(println, PSTR("ERROR LittleFS mount"));
 		initRString(PSTR("Ошибка подключения встроенного диска!!!"));
 	}
-	load_config_main();
-	load_config_alarms();
-	load_config_texts();
-	load_config_security();
+	if(!load_config_main()) {
+		LOG(println, PSTR("Create new config file"));
+		//  Создаем файл запив в него данные по умолчанию, при любой ошибке чтения
+		save_config_main();
+	}
+	if(!load_config_alarms()) {
+		LOG(println, PSTR("Create new alarms file"));
+		save_config_alarms(); // Создаем файл
+	}
+	if(!load_config_texts()) {
+		LOG(println, PSTR("Create new texts file"));
+		save_config_texts(); // Создаем файл
+	}
+	if(!load_config_security()) {
+		LOG(println, PSTR("Create new security file"));
+		save_config_security();	// Создаем файл
+	}
 	initRString(str_hello);
 	wifi_setup();
 	init_telegram();

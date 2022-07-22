@@ -6,6 +6,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <LittleFS.h>
+#include "defines.h"
 #include "settings_init.h"
 #include "settings.h"
 #include "ntp.h"
@@ -54,17 +55,17 @@ String color_to_text(uint32_t c) {
 	return String(a);
 }
 
-void load_config_main() {
-	StaticJsonDocument<1536> doc; // временный буфер под объект json
+bool load_config_main() {
+	if(!fs_isStarted) return false;
 
 	File configFile = LittleFS.open(F("/config.json"), "r");
 	if (!configFile) {
 		// если файл не найден  
 		LOG(println, PSTR("Failed to open main config file"));
-		//  Создаем файл запив в него данные по умолчанию
-		save_config_main();
-		return;
+		return false;
 	}
+
+	StaticJsonDocument<1536> doc; // временный буфер под объект json
 
 	DeserializationError error = deserializeJson(doc, configFile);
 	configFile.close();
@@ -72,7 +73,7 @@ void load_config_main() {
 	// Test if parsing succeeds.
 	if (error) {
 		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());
-		return;
+		return false;
 	}
 
 	// Fetch values.
@@ -112,7 +113,8 @@ void load_config_main() {
 	volume_start = doc[F("volume_start")];
 	volume_finish = doc[F("volume_finish")];
 	volume_period = doc[F("volume_period")]; alarmStepTimer.setInterval(1000U * volume_period);
-	sync_time_period = doc[F("sync_time_period")]; ntpSyncTimer.setInterval(60000U * sync_time_period);
+	timeout_mp3 = doc[F("timeout_mp3")]; timeoutMp3Timer.setInterval(86400000U * sync_time_period);
+	sync_time_period = doc[F("sync_time_period")]; ntpSyncTimer.setInterval(86400000U * sync_time_period);
 	scroll_period = doc[F("scroll_period")]; scrollTimer.setInterval(scroll_period);
 	tb_name = doc[F("tb_name")].as<String>();
 	tb_chats = doc[F("tb_chats")].as<String>();
@@ -123,9 +125,12 @@ void load_config_main() {
 	web_password = doc[F("web_password")].as<String>();
 
 	LOG(printf_P, PSTR("размер объекта config: %i\n"), doc.memoryUsage());
+	return true;
 }
 
 void save_config_main() {
+	if(!fs_isStarted) return;
+
 	StaticJsonDocument<1536> doc; // временный буфер под объект json
 
 	doc[F("str_hello")] = str_hello;
@@ -157,6 +162,7 @@ void save_config_main() {
 	doc[F("volume_start")] = volume_start;
 	doc[F("volume_finish")] = volume_finish;
 	doc[F("volume_period")] = volume_period;
+	doc[F("timeout_mp3")] = timeout_mp3;
 	doc[F("sync_time_period")] = sync_time_period;
 	doc[F("scroll_period")] = scroll_period;
 	doc[F("tb_name")] = tb_name;
@@ -180,17 +186,17 @@ void save_config_main() {
 	LOG(printf_P, PSTR("размер объекта config: %i\n"), doc.memoryUsage());
 }
 
-void load_config_alarms() {
-	StaticJsonDocument<1024> doc; // временный буфер под объект json
+bool load_config_alarms() {
+	if(!fs_isStarted) return false;
 
 	File configFile = LittleFS.open(F("/alarms.json"), "r");
 	if (!configFile) {
 		// если файл не найден  
 		LOG(println, PSTR("Failed to open config for alarms file"));
-		//  Создаем файл запив в него данные по умолчанию
-		save_config_alarms();
-		return;
+		return false;
 	}
+
+	StaticJsonDocument<1024> doc; // временный буфер под объект json
 
 	DeserializationError error = deserializeJson(doc, configFile);
 	configFile.close();
@@ -198,7 +204,7 @@ void load_config_alarms() {
 	// Test if parsing succeeds.
 	if (error) {
 		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());
-		return;
+		return false;
 	}
 
 	for( int i=0; i<min(MAX_ALARMS,(int)doc.size()); i++) {
@@ -210,9 +216,12 @@ void load_config_alarms() {
 	}
 
 	LOG(printf_P, PSTR("размер объекта alarms: %i\n"), doc.memoryUsage());
+	return true;
 }
 
 void save_config_alarms() {
+	if(!fs_isStarted) return;
+
 	StaticJsonDocument<1024> doc; // временный буфер под объект json
 
 	for( int i=0; i<MAX_ALARMS; i++) {
@@ -236,17 +245,17 @@ void save_config_alarms() {
 	LOG(printf_P, PSTR("размер объекта alarms: %i\n"), doc.memoryUsage());
 }
 
-void load_config_texts() {
-	StaticJsonDocument<1536> doc; // временный буфер под объект json
+bool load_config_texts() {
+	if(!fs_isStarted) return false;
 
 	File configFile = LittleFS.open(F("/texts.json"), "r");
 	if (!configFile) {
 		// если файл не найден  
 		LOG(println, PSTR("Failed to open config for texts file"));
-		//  Создаем файл запив в него данные по умолчанию
-		save_config_texts();
-		return;
+		return false;
 	}
+
+	StaticJsonDocument<1536> doc; // временный буфер под объект json
 
 	DeserializationError error = deserializeJson(doc, configFile);
 	configFile.close();
@@ -254,7 +263,7 @@ void load_config_texts() {
 	// Test if parsing succeeds.
 	if (error) {
 		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());
-		return;
+		return false;
 	}
 
 	for( int i=0; i<min(MAX_RUNNING,(int)doc.size()); i++) {
@@ -268,9 +277,12 @@ void load_config_texts() {
 	}
 
 	LOG(printf_P, PSTR("размер объекта texts: %i\n"), doc.memoryUsage());
+	return true;
 }
 
 void save_config_texts() {
+	if(!fs_isStarted) return;
+
 	StaticJsonDocument<1536> doc; // временный буфер под объект json
 
 	for( int i=0; i<MAX_RUNNING; i++) {
@@ -294,17 +306,17 @@ void save_config_texts() {
 	LOG(printf_P, PSTR("размер объекта texts: %i\n"), doc.memoryUsage());
 }
 
-void load_config_security() {
-	StaticJsonDocument<256> doc; // временный буфер под объект json
+bool load_config_security() {
+	if(!fs_isStarted) return false;
 
 	File configFile = LittleFS.open(F("/security.json"), "r");
 	if (!configFile) {
 		// если файл не найден  
 		LOG(println, PSTR("Failed to open config for texts file"));
-		//  Создаем файл запив в него данные по умолчанию
-		save_config_security();
-		return;
+		return false;
 	}
+
+	StaticJsonDocument<256> doc; // временный буфер под объект json
 
 	DeserializationError error = deserializeJson(doc, configFile);
 	configFile.close();
@@ -312,16 +324,19 @@ void load_config_security() {
 	// Test if parsing succeeds.
 	if (error) {
 		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());
-		return;
+		return false;
 	}
 
 	sec_enable = doc[F("sec_enable")];
 	sec_curFile = doc[F("sec_curFile")];
 
 	LOG(printf_P, PSTR("размер объекта security: %i\n"), doc.memoryUsage());
+	return true;
 }
 
 void save_config_security() {
+	if(!fs_isStarted) return;
+
 	StaticJsonDocument<256> doc; // временный буфер под объект json
 
 	doc[F("sec_enable")] = sec_enable;
@@ -343,6 +358,8 @@ void save_config_security() {
 
 // чтение последних cnt строк лога
 String read_log_file(int16_t cnt) {
+	if(!fs_isStarted) return String(F("no fs"));
+
 	// всего надо отдать cnt последних строк.
 	// Если файл только начал писаться, то надо показать последние записи предыдущего файла
 	// сначала считывается предыдущий файл
@@ -386,6 +403,8 @@ String read_log_file(int16_t cnt) {
 }
 
 void save_log_file(uint8_t mt) {
+	if(!fs_isStarted) return;
+
 	char fileName[32];
 	sprintf_P(fileName, SEC_LOG_FILE, sec_curFile);
 	File logFile = LittleFS.open(fileName, "a");
@@ -396,7 +415,7 @@ void save_log_file(uint8_t mt) {
 	}
 	// проверка, не превышен ли лимит размера файла, если да, то открыть второй файл.
 	size_t size = logFile.size();
-	if (size > SEC_LOG_MAXFILE) {
+	if (size > SEC_LOG_SIZE) {
 		LOG(println, PSTR("Log file size is too large, switch file"));
 		logFile.close();
 		sec_curFile = (sec_curFile+1) % SEC_LOG_COUNT;

@@ -64,7 +64,7 @@ void mp3_init() {
 }
 
 void mp3_volume(uint8_t t, boolean p) {
-	if( ! mp3_isInit ) mp3_init();
+	if( ! mp3_isInit || timeoutMp3Timer.isReady() ) mp3_init();
 	int cur = 0, old = 0;
 	while(true) {
 		cur = dfPlayer.readVolume();
@@ -91,10 +91,11 @@ void mp3_volume(uint8_t t, boolean p) {
 			delay(10);
 		}      
 	}
+	timeoutMp3Timer.reset();
 }
 
 void mp3_play(int t) {
-	if( ! mp3_isInit ) mp3_init();
+	if( ! mp3_isInit || timeoutMp3Timer.isReady() ) mp3_init();
 	if( mp3_all == 0 ) return;
 	if( t < 1 || t > mp3_all ) return;
 	LOG(printf_P, PSTR("want track: %i\n"),t);
@@ -141,6 +142,7 @@ void mp3_play(int t) {
 	}
 	mp3_volume(cur_Volume);
 	mp3_current = t;
+	timeoutMp3Timer.reset();
 }
 
 void mp3_reread() {
@@ -184,9 +186,11 @@ void mp3_messages(uint8_t type, int value) {
 switch (type) {
 	case TimeOut:
 		LOG(println, PSTR("Time Out!"));
+		mp3_isInit = false;
 		break;
 	case WrongStack:
 		LOG(println, PSTR("Stack Wrong!"));
+		mp3_isInit = false;
 		break;
 	case DFPlayerCardInserted:
 		LOG(println, PSTR("Card Inserted!"));

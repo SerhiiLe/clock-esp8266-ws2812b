@@ -82,8 +82,8 @@
 							<td><input name="tz_dst" type="checkbox" value="1"></td>
 						</tr>
 						<tr>
-							<td>Периодичность синхронизации ntp в минутах.</td>
-							<td><input name="sync_time_period" type="number" value="60"></td>
+							<td>Периодичность синхронизации ntp. (1-255 часов)</td>
+							<td><input name="sync_time_period" type="number" value="8"></td>
 						</tr>
 						<tr>
 							<td colspan="2" class="center i b">Отображение времени и даты</td>
@@ -201,6 +201,10 @@
 						<tr>
 							<td>Период увеличения громкости (от 1 до 30 сек.)</td>
 							<td><input name="volume_period" type="number" value="5"></td>
+						</tr>
+						<tr>
+							<td>Время до принудительного сброса модуля mp3. (1-255 часов)</td>
+							<td><input name="timeout_mp3" type="number" value="36"></td>
 						</tr>
 						<tr>
 							<td colspan="2" class="center i b">Уведомления в Telegram</td>

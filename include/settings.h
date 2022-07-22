@@ -1,13 +1,13 @@
 #ifndef settings_h
 #define settings_h
 
+bool load_config_main();
 void save_config_main();
-void load_config_main();
-void load_config_alarms();
+bool load_config_alarms();
 void save_config_alarms();
-void load_config_texts();
+bool load_config_texts();
 void save_config_texts();
-void load_config_security();
+bool load_config_security();
 void save_config_security();
 void save_log_file(uint8_t mt);
 uint32_t text_to_color(const char *s);
@@ -21,7 +21,7 @@ String read_log_file(int16_t cnt);
 #define SEC_TEXT_POWERED 4	// питание включилось
 #define SEC_TEXT_POWEROFF 5	// питание отключилось
 #define SEC_LOG_MAX 40		// максимальная строка одной записи лога (35 + символы склейки "%0A" + конец строки \0)
-#define SEC_LOG_MAXFILE 4096	// максимальный размер файла, после которого запись будет во второй файл. (запись по кругу)
+#define SEC_LOG_SIZE 4096	// максимальный размер файла, после которого запись будет во второй файл. (запись по кругу)
 #define SEC_LOG_COUNT 3		// число файлов
 const char SEC_LOG_FILE[] PROGMEM = "/log%u.txt"; // шаблон имени файла
 

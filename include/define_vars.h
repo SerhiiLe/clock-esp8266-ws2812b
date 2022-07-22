@@ -6,6 +6,7 @@
 extern CRGB leds[];
 extern uint8_t led_brightness; // текущая яркость
 
+extern bool fs_isStarted;
 extern bool wifi_isConnected;
 extern bool wifi_isPortal;
 extern String wifi_message;
@@ -27,6 +28,7 @@ extern timerMinim clockDate;            // Таймер периодичност
 extern timerMinim textTimer[];          // Таймеры бегущих строк
 extern timerMinim telegramTimer;		// Таймер периодичности опроса новых сообщений
 extern timerMinim alarmStepTimer;		// Таймер увеличения громкости будильника
+extern timerMinim timeoutMp3Timer;
 
 // управление плейером
 extern int mp3_all;
@@ -61,7 +63,8 @@ extern uint8_t turn_display;
 extern uint8_t volume_start;
 extern uint8_t volume_finish;
 extern uint8_t volume_period;
-extern uint16_t sync_time_period;
+extern uint8_t timeout_mp3;
+extern uint8_t sync_time_period;
 extern uint16_t scroll_period;
 extern String tb_name;
 extern String tb_chats;
