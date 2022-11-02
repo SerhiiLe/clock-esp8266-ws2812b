@@ -54,6 +54,10 @@ String wifi_currentIP() {
 	return WiFi.localIP().toString();
 }
 
+int8_t wifi_rssi() {
+	return WiFi.RSSI();
+}
+
 // Включение или отключение ConfigPortal для настройки WiFi
 void wifi_startConfig(bool fl) {
 	if(fl) {

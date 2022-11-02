@@ -30,12 +30,17 @@ bool mp3_isReady = false;
 #ifdef SRX
 // плата установлена, описание функций
 
-boolean mp3_isplay() {
-  return dfPlayer.readState() & 1;
+void checkInit() {
+	if( ! mp3_isInit || timeoutMp3Timer.isReady() ) mp3_init();
+}
+
+boolean mp3_isPlay() {
+	checkInit();
+	return dfPlayer.readState() & 1;
 }
 
 void mp3_update() {
-	if(mp3_isplay())
+	if(mp3_isPlay())
 		mp3_current = dfPlayer.readCurrentFileNumber();
 }
 
@@ -64,7 +69,7 @@ void mp3_init() {
 }
 
 void mp3_volume(uint8_t t, boolean p) {
-	if( ! mp3_isInit || timeoutMp3Timer.isReady() ) mp3_init();
+	checkInit();
 	int cur = 0, old = 0;
 	while(true) {
 		cur = dfPlayer.readVolume();
@@ -89,17 +94,17 @@ void mp3_volume(uint8_t t, boolean p) {
 		if( cur>t ) {
 			dfPlayer.volumeDown();
 			delay(10);
-		}      
+		}
 	}
 	timeoutMp3Timer.reset();
 }
 
 void mp3_play(int t) {
-	if( ! mp3_isInit || timeoutMp3Timer.isReady() ) mp3_init();
+	checkInit();
 	if( mp3_all == 0 ) return;
 	if( t < 1 || t > mp3_all ) return;
 	LOG(printf_P, PSTR("want track: %i\n"),t);
-	if( ! mp3_isplay() ) dfPlayer.start();
+	if( ! mp3_isPlay() ) dfPlayer.start();
 	delay(100);
 	if(dfPlayer.readCurrentFileNumber() != t) {
 		int cur = 0, old = 0, cnt = 0;
@@ -146,39 +151,48 @@ void mp3_play(int t) {
 }
 
 void mp3_reread() {
+	checkInit();
 	mp3_all = dfPlayer.readFileCounts();
 	// mp3_isReady = mp3_all == 0 ? false: true;
 }
 
 void mp3_start() {
+	checkInit();
 	dfPlayer.start();
 }
 
 void mp3_pause() {
+	checkInit();
 	dfPlayer.pause();
 }
 
 void mp3_stop() {
+	checkInit();
 	dfPlayer.stop();
 }
 
 void mp3_enableLoop() {
+	checkInit();
 	dfPlayer.enableLoop();
 }
 
 void mp3_disableLoop() {
+	checkInit();
 	dfPlayer.disableLoop();
 }
 
 void mp3_enableLoopAll() {
+	checkInit();
 	dfPlayer.enableLoopAll();
 }
 
 void mp3_disableLoopAll() {
+	checkInit();
 	dfPlayer.disableLoopAll();
 }
 
 void mp3_randomAll() {
+	checkInit();
 	dfPlayer.randomAll();
 }
 
@@ -261,7 +275,7 @@ void mp3_check() {
 
 #else
 // заглушки, если плата DFPlayer не установлена
-boolean mp3_isplay() {return true;}
+boolean mp3_isPlay() {return true;}
 void mp3_volume(uint8_t t, boolean p) {}
 void mp3_init() {mp3_isInit = true; mp3_isReady = true;}
 void mp3_check() {}

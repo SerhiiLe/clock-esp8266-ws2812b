@@ -29,7 +29,7 @@ bool fl_secretWanted = false;
 time_t last_telegram = 0;
 time_t disable_telegram = 0;
 
-// Установка токена и списка подписаных чатов
+// Установка токена и списка подписанных чатов
 void setup_telegram() {
 	// tb.setChatID(tb_chats); // не нужно, так как передаётся при каждой отправке
 	tb.setToken(tb_token);
@@ -46,11 +46,11 @@ void init_telegram() {
 // Опрос телеграмм в ожидании команд для обработки
 void tb_tick() {
 	if(disable_telegram) {
-		if(getTimeU() - disable_telegram > TELEGRAM_BAN) disable_telegram = 0;
+		if(getTimeU() - disable_telegram > tb_ban) disable_telegram = 0;
 	} else {
 		// проверка времени ускорения работы telegram
 		if(last_telegram)
-			if(getTimeU() - last_telegram > TELEGRAM_ACCELERATE) {
+			if(getTimeU() - last_telegram > tb_accelerate) {
 				telegramTimer.setInterval(1000U * tb_rate);
 				last_telegram = 0;
 			}
@@ -61,14 +61,11 @@ void tb_tick() {
 
 // Отправка сообщения о сработке датчика во все подписанные чаты телеграмм
 void tb_send_msg(String s) {
-	if(sec_enable) {
-		#ifdef DEBUG
-		LOG(printf_P, PSTR("Send to telegram: %i\n"), tb.sendMessage(s,tb_chats));
-		#else
-		tb.sendMessage(s,tb_chats);
-		#endif
-		save_log_file(SEC_TEXT_MOVE);
-	}
+	#ifdef DEBUG
+	LOG(printf_P, PSTR("Send to telegram: %i\n"), tb.sendMessage(s,tb_chats));
+	#else
+	tb.sendMessage(s,tb_chats);
+	#endif
 }
 
 // Обработка входящего сообщения телеграмм
@@ -78,8 +75,8 @@ void inMsg(FB_msg& msg) {
 	// выводим ID чата, имя юзера и текст сообщения
 	LOG(printf_P, PSTR("From telegram:%s;%s;%s;%s;%s.\n"),msg.chatID,msg.username,msg.first_name,msg.ID,msg.text);
 
-	if(last_telegram == 0 && tb_rate > TELEGRAM_ACCELERATED) {
-		telegramTimer.setInterval(1000U * TELEGRAM_ACCELERATED);
+	if(last_telegram == 0 && tb_rate > tb_accelerated) {
+		telegramTimer.setInterval(1000U * tb_accelerated);
 	}
 	last_telegram = getTimeU();
 

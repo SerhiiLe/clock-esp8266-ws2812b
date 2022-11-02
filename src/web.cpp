@@ -15,12 +15,14 @@
 #include "dfplayer.h"
 #include "security.h"
 #include "clock.h"
+#include "wifi_init.h"
 
 ESP8266WebServer HTTP(80);
 ESP8266HTTPUpdateServer httpUpdater;
 bool web_isStarted = false;
 
 void save_settings();
+void save_telegram();
 void save_alarm();
 void off_alarm();
 void save_text();
@@ -29,9 +31,11 @@ void sysinfo();
 void play();
 void maintence();
 void onoff();
+void send();
 void logout();
 
 bool fileSend(String path);
+bool need_save = false;
 
 // отключение веб сервера для активации режима настройки wifi
 void web_disable() {
@@ -56,6 +60,7 @@ void web_process() {
 		HTTP.begin();
 		// Обработка HTTP-запросов
 		HTTP.on(F("/save_settings"), save_settings);
+		HTTP.on(F("/save_telegram"), save_telegram);
 		HTTP.on(F("/save_alarm"), save_alarm);
 		HTTP.on(F("/off_alarm"), off_alarm);
 		HTTP.on(F("/save_text"), save_text);
@@ -64,6 +69,7 @@ void web_process() {
 		HTTP.on(F("/play"), play);
 		HTTP.on(F("/clear"), maintence);
 		HTTP.on(F("/onoff"), onoff);
+		HTTP.on(F("/send"), send);
 		HTTP.on(F("/logout"), logout);
 		HTTP.onNotFound([](){
 			if(!fileSend(HTTP.uri()))
@@ -87,6 +93,7 @@ void logout() {
 bool auth_need(String s) {
 	if(s == F("/index.html")) return false;
 	if(s == F("/about.html")) return false;
+	if(s == F("/send.html")) return false;
 	if(s == F("/logged-out.html")) return false;
 	if(s.endsWith(F(".js"))) return false;
 	if(s.endsWith(F(".css"))) return false;
@@ -95,11 +102,11 @@ bool auth_need(String s) {
 	return true;
 }
 
-// авторизация. много коментариев из документации, чтобы по новой не искать
+// авторизация. много комментариев из документации, чтобы по новой не искать
 bool is_no_auth() {
 	// allows you to set the realm of authentication Default:"Login Required"
 	// const char* www_realm = "Custom Auth Realm";
-	// the Content of the HTML response in case of Unautherized Access Default:empty
+	// the Content of the HTML response in case of Unauthorized Access Default:empty
 	// String authFailResponse = "Authentication Failed";
 	if(web_login.length() > 0 && web_password.length() > 0 )
 		if(!HTTP.authenticate(web_login.c_str(), web_password.c_str())) {
@@ -169,330 +176,182 @@ uint16_t decode_time(String s) {
 	return h*60 + m;
 }
 
+/****** шаблоны простых операций для выделения переменных из web ******/
+
+// определение выбран checkbox или нет
+bool set_simple_checkbox(const __FlashStringHelper * name, uint8_t &var) {
+	if( HTTP.hasArg(name) ) {
+		if( var == 0 ) {
+			var = 1;
+			need_save = true;
+			return true;
+		}
+	} else {
+		if( var > 0 ) {
+			var = 0;
+			need_save = true;
+			return true;
+		}
+	}
+	return false;
+}
+// определение простых целых чисел
+template <typename T>
+bool set_simple_int(const __FlashStringHelper * name, T &var, long from, long to) {
+	if( HTTP.hasArg(name) ) {
+		if( HTTP.arg(name).toInt() != (long)var ) {
+			var = constrain(HTTP.arg(name).toInt(), from, to);
+			need_save = true;
+			return true;
+		}
+	}
+	return false;
+}
+// определение дробных чисел
+bool set_simple_float(const __FlashStringHelper * name, float &var, float from, float to) {
+	if( HTTP.hasArg(name) ) {
+		if( HTTP.arg(name).toFloat() != var ) {
+			var = constrain(HTTP.arg(name).toFloat(), from, to);
+			need_save = true;
+			return true;
+		}
+	}
+	return false;
+}
+// определение простых строк
+bool set_simple_string(const __FlashStringHelper * name, String &var) {
+	if( HTTP.hasArg(name) ) {
+		if( HTTP.arg(name) != var ) {
+			var = HTTP.arg(name);
+			need_save = true;
+			return true;
+		}
+	}
+	return false;
+}
+// определение времени
+bool set_simple_time(const __FlashStringHelper * name, uint16_t &var) {
+	if( HTTP.hasArg(name) ) {
+		if( decode_time(HTTP.arg(name)) != var ) {
+			var = decode_time(HTTP.arg(name));
+			need_save = true;
+			return true;
+		}
+	}
+	return false;
+}
+// определение цвета
+bool set_simple_color(const __FlashStringHelper * name, uint32_t &var) {
+	if( HTTP.hasArg(name) ) {
+		if( text_to_color(HTTP.arg(name).c_str()) != var ) {
+			var = text_to_color(HTTP.arg(name).c_str());
+			need_save = true;
+			return true;
+		}
+	}
+	return false;
+}
+
+/****** обработка разных запросов ******/
+
 // сохранение настроек
 void save_settings() {
 	if(is_no_auth()) return;
-	bool need_save = false;
-	String name = F("str_hello");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name) != str_hello ) {
-			str_hello = HTTP.arg(name);
-			need_save = true;
-		}
-	}
-	name = F("max_alarm_time");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != max_alarm_time ) {
-			max_alarm_time = constrain(HTTP.arg(name).toInt(), 1, 30);
-			need_save = true;
-		}
-	}
-	name = F("run_allow");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != run_allow ) {
-			run_allow = constrain(HTTP.arg(name).toInt(), 0, 2);
-			need_save = true;
-		}
-	}
-	name = F("run_begin");
-	if( HTTP.hasArg(name) ) {
-		if( decode_time(HTTP.arg(name)) != run_begin ) {
-			run_begin = decode_time(HTTP.arg(name));
-			need_save = true;
-		}
-	}
-	name = F("run_end");
-	if( HTTP.hasArg(name) ) {
-		if( decode_time(HTTP.arg(name)) != run_end ) {
-			run_end = decode_time(HTTP.arg(name));
-			need_save = true;
-		}
-	}
-	name = F("wide_font");
-	if( HTTP.hasArg(name) ) {
-		if( wide_font == 0 ) {
-			wide_font = 1;
-			need_save = true;
-		}
-	} else {
-		if( wide_font > 0 ) {
-			wide_font = 0;
-			need_save = true;
-		}
-	}
-	name = F("show_move");
-	if( HTTP.hasArg(name) ) {
-		if( show_move == 0 ) {
-			show_move = 1;
-			need_save = true;
-		}
-	} else {
-		if( show_move > 0 ) {
-			show_move = 0;
-			need_save = true;
-		}
-	}
-	name = F("delay_move");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != delay_move ) {
-			delay_move = constrain(HTTP.arg(name).toInt(), 0, 10);
-			need_save = true;
-		}
-	}
+	need_save = false;
+
+	set_simple_string(F("str_hello"), str_hello);
+	set_simple_int(F("max_alarm_time"), max_alarm_time, 1, 30);
+	set_simple_int(F("run_allow"), run_allow, 0, 2);
+	set_simple_time(F("run_begin"), run_begin);
+	set_simple_time(F("run_end"), run_end);
+	set_simple_checkbox(F("wide_font"), wide_font);
+	set_simple_checkbox(F("show_move"), show_move);
+	set_simple_int(F("delay_move"), delay_move, 0, 10);
 	bool sync_time = false;
-	name = F("tz_shift");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != tz_shift ) {
-			tz_shift = constrain(HTTP.arg(name).toInt(), -12, 12);
-			need_save = true;
-			sync_time = true;
-		}
-	}
-	name = F("tz_dst");
-	if( HTTP.hasArg(name) ) {
-		if( tz_dst == 0 ) {
-			tz_dst = 1;
-			need_save = true;
-			sync_time = true;
-		}
-	} else {
-		if( tz_dst > 0 ) {
-			tz_dst = 0;
-			need_save = true;
-			sync_time = true;
-		}
-	}
-	name = F("date_short");
-	if( HTTP.hasArg(name) ) {
-		if( show_date_short == 0 ) {
-			show_date_short = 1;
-			need_save = true;
-		}
-	} else {
-		if( show_date_short > 0 ) {
-			show_date_short = 0;
-			need_save = true;
-		}
-	}
-	name = F("date_period");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != show_date_period ) {
-			show_date_period = constrain(HTTP.arg(name).toInt(), 20, 1439);
-			clockDate.setInterval(1000U * show_date_period);
-			need_save = true;
-		}
-	}
-	name = F("time_color");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != show_time_color ) {
-			show_time_color = constrain(HTTP.arg(name).toInt(), 0, 3);
-			need_save = true;
-		}
-	}
-	name = F("time_color0");
-	if( HTTP.hasArg(name) ) {
-		if( text_to_color(HTTP.arg(name).c_str()) != show_time_color0 ) {
-			show_time_color0 = text_to_color(HTTP.arg(name).c_str());
-			need_save = true;
-		}
-	}
-	name = F("time_color1");
-	if( HTTP.hasArg(name) ) {
-		if( text_to_color(HTTP.arg(name).c_str()) != show_time_col[0] ) {
-			show_time_col[0] = text_to_color(HTTP.arg(name).c_str());
-			need_save = true;
-		}
-	}
-	name = F("time_color2");
-	if( HTTP.hasArg(name) ) {
-		if( text_to_color(HTTP.arg(name).c_str()) != show_time_col[1] ) {
-			show_time_col[1] = text_to_color(HTTP.arg(name).c_str());
-			need_save = true;
-		}
-	}
-	name = F("time_color3");
-	if( HTTP.hasArg(name) ) {
-		if( text_to_color(HTTP.arg(name).c_str()) != show_time_col[2] ) {
-			show_time_col[2] = text_to_color(HTTP.arg(name).c_str());
-			need_save = true;
-		}
-	}
-	name = F("time_color4");
-	if( HTTP.hasArg(name) ) {
-		if( text_to_color(HTTP.arg(name).c_str()) != show_time_col[3] ) {
-			show_time_col[3] = text_to_color(HTTP.arg(name).c_str());
-			need_save = true;
-		}
-	}
-	name = F("time_color5");
-	if( HTTP.hasArg(name) ) {
-		if( text_to_color(HTTP.arg(name).c_str()) != show_time_col[4] ) {
-			show_time_col[4] = text_to_color(HTTP.arg(name).c_str());
-			need_save = true;
-		}
-	}
-	name = F("date_color");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != show_date_color ) {
-			show_date_color = constrain(HTTP.arg(name).toInt(), 0, 2);
-			need_save = true;
-		}
-	}
-	name = F("date_color0");
-	if( HTTP.hasArg(name) ) {
-		if( text_to_color(HTTP.arg(name).c_str()) != show_date_color0 ) {
-			show_date_color0 = text_to_color(HTTP.arg(name).c_str());
-			need_save = true;
-		}
-	}
-	name = F("bright_mode");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != bright_mode ) {
-			bright_mode = constrain(HTTP.arg(name).toInt(), 0, 2);
-			need_save = true;
-		}
-	}
-	name = F("bright0");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != bright0 ) {
-			bright0 = constrain(HTTP.arg(name).toInt(), 1, 255);
-			need_save = true;
-		}
-		if(bright_mode==2) set_brightness(bright0);
-	}
-	name = F("br_boost");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != br_boost ) {
-			br_boost = constrain(HTTP.arg(name).toInt(), 1, 1000);
-			need_save = true;
-		}
-	}
-	name = F("max_power");
-	if( HTTP.hasArg(name) ) {
-		if( (uint32_t)HTTP.arg(name).toInt() != max_power ) {
-			max_power = constrain(HTTP.arg(name).toInt(), 200, MAX_POWER);
-			if(DEFAULT_POWER > 0) FastLED.setMaxPowerInVoltsAndMilliamps(5, max_power);
-			need_save = true;
-		}
-	}
-	name = F("turn_display");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != turn_display ) {
-			turn_display = constrain(HTTP.arg(name).toInt(), 0, 3);
-			need_save = true;
-		}
-	}
-	name = F("volume_start");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != volume_start ) {
-			volume_start = constrain(HTTP.arg(name).toInt(), 1, 30);
-			need_save = true;
-		}
-	}
-	name = F("volume_finish");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != volume_finish ) {
-			volume_finish = constrain(HTTP.arg(name).toInt(), 1, 30);
-			need_save = true;
-		}
-	}
+	if( set_simple_int(F("tz_shift"), tz_shift, -12, 12) )
+		sync_time = true;
+	if( set_simple_checkbox(F("tz_dst"), tz_dst) )
+		sync_time = true;
+	set_simple_checkbox(F("date_short"), show_date_short);
+	if( set_simple_int(F("date_period"), show_date_period, 20, 1439) )
+		clockDate.setInterval(1000U * show_date_period);
+	set_simple_int(F("time_color"), show_time_color, 0, 3);
+	set_simple_color(F("time_color0"), show_time_color0);
+	set_simple_color(F("time_color1"), show_time_col[0]);
+	set_simple_color(F("time_color2"), show_time_col[1]);
+	set_simple_color(F("time_color3"), show_time_col[2]);
+	set_simple_color(F("time_color4"), show_time_col[3]);
+	set_simple_color(F("time_color5"), show_time_col[4]);
+	set_simple_int(F("date_color"), show_date_color, 0, 2);
+	set_simple_color(F("date_color0"), show_date_color0);
+	set_simple_int(F("bright_mode"), bright_mode, 0, 2);
+	set_simple_int(F("bright0"), bright0, 1, 255);
+	if(bright_mode==2) set_brightness(bright0);
+	set_simple_int(F("br_boost"), bright_boost, 1, 1000);
+	set_simple_int(F("boost_mode"), boost_mode, 0, 5);
+	set_simple_int(F("br_add"), bright_add, 0, 255);
+	if( set_simple_float(F("latitude"), latitude, -180.0f, 180.0f) )
+		sync_time = true;
+	if( set_simple_float(F("longitude"), longitude, -180.0f, 180.0f) )
+		sync_time = true;
+	set_simple_time(F("br_begin"), bright_begin);
+	set_simple_time(F("br_end"), bright_end);
+	if( set_simple_int(F("max_power"), max_power, 200, MAX_POWER) )
+		if(DEFAULT_POWER > 0) FastLED.setMaxPowerInVoltsAndMilliamps(5, max_power);
+	set_simple_int(F("turn_display"), turn_display, 0, 3);
+	set_simple_int(F("volume_start"), volume_start, 1, 30);
+	set_simple_int(F("volume_finish"), volume_finish, 1, 30);
 	volume_finish = constrain(volume_finish, volume_start, 30);
-	name = F("volume_period");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != volume_period ) {
-			volume_period = constrain(HTTP.arg(name).toInt(), 1, 30);
-			alarmStepTimer.setInterval(1000U * volume_period);
-			need_save = true;
-		}
-	}
-	name = F("timeout_mp3");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != timeout_mp3 ) {
-			timeout_mp3 = constrain(HTTP.arg(name).toInt(), 1, 255);
-			timeoutMp3Timer.setInterval(86400000U * timeout_mp3);
-			need_save = true;
-		}
-	}
-	name = F("sync_time_period");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != sync_time_period ) {
-			sync_time_period = constrain(HTTP.arg(name).toInt(), 1, 255);
-			ntpSyncTimer.setInterval(86400000U * sync_time_period);
-			need_save = true;
-		}
-	}
-	name = F("scroll_period");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != scroll_period ) {
-			scroll_period = constrain(HTTP.arg(name).toInt(), 20, 1440);
-			scrollTimer.setInterval(scroll_period);
-			need_save = true;
-		}
-	}
-	bool fl_setTelegram = false;
-	name = F("tb_name");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name) != tb_name ) {
-			tb_name = HTTP.arg(name);
-			need_save = true;
-		}
-	}
-	name = F("tb_chats");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name) != tb_chats ) {
-			tb_chats = HTTP.arg(name);
-			need_save = true;
-			fl_setTelegram = true;
-		}
-	}
-	name = F("tb_token");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name) != tb_token ) {
-			tb_token = HTTP.arg(name);
-			need_save = true;
-			fl_setTelegram = true;
-		}
-	}
-	name = F("tb_secret");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name) != tb_secret ) {
-			tb_secret = HTTP.arg(name);
-			need_save = true;
-		}
-	}
-	name = F("tb_rate");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toInt() != tb_rate ) {
-			tb_rate = constrain(HTTP.arg(name).toInt(), 0, 1440);
-			// telegramTimer.setInterval(1000U * tb_rate);
-			need_save = true;
-		}
-	}
+	if( set_simple_int(F("volume_period"), volume_period, 1, 30) )
+		alarmStepTimer.setInterval(1000U * volume_period);
+	if( set_simple_int(F("timeout_mp3"), timeout_mp3, 1, 255) )
+		timeoutMp3Timer.setInterval(3600000U * timeout_mp3);
+	if( set_simple_int(F("sync_time_period"), sync_time_period, 1, 255) )
+		timeoutMp3Timer.setInterval(3600000U * sync_time_period);
+	if( set_simple_int(F("scroll_period"), scroll_period, 20, 1440) )
+		scrollTimer.setInterval(scroll_period);
 	bool need_web_restart = false;
-	name = F("web_login");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name) != web_login ) {
-			web_login = HTTP.arg(name);
-			need_save = true;
-			need_web_restart = true;
-		}
-	}
-	name = F("web_password");
-	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name) != web_password ) {
-			web_password = HTTP.arg(name);
-			need_save = true;
-			need_web_restart = true;
-		}
-	}
+	if( set_simple_string(F("web_login"), web_login) )
+		need_web_restart = true;
+	if( set_simple_string(F("web_password"), web_password) )
+		need_web_restart = true;
+
 	HTTP.sendHeader(F("Location"),"/");
 	HTTP.send(303);
 	delay(1);
 	if( need_save ) save_config_main();
 	initRString(PSTR("Настройки сохранены"));
 	if( sync_time ) syncTime();
-	if(fl_setTelegram) setup_telegram();
 	if(need_web_restart) httpUpdater.setup(&HTTP, web_login, web_password);
+}
+
+// сохранение настроек telegram (охраны)
+void save_telegram() {
+	if(is_no_auth()) return;
+	need_save = false;
+	bool fl_setTelegram = false;
+
+	set_simple_checkbox(F("use_move"), use_move);
+	set_simple_checkbox(F("use_brightness"), use_brightness);
+	set_simple_string(F("pin_code"), pin_code);
+	set_simple_string(F("tb_name"), tb_name);
+	if( set_simple_string(F("tb_chats"), tb_chats) )
+		fl_setTelegram = true;
+	if( set_simple_string(F("tb_token"), tb_token) )
+		fl_setTelegram = true;
+	set_simple_string(F("tb_secret"), tb_secret);
+	if( set_simple_int(F("tb_rate"), tb_rate, 0, 3600) )
+		telegramTimer.setInterval(1000U * tb_rate);
+	set_simple_int(F("tb_accelerated"), tb_accelerated, 1, 600);
+	set_simple_int(F("tb_accelerate"), tb_accelerate, 1, 3600);
+	set_simple_int(F("tb_ban"), tb_ban, 900, 3600);
+
+	HTTP.sendHeader(F("Location"),"/security.html");
+	HTTP.send(303);
+	delay(1);
+	if( need_save ) save_config_telegram();
+	initRString(PSTR("Настройки сохранены"));
+	if(fl_setTelegram) setup_telegram();
 }
 
 // перезагрузка часов, сброс ком-порта, отключение сети и диска, чтобы ничего не мешало перезагрузке
@@ -543,7 +402,7 @@ void maintence() {
 // сохранение настроек будильника
 void save_alarm() {
 	if(is_no_auth()) return;
-	bool need_save = false;
+	need_save = false;
 	uint8_t target = 0;
 	uint16_t settings = 512;
 	String name = F("target");
@@ -574,20 +433,8 @@ void save_alarm() {
 			alarms[target].settings = settings;
 			need_save = true;
 		}
-		name = F("melody");
-		if( HTTP.hasArg(name) ) {
-			if( HTTP.arg(name).toInt() != alarms[target].melody ) {
-				alarms[target].melody = constrain(HTTP.arg(name).toInt(), 1, mp3_all);
-				need_save = true;
-			}
-		}
-		name = F("txt");
-		if( HTTP.hasArg(name) ) {
-			if( HTTP.arg(name).toInt() != alarms[target].text ) {
-				alarms[target].text = constrain(HTTP.arg(name).toInt(), -1, MAX_RUNNING-1);
-				need_save = true;
-			}
-		}
+		set_simple_int(F("melody"), alarms[target].melody, 1, mp3_all);
+		set_simple_int(F("txt"), alarms[target].text, -1, MAX_RUNNING-1);
 	}
 	HTTP.sendHeader(F("Location"),F("/alarms.html"));
 	HTTP.send(303);
@@ -607,51 +454,27 @@ void off_alarm() {
 		if( alarms[target].settings & 512 ) {
 			alarms[target].settings &= ~(512U);
 			save_config_alarms();
-			text_send("1");
+			text_send(F("1"));
 			initRString(PSTR("Будильник отключён"));
 		}
 	} else
-		text_send("0");
+		text_send(F("0"));
 }
 
 // сохранение настроек бегущей строки. Строки настраиваются по одной.
 void save_text() {
 	if(is_no_auth()) return;
-	bool need_save = false;
+	need_save = false;
 	uint8_t target = 0;
 	uint16_t settings = 512;
 	String name = F("target");
 	if( HTTP.hasArg(name) ) {
 		target = HTTP.arg(name).toInt();
-		name = F("text");
-		if( HTTP.hasArg(name) ) {
-			if( HTTP.arg(name) != texts[target].text ) {
-				texts[target].text = HTTP.arg(name);
-				need_save = true;
-			}
-		}
-		name = F("period");
-		if( HTTP.hasArg(name) ) {
-			if( HTTP.arg(name).toInt() != texts[target].period ) {
-				texts[target].period = constrain(HTTP.arg(name).toInt(),30,3600);
-				need_save = true;
-				textTimer[target].setInterval(texts[target].period*1000U);
-			}
-		}
-		name = F("color_mode");
-		if( HTTP.hasArg(name) ) {
-			if( HTTP.arg(name).toInt() != texts[target].color_mode ) {
-				texts[target].color_mode = constrain(HTTP.arg(name).toInt(), 0, 3);
-				need_save = true;
-			}
-		}
-		name = F("color");
-		if( HTTP.hasArg(name) ) {
-			if( text_to_color(HTTP.arg(name).c_str()) != texts[target].color ) {
-				texts[target].color = text_to_color(HTTP.arg(name).c_str());
-				need_save = true;
-			}
-		}
+		set_simple_string(F("text"), texts[target].text);
+		if( set_simple_int(F("period"), texts[target].period, 30, 3600) )
+			textTimer[target].setInterval(texts[target].period*1000U);
+		set_simple_int(F("color_mode"), texts[target].color_mode, 0, 3);
+		set_simple_color(F("color"), texts[target].color);
 		name = F("rmode");
 		if( HTTP.hasArg(name) ) settings |= constrain(HTTP.arg(name).toInt(), 0, 3) << 7;
 		if( HTTP.hasArg("mo") ) settings |= 2;
@@ -690,14 +513,14 @@ void off_text() {
 		if( texts[target].repeat_mode & 512 ) {
 			texts[target].repeat_mode &= ~(512U);
 			save_config_texts();
-			text_send("1");
+			text_send(F("1"));
 			initRString(PSTR("Текст отключён"));
 		}
 	} else
-		text_send("0");
+		text_send(F("0"));
 }
 
-// костыль для настройки режима посвтора. Работает 50/50
+// костыль для настройки режима повтора. Работает 50/50
 void repeat_mode(uint8_t r) {
 	static uint8_t old_r = 0;
 	if(r==0) {
@@ -778,10 +601,28 @@ void play() {
 			break;
 	}
 	char buff[20];
-	sprintf(buff,"%i:%i:%i:%i",mp3_current,mp3_all,cur_Volume,mp3_isplay());
+	sprintf(buff,"%i:%i:%i:%i",mp3_current,mp3_all,cur_Volume,mp3_isPlay());
 	text_send(buff);
 }
 
+// "proxy" отправка сообщений в телеграм через web запрос, для сторонних устройств
+void send() {
+	// if(is_no_auth()) return;
+	String name = F("pin");
+	if( HTTP.hasArg(name) ) {
+		if( pin_code == HTTP.arg(name) ) {
+			name = F("msg");
+			if( HTTP.hasArg(name) ) {
+				tb_send_msg(HTTP.arg(name));
+				text_send(F("1"));
+				return;
+			}
+		}
+	}
+	text_send(F("0"));
+}
+
+// Включение/выключение различных режимов
 void onoff() {
 	if(is_no_auth()) return;
 	int8_t a=0;
@@ -808,7 +649,7 @@ void onoff() {
 			save_config_security();
 		}
 	}
-	text_send(cond?"1":"0");
+	text_send(cond?F("1"):F("0"));
 }
 
 void sysinfo() {
@@ -818,9 +659,12 @@ void sysinfo() {
 	HTTP.client().printf_P(PSTR("\"Uptime\":\"%s\","), getUptime(buf));
 	HTTP.client().printf_P(PSTR("\"Time\":\"%s\","), clockCurrentText(buf));
 	HTTP.client().printf_P(PSTR("\"Date\":\"%s\","), dateCurrentTextLong(buf));
+	HTTP.client().printf_P(PSTR("\"Sunrise\":\"%i:%i\","), sunrise / 60, sunrise % 60);
+	HTTP.client().printf_P(PSTR("\"Sunset\":\"%i:%i\","), sunset / 60, sunset % 60);
 	HTTP.client().printf_P(PSTR("\"Illumination\":%i,"), analogRead(PIN_PHOTO_SENSOR));
 	HTTP.client().printf_P(PSTR("\"LedBrightness\":%i,"), led_brightness);
 	HTTP.client().printf_P(PSTR("\"fl_5v\":%i,"), fl_5v);
+	HTTP.client().printf_P(PSTR("\"Rssi\":%i,"), wifi_rssi());
 	HTTP.client().printf_P(PSTR("\"FreeHeap\":%i,"), ESP.getFreeHeap());
 	HTTP.client().printf_P(PSTR("\"MaxFreeBlockSize\":%i,"), ESP.getMaxFreeBlockSize());
 	HTTP.client().printf_P(PSTR("\"HeapFragmentation\":%i,"), ESP.getHeapFragmentation());

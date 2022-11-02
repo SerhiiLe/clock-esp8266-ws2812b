@@ -35,6 +35,14 @@
 						<td><span id="Date"></span></td>
 					</tr>
 					<tr>
+						<td>Sunrise</td>
+						<td><span id="Sunrise"></span></td>
+					</tr>
+					<tr>
+						<td>Sunset</td>
+						<td><span id="Sunset"></span></td>
+					</tr>
+					<tr>
 						<td>Illumination</td>
 						<td><span id="Illumination"></span></td>
 					</tr>
@@ -45,6 +53,10 @@
 					<tr>
 						<td>Power</td>
 						<td><span id="fl_5v"></span></td>
+					</tr>
+					<tr>
+						<td>WiFi RSSI</td>
+						<td><span id="Rssi"></span> dBm</td>
 					</tr>
 					<tr>
 						<td>Free Heap</td>
@@ -82,12 +94,14 @@
 <script type="text/javascript" encoding="UTF-8">
 function parseInfo(doc) {
 	for (var key in doc) {
+		var t = $g(key);
+		if(!t) continue;
 		switch(key) {
-			case "Uptime": $g(key).innerHTML = doc[key].replace(/,/g, "<br>"); break;
-			case "Time": $g(key).innerHTML = doc[key].replace(/(\d+)\D(\d+)/g, "$1:$2"); break;
-			case "fl_5v": $g(key).innerHTML = doc[key] ? "Main": "Reserve"; break;
-			case "FullVersion": $g(key).innerHTML = doc[key].replace(/\//g, "<br>"); break;
-			default: $g(key).innerHTML = doc[key];
+			case "Uptime": t.innerHTML = doc[key].replace(/,/g, "<br>"); break;
+			case "Time": t.innerHTML = doc[key].replace(/(\d+)\D(\d+)/g, "$1:$2"); break;
+			case "fl_5v": t.innerHTML = doc[key] ? "Main": "Reserve"; break;
+			case "FullVersion": t.innerHTML = doc[key].replace(/\//g, "<br>"); break;
+			default: t.innerHTML = doc[key];
 		}
 	}
 }

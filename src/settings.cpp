@@ -105,22 +105,23 @@ bool load_config_main() {
 	show_date_color0 = text_to_color(doc[F("date_color0")]);
 	bright_mode = doc[F("bright_mode")];
 	bright0 = doc[F("bright0")];
-	br_boost = doc[F("br_boost")];
+	bright_boost = doc[F("br_boost")];
 	if(bright_mode==2) set_brightness(bright0);
+	boost_mode = doc[F("boost_mode")];
+	bright_add = doc[F("br_add")];
+	latitude = doc[F("latitude")];
+	longitude = doc[F("longitude")];
+	bright_begin = doc[F("br_begin")];
+	bright_end = doc[F("br_end")];
 	max_power = doc[F("max_power")];
 	if(DEFAULT_POWER > 0) FastLED.setMaxPowerInVoltsAndMilliamps(5, max_power);
 	turn_display = doc[F("turn_display")];
 	volume_start = doc[F("volume_start")];
 	volume_finish = doc[F("volume_finish")];
 	volume_period = doc[F("volume_period")]; alarmStepTimer.setInterval(1000U * volume_period);
-	timeout_mp3 = doc[F("timeout_mp3")]; timeoutMp3Timer.setInterval(86400000U * sync_time_period);
-	sync_time_period = doc[F("sync_time_period")]; ntpSyncTimer.setInterval(86400000U * sync_time_period);
+	timeout_mp3 = doc[F("timeout_mp3")]; timeoutMp3Timer.setInterval(3600000U * sync_time_period);
+	sync_time_period = doc[F("sync_time_period")]; ntpSyncTimer.setInterval(3600000U * sync_time_period);
 	scroll_period = doc[F("scroll_period")]; scrollTimer.setInterval(scroll_period);
-	tb_name = doc[F("tb_name")].as<String>();
-	tb_chats = doc[F("tb_chats")].as<String>();
-	tb_token = doc[F("tb_token")].as<String>();
-	tb_secret = doc[F("tb_secret")].as<String>();
-	tb_rate = doc[F("tb_rate")]; // telegramTimer.setInterval(1000U * tb_rate);
 	web_login = doc[F("web_login")].as<String>();
 	web_password = doc[F("web_password")].as<String>();
 
@@ -156,7 +157,13 @@ void save_config_main() {
 	doc[F("date_color0")] = color_to_text(show_date_color0);
 	doc[F("bright_mode")] = bright_mode;
 	doc[F("bright0")] = bright0;
-	doc[F("br_boost")] = br_boost;
+	doc[F("br_boost")] = bright_boost;
+	doc[F("boost_mode")] = boost_mode;
+	doc[F("br_add")] = bright_add;
+	doc[F("latitude")] = latitude;
+	doc[F("longitude")] = longitude;
+	doc[F("br_begin")] = bright_begin;
+	doc[F("br_end")] = bright_end;
 	doc[F("max_power")] = max_power;
 	doc[F("turn_display")] = turn_display;
 	doc[F("volume_start")] = volume_start;
@@ -174,6 +181,74 @@ void save_config_main() {
 	doc[F("web_password")] = web_password;
 
 	File configFile = LittleFS.open(F("/config.json"), "w"); // открытие файла на запись
+	if (!configFile) {
+		LOG(println, PSTR("Failed to open config file for writing"));
+		return;
+	}
+	serializeJson(doc, configFile); // Записываем строку json в файл
+	configFile.flush();
+	configFile.close(); // не забыть закрыть файл
+	delay(2);
+
+	LOG(printf_P, PSTR("размер объекта config: %i\n"), doc.memoryUsage());
+}
+
+bool load_config_telegram() {
+	if(!fs_isStarted) return false;
+
+	File configFile = LittleFS.open(F("/telegram.json"), "r");
+	if (!configFile) {
+		// если файл не найден  
+		LOG(println, PSTR("Failed to open telegram config file"));
+		return false;
+	}
+
+	StaticJsonDocument<1024> doc; // временный буфер под объект json
+
+	DeserializationError error = deserializeJson(doc, configFile);
+	configFile.close();
+
+	// Test if parsing succeeds.
+	if (error) {
+		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());
+		return false;
+	}
+
+	use_move = doc[F("use_move")];
+	use_brightness = doc[F("use_brightness")];
+	pin_code = doc[F("pin_code")].as<String>();
+	tb_name = doc[F("tb_name")].as<String>();
+	tb_chats = doc[F("tb_chats")].as<String>();
+	tb_token = doc[F("tb_token")].as<String>();
+	tb_secret = doc[F("tb_secret")].as<String>();
+	tb_rate = doc[F("tb_rate")];
+	tb_accelerated = doc[F("tb_accelerated")];
+	telegramTimer.setInterval(1000U * tb_accelerated);
+	tb_accelerate = doc[F("tb_accelerate")];
+	tb_ban = doc[F("tb_ban")];
+
+	LOG(printf_P, PSTR("размер объекта config: %i\n"), doc.memoryUsage());
+	return true;
+}
+
+void save_config_telegram() {
+	if(!fs_isStarted) return;
+
+	StaticJsonDocument<1024> doc; // временный буфер под объект json
+
+	doc[F("use_move")] = use_move;
+	doc[F("use_brightness")] = use_brightness;
+	doc[F("pin_code")] = pin_code;
+	doc[F("tb_name")] = tb_name;
+	doc[F("tb_chats")] = tb_chats;
+	doc[F("tb_token")] = tb_token;
+	doc[F("tb_secret")] = tb_secret;
+	doc[F("tb_rate")] = tb_rate;
+	doc[F("tb_accelerated")] = tb_accelerated;
+	doc[F("tb_accelerate")] = tb_accelerate;
+	doc[F("tb_ban")] = tb_ban;
+
+	File configFile = LittleFS.open(F("/telegram.json"), "w"); // открытие файла на запись
 	if (!configFile) {
 		LOG(println, PSTR("Failed to open config file for writing"));
 		return;
@@ -436,6 +511,7 @@ void save_log_file(uint8_t mt) {
 		case SEC_TEXT_DISABLE: lm = PSTR("Stop."); break;
 		case SEC_TEXT_ENABLE: lm = PSTR("Start."); break;
 		case SEC_TEXT_MOVE: lm = PSTR("Move!"); break;
+		case SEC_TEXT_BRIGHTNESS: lm = PSTR("Brightness!"); break;
 		case SEC_TEXT_BOOT: lm = PSTR("Boot clock"); break;
 		case SEC_TEXT_POWERED: lm = PSTR("Power is ON"); break;
 		case SEC_TEXT_POWEROFF: lm = PSTR("Power is OFF"); break;

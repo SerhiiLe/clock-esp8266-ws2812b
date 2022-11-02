@@ -36,17 +36,17 @@ GButton btn(PIN_BUTTON, LOW_PULL, NORM_OPEN); // комбинация для с�
 GButton btn(PIN_BUTTON); // комбинация для обычной кнопки
 #endif
 
-timerMinim autoBrightnessTimer(250);	// Таймер отслеживания показаний датчика света при включенной авторегулировки яркости матрицы
+timerMinim autoBrightnessTimer(250);	// Таймер отслеживания показаний датчика света при включенной авторегулирования яркости матрицы
 timerMinim clockTimer(512);				// Таймер, чтобы разделитель часов и минут мигал примерно каждую секунду
 timerMinim scrollTimer(scroll_period);	// Таймер обновления бегущей строки
-timerMinim ntpSyncTimer(86400000U * sync_time_period);  // Таймер синхронизации времени с NTP-сервером
+timerMinim ntpSyncTimer(3600000U * sync_time_period);  // Таймер синхронизации времени с NTP-сервером 3600000U
 timerMinim clockDate(1000U * show_date_period); // периодичность вывода даты в секундах
 timerMinim textTimer[MAX_RUNNING];
 timerMinim alarmTimer(1000);			// для будильника, срабатывает каждую секунду
 timerMinim alarmStepTimer(5000);		// шаг увеличения громкости будильника
 timerMinim demoTimer(33);				// таймер для теста/демонстрации экрана
-timerMinim telegramTimer(1000U * TELEGRAM_ACCELERATED);	// период опроса команд из Телеграм
-timerMinim timeoutMp3Timer(86400000U * timeout_mp3); // таймер принудительного сброса mp3
+timerMinim telegramTimer(1000U * tb_accelerated);	// период опроса команд из Телеграм
+timerMinim timeoutMp3Timer(3600000U * timeout_mp3); // таймер принудительного сброса mp3
 
 // файловая система подключена
 bool fs_isStarted = false;
@@ -74,6 +74,10 @@ bool fl_5v = true;
 bool fl_allowLEDS = true;
 // Текущая мелодия будильника, которая должна играть
 uint8_t active_alarm = 0;
+// разрешение увеличения яркости
+bool fl_bright_boost = false;
+// старое значение fl_bright_boost
+bool old_bright_boost = false;
 
 void setup() {
 	Serial.begin(115200);
@@ -116,6 +120,10 @@ void setup() {
 		LOG(println, PSTR("Create new security file"));
 		save_config_security();	// Создаем файл
 	}
+	if(!load_config_telegram()) {
+		LOG(println, PSTR("Create new telegram file"));
+		save_config_telegram();	// Создаем файл
+	}
 	initRString(str_hello);
 	wifi_setup();
 	init_telegram();
@@ -126,6 +134,7 @@ void alarmsStop() {
 	// для начала надо остановить проигрывание мелодии и сбросить таймер активности
 	alarmStartTime = 0;
 	delay(10);
+	// mp3_volume(volume_start);
 	mp3_disableLoop();
 	delay(10);
 	mp3_stop();
@@ -205,7 +214,7 @@ void loop() {
 		case 4:
 			LOG(println, PSTR("Quadruple"));
 			char buf[20];
-			sprintf_P(buf,PSTR("%i -> %i -> %i"),analogRead(PIN_PHOTO_SENSOR), old_brightness*br_boost/100, led_brightness);
+			sprintf_P(buf,PSTR("%i -> %i -> %i"),analogRead(PIN_PHOTO_SENSOR), old_brightness*bright_boost/100, led_brightness);
 			initRString(buf);
 			break;
 		case 5:
@@ -239,6 +248,8 @@ void loop() {
 		if(cur_motion) {
 			last_move = millis();
 			fl_action_move = true;
+		} else {
+			fl_action_move = false;
 		}
 		if(!fl_5v) {
 			// если питания нет, а датчик движения сработал, то запитать матрицу от аккумулятора
@@ -260,24 +271,34 @@ void loop() {
 		// остановить будильник если сработал датчик движения
 		if(alarmStartTime) alarmsStop();
 		// отправка уведомления
-		tb_send_msg(F("Сработал датчик."));
+		if(sec_enable && use_move) {
+			tb_send_msg(F("Возможно движение"));
+			save_log_file(SEC_TEXT_MOVE);
+		}
 	}
 
 	if(autoBrightnessTimer.isReady() && fl_5v) {
 		int16_t cur_brightness = analogRead(PIN_PHOTO_SENSOR);
 		// загрубление датчика освещённости. Чем ярче, тем больше разброс показаний
-		if(abs(cur_brightness-old_brightness)>(cur_brightness>0?(cur_brightness>>4)+1:0)) {
+		if(abs(cur_brightness-old_brightness)>(cur_brightness>0?(cur_brightness>>4)+1:0) || fl_bright_boost != old_bright_boost) {
+			// "охранная" функция, если освещённость изменилась резко, то отослать сообщение
+			if(sec_enable && use_brightness && abs(cur_brightness-old_brightness)>(cur_brightness>0?(cur_brightness>>3)+2:2)) {
+				tb_send_msg(F("Изменилось освещение"));
+				save_log_file(SEC_TEXT_BRIGHTNESS);
+			}
 			// усиление показаний датчика
-			uint16_t val = br_boost!=100 ? cur_brightness*br_boost/100: cur_brightness;
+			uint16_t val = bright_boost!=100 ? cur_brightness*bright_boost/100: cur_brightness;
+			uint8_t add_val = fl_bright_boost ? 1: 0;
 			switch(bright_mode) {
-			case 0: // полный автомат от 1 до 255
-				set_brightness(constrain((val >> 2) + 1, 1, 255));
-				break;
-			case 1: // автоматический с ограничителем
-				set_brightness(constrain((( val * bright0 ) >> 10) + 1, 1,255));
-				break;
+				case 0: // полный автомат от 1 до 255
+					set_brightness(constrain((val >> 2) + 1 + add_val, 1, 255));
+					break;
+				case 1: // автоматический с ограничителем
+					set_brightness(constrain((( val * bright0 ) >> 10) + 1 + add_val, 1,255));
+					break;
 			}
 			old_brightness = cur_brightness;
+			old_bright_boost = fl_bright_boost;
 		}
 	}
 
@@ -287,6 +308,9 @@ void loop() {
 		// проверка времени работы бегущей строки
 		i = t.tm_hour*60+t.tm_min;
 		fl_run_allow = run_allow == 0 || (run_allow == 1 && i >= run_begin && i <= run_end);
+		fl_bright_boost = boost_mode != 0 && 
+			((boost_mode > 0 && boost_mode < 5 && i >= sunrise && i <= sunset) ||
+			(boost_mode == 5 && i >= bright_begin && i <= bright_end));
 		// перебор всех будильников, чтобы найти активный
 		for(i=0; i<MAX_ALARMS; i++)
 			if(alarms[i].settings & 512) {
@@ -336,7 +360,7 @@ void loop() {
 			// вывод текста только на время работы будильника
 			initRString(texts[i].text, texts[i].color_mode > 0 ? texts[i].color_mode: texts[i].color);
 		}
-		if(!mp3_isplay()) {
+		if(!mp3_isPlay()) {
 			// мелодия не запустилась, повторить весь цикл сначала. Редко, но случается :(
 			mp3_reread();
 			mp3_enableLoop();

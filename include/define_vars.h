@@ -38,6 +38,7 @@ extern bool mp3_isInit;
 
 /*** определение глобальных перемененных, которые станут настройками ***/
 // описания переменных в файле settings_init.h
+// файл config.json
 extern String str_hello;
 extern uint8_t max_alarm_time;
 extern uint8_t run_allow;
@@ -47,7 +48,7 @@ extern uint8_t wide_font;
 extern uint8_t show_move;
 extern uint8_t delay_move;
 extern int8_t tz_shift;
-extern int8_t tz_dst;
+extern uint8_t tz_dst;
 extern uint8_t show_date_short;
 extern uint16_t show_date_period;
 extern uint8_t show_time_color;
@@ -57,7 +58,13 @@ extern uint8_t show_date_color;
 extern uint32_t show_date_color0;
 extern uint8_t bright_mode;
 extern uint8_t bright0;
-extern uint16_t br_boost;
+extern uint16_t bright_boost;
+extern uint8_t boost_mode;
+extern uint8_t bright_add;
+extern float latitude;
+extern float longitude;
+extern uint16_t bright_begin;
+extern uint16_t bright_end;
 extern uint32_t max_power;
 extern uint8_t turn_display;
 extern uint8_t volume_start;
@@ -66,13 +73,21 @@ extern uint8_t volume_period;
 extern uint8_t timeout_mp3;
 extern uint8_t sync_time_period;
 extern uint16_t scroll_period;
+extern String web_login;
+extern String web_password;
+
+// файл telegram.json
+extern uint8_t use_move;
+extern uint8_t use_brightness;
+extern String pin_code;
 extern String tb_name;
 extern String tb_chats;
 extern String tb_secret;
 extern String tb_token;
 extern uint16_t tb_rate;
-extern String web_login;
-extern String web_password;
+extern uint16_t tb_accelerated;
+extern uint16_t tb_accelerate;
+extern uint16_t tb_ban;
 
 struct cur_alarm {
 	uint16_t settings = 0;	// настройки (побитовое поле)
@@ -94,6 +109,9 @@ extern cur_text texts[];
 
 extern uint8_t sec_enable;
 extern uint8_t sec_curFile;
+
+extern uint16 sunrise; // время восхода в минутах от начала суток
+extern uint16 sunset; // время заката в минутах от начала суток
 
 //----------------------------------------------------
 #if defined(LOG)

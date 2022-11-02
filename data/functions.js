@@ -111,3 +111,21 @@ function onoff(id,a=1) {
 		$g(id).innerHTML = ajaxResp.responseText=="1" ? "On": "Off";
 	}, dummy);
 };
+function fill_settings(url,form_name) {
+	var doc = JSON.parse(httpGet(url));
+	var f = document.forms[form_name];
+	for (var key in doc) {
+		if(!f.elements[key]) continue;
+		if(f.elements[key].type=="checkbox") {
+			if( f.elements[key].checked && doc[key] == 0 )
+				f.elements[key].checked = false;
+			if( ! f.elements[key].checked && doc[key] != 0 )
+				f.elements[key].checked = true;
+		} else if(f.elements[key].type=="time") {
+			var h = Math.floor(doc[key]/60);
+			var m = doc[key]%60;
+			f.elements[key].value = (h<10?"0"+h:h) + ":" + (m<10?"0"+m:m);
+		} else
+			f.elements[key].value = doc[key];
+	}
+};

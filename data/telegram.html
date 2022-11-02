@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<header>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Security settings</title>
+	<style>
+		div#shadow {background-color:rgba(0,0,0,0.8); z-index:2000; width:100%; height:100%; position:absolute; left:0; top:0;}
+		div#shadow div {position: absolute; top: 50%; transform: translate(-50%, -50%); left: 50%; margin-right: -50%; font-size: x-large; color: yellow;}
+	</style>
+	<link rel="stylesheet" href="styles.css">
+	<link rel="shortcut icon" href="favicon.ico">
+	<link rel="icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<script src="functions.js" type="text/javascript" encoding="UTF-8"></script>
+</header>
+<html>
+	<body>
+		<div class="head">
+			Управление часами.
+			<div>настройки охраны</div>
+		</div>
+		<div class="content">
+			<form action="save_telegram" autocomplete="off" method="post" name="settings">
+				<table class="params">
+					<thead>
+						<tr>
+							<th>Параметр</th>
+							<th>Значение</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td colspan="2" class="center i b">Общие настройки</td>
+						</tr>
+						<tr>
+							<td>Включить датчик движения</td>
+							<td><input name="use_move" type="checkbox" value="1"></td>
+						</tr>
+						<tr>
+							<td>Включить датчик освещённости</td>
+							<td><input name="use_brightness" type="checkbox" value="1"></td>
+						</tr>
+						<tr>
+							<td>PIN для доступа к /send?pin=XXX&msg=</td>
+							<td><input name="pin_code" type="text" value=""></td>
+						</tr>
+						<tr>
+							<td colspan="2" class="center i b">Настройки Telegram</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								Название / адрес бота:
+								<input name="tb_name" type="text" class="long">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								Chat ID (номера разрешенных чатов через запятую):
+								<input name="tb_chats" type="text" class="long">
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								Bot token:
+								<input name="tb_token" type="text" class="long">
+							</td>
+						</tr>
+						<tr>
+							<td>Пароль для активации чата</td>
+							<td><input name="tb_secret" type="text" value=""></td>
+						</tr>
+						<tr>
+							<td>Интервал опроса новых сообщений, в секундах (0=откл.)</td>
+							<td><input name="tb_rate" type="number" value="300"></td>
+						</tr>
+						<tr>
+							<td>Ускоренный интервал опроса новых сообщений, после нового сообщения, в секундах (1-600)</td>
+							<td><input name="tb_accelerated" type="number" value="10"></td>
+						</tr>
+						<tr>
+							<td>Время на которе ускоряется опрос новых сообщений, после нового сообщения, в секундах (1-3600)</td>
+							<td><input name="tb_accelerate" type="number" value="900"></td>
+						</tr>
+						<tr>
+							<td>Время на которе прекращается опрос новых сообщений, после сбоя, в секундах (900-3600)</td>
+							<td><input name="tb_ban" type="number" value="1800"></td>
+						</tr>
+					</tbody>
+				</table>
+				<button>Сохранить</button>
+			</form>
+		</div>
+		<div class="footer">
+			<a href="security.html">Вернуться</a>
+		</div>
+		<div id="shadow"><div>Загрузка...</div></div>
+	</body>
+<script type="text/javascript" encoding="UTF-8">
+function start() {
+	if (typeof ajaxRequest !== "undefined") {
+		fill_settings("telegram.json","settings");
+		$g("shadow").style.display = "none";
+	} else setTimeout(start, 100);
+}
+start();
+</script>
+</html>
