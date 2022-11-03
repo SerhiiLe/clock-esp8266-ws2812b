@@ -112,6 +112,7 @@ extern uint8_t sec_curFile;
 
 extern uint16 sunrise; // время восхода в минутах от начала суток
 extern uint16 sunset; // время заката в минутах от начала суток
+extern bool old_bright_boost; // флаг для изменения уровня яркости
 
 //----------------------------------------------------
 #if defined(LOG)

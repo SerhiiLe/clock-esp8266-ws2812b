@@ -172,11 +172,6 @@ void save_config_main() {
 	doc[F("timeout_mp3")] = timeout_mp3;
 	doc[F("sync_time_period")] = sync_time_period;
 	doc[F("scroll_period")] = scroll_period;
-	doc[F("tb_name")] = tb_name;
-	doc[F("tb_chats")] = tb_chats;
-	doc[F("tb_token")] = tb_token;
-	doc[F("tb_secret")] = tb_secret;
-	doc[F("tb_rate")] = tb_rate;
 	doc[F("web_login")] = web_login;
 	doc[F("web_password")] = web_password;
 
@@ -188,7 +183,7 @@ void save_config_main() {
 	serializeJson(doc, configFile); // Записываем строку json в файл
 	configFile.flush();
 	configFile.close(); // не забыть закрыть файл
-	delay(2);
+	delay(4);
 
 	LOG(printf_P, PSTR("размер объекта config: %i\n"), doc.memoryUsage());
 }
@@ -376,7 +371,7 @@ void save_config_texts() {
 	serializeJson(doc, configFile); // Записываем строку json в файл
 	configFile.flush();
 	configFile.close(); // не забыть закрыть файл
-	delay(2);
+	delay(4);
 
 	LOG(printf_P, PSTR("размер объекта texts: %i\n"), doc.memoryUsage());
 }

@@ -284,12 +284,16 @@ void save_settings() {
 	set_simple_color(F("time_color5"), show_time_col[4]);
 	set_simple_int(F("date_color"), show_date_color, 0, 2);
 	set_simple_color(F("date_color0"), show_date_color0);
-	set_simple_int(F("bright_mode"), bright_mode, 0, 2);
-	set_simple_int(F("bright0"), bright0, 1, 255);
-	if(bright_mode==2) set_brightness(bright0);
+	bool need_bright = false;
+	if( set_simple_int(F("bright_mode"), bright_mode, 0, 2) )
+		need_bright = true;
+	if( set_simple_int(F("bright0"), bright0, 1, 255) )
+		need_bright = true;
 	set_simple_int(F("br_boost"), bright_boost, 1, 1000);
-	set_simple_int(F("boost_mode"), boost_mode, 0, 5);
-	set_simple_int(F("br_add"), bright_add, 0, 255);
+	if( set_simple_int(F("boost_mode"), boost_mode, 0, 5) )
+		sync_time = true;
+	if( set_simple_int(F("br_add"), bright_add, 1, 255) )
+		need_bright = true;
 	if( set_simple_float(F("latitude"), latitude, -180.0f, 180.0f) )
 		sync_time = true;
 	if( set_simple_float(F("longitude"), longitude, -180.0f, 180.0f) )
@@ -322,6 +326,7 @@ void save_settings() {
 	if( need_save ) save_config_main();
 	initRString(PSTR("Настройки сохранены"));
 	if( sync_time ) syncTime();
+	if( need_bright ) old_bright_boost = !old_bright_boost;
 	if(need_web_restart) httpUpdater.setup(&HTTP, web_login, web_password);
 }
 
@@ -659,8 +664,8 @@ void sysinfo() {
 	HTTP.client().printf_P(PSTR("\"Uptime\":\"%s\","), getUptime(buf));
 	HTTP.client().printf_P(PSTR("\"Time\":\"%s\","), clockCurrentText(buf));
 	HTTP.client().printf_P(PSTR("\"Date\":\"%s\","), dateCurrentTextLong(buf));
-	HTTP.client().printf_P(PSTR("\"Sunrise\":\"%i:%i\","), sunrise / 60, sunrise % 60);
-	HTTP.client().printf_P(PSTR("\"Sunset\":\"%i:%i\","), sunset / 60, sunset % 60);
+	HTTP.client().printf_P(PSTR("\"Sunrise\":\"%u:%02u\","), sunrise / 60, sunrise % 60);
+	HTTP.client().printf_P(PSTR("\"Sunset\":\"%u:%02u\","), sunset / 60, sunset % 60);
 	HTTP.client().printf_P(PSTR("\"Illumination\":%i,"), analogRead(PIN_PHOTO_SENSOR));
 	HTTP.client().printf_P(PSTR("\"LedBrightness\":%i,"), led_brightness);
 	HTTP.client().printf_P(PSTR("\"fl_5v\":%i,"), fl_5v);

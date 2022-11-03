@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief 
- * @version 1.2.0
- * @date 2022-05-13
+ * @version 1.3.0
+ * @date 2022-11-03
  * 
  * @copyright Copyright (c) 2021,2022
  * 
@@ -77,7 +77,7 @@ uint8_t active_alarm = 0;
 // разрешение увеличения яркости
 bool fl_bright_boost = false;
 // старое значение fl_bright_boost
-bool old_bright_boost = false;
+bool old_bright_boost = true;
 
 void setup() {
 	Serial.begin(115200);
@@ -288,7 +288,8 @@ void loop() {
 			}
 			// усиление показаний датчика
 			uint16_t val = bright_boost!=100 ? cur_brightness*bright_boost/100: cur_brightness;
-			uint8_t add_val = fl_bright_boost ? 1: 0;
+			// дополнительная яркость по времени
+			uint8_t add_val = fl_bright_boost ? bright_add: 0;
 			switch(bright_mode) {
 				case 0: // полный автомат от 1 до 255
 					set_brightness(constrain((val >> 2) + 1 + add_val, 1, 255));
@@ -296,6 +297,8 @@ void loop() {
 				case 1: // автоматический с ограничителем
 					set_brightness(constrain((( val * bright0 ) >> 10) + 1 + add_val, 1,255));
 					break;
+				default: // ручной
+					set_brightness(constrain((uint16_t)bright0 + (uint16_t)add_val, 1, 255));
 			}
 			old_brightness = cur_brightness;
 			old_bright_boost = fl_bright_boost;
