@@ -23,7 +23,8 @@
 			<table class="generic">
 				<tr>
 					<td colspan="2" class="center">
-						<input type="number" value="1" name="cur" class="big ss" id="cur" onkeypress="sendTr(event)"> из <span id="col">0</span> <span id="status"></span>
+						<input type="number" value="1" name="cur" class="big ss" id="cur" onkeypress="sendTr(event)" onfocus="fl_busy=true;" onfocusout="fl_busy=false;">
+						 из <span id="col">0</span> <span id="status"></span>
 					</td>
 				</tr>
 				<tr>
@@ -74,8 +75,10 @@ function update_info() {
 }
 function sendTr(e) {
 	stime = new Date().getTime();
-	if(e.keyCode === 13)
+	if(e.keyCode === 13) {
+		fl_busy=false;
 		send(3);
+	}
 }
 function start() {
 	if (typeof ajaxRequest !== "undefined") {

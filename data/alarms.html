@@ -59,8 +59,8 @@
 							<tr class="sel_days"><td>Суббота</td><td><input type="checkbox" name="sa" value="1"></td></tr>
 							<tr class="sel_days"><td>Воскресенье</td><td><input type="checkbox" name="su" value="1"></td></tr>
 							<tr>
-								<td>Мелодия будильника <button onclick="test_ring();return false;">проверить</button></td>
-								<td><input type="number" name="melody" value="1" id="cur"> из <span id="col">0</span></td>
+								<td>Мелодия будильника <button onclick="test_ring();return false;" id="ss">проверить</button></td>
+								<td><input type="number" name="melody" value="1" id="cur" onkeypress="sendTr(event)"> из <span id="col">0</span></td>
 							</tr>
 							<tr>
 								<td colspan="2">
@@ -97,12 +97,18 @@ function select_days() {
 var is_play = false;
 function test_ring() {
 	if(is_play) {
+		$g("ss").innerHTML="проверить";
 		send(6);
 		is_play=false;
 	} else {
+		$g("ss").innerHTML="стоп";
 		send(3);
 		is_play=true;
 	}
+}
+function sendTr(e) {
+	if(e.keyCode === 13)
+		is_play = false;
 }
 function show_edit(i) {
 	if(! $g("e"+i).checked) return;
