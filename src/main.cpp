@@ -36,7 +36,7 @@ GButton btn(PIN_BUTTON, LOW_PULL, NORM_OPEN); // комбинация для с�
 GButton btn(PIN_BUTTON); // комбинация для обычной кнопки
 #endif
 
-timerMinim autoBrightnessTimer(250);	// Таймер отслеживания показаний датчика света при включенной авторегулирования яркости матрицы
+timerMinim autoBrightnessTimer(500);	// Таймер отслеживания показаний датчика света при включенном авторегулировании яркости матрицы
 timerMinim clockTimer(512);				// Таймер, чтобы разделитель часов и минут мигал примерно каждую секунду
 timerMinim scrollTimer(scroll_period);	// Таймер обновления бегущей строки
 timerMinim ntpSyncTimer(3600000U * sync_time_period);  // Таймер синхронизации времени с NTP-сервером 3600000U
@@ -53,7 +53,7 @@ bool fs_isStarted = false;
 // время начала работы будильника
 time_t alarmStartTime = 0;
 // яркость прошлого цикла
-int16_t old_brightness = 2000;
+int16_t old_brightness = 5000;
 // состояние датчика движения
 bool cur_motion = false;
 // время последней сработки датчика движения
@@ -134,9 +134,8 @@ void alarmsStop() {
 	// для начала надо остановить проигрывание мелодии и сбросить таймер активности
 	alarmStartTime = 0;
 	delay(10);
-	// mp3_volume(volume_start);
-	mp3_disableLoop();
-	delay(10);
+	// mp3_disableLoop();
+	// delay(10);
 	mp3_stop();
 	// устанавливается флаг, что все активные сейчас будильники отработали
 	for(uint8_t i=0; i<MAX_ALARMS; i++)
@@ -245,28 +244,31 @@ void loop() {
 	if(digitalRead(PIN_MOTION) != cur_motion) {
 		cur_motion = ! cur_motion;
 		digitalWrite(LED_MOTION, show_move || alarmStartTime ? cur_motion: 0);
-		if(cur_motion) {
-			last_move = millis();
-			fl_action_move = true;
-		} else {
-			fl_action_move = false;
-		}
+		last_move = millis(); // как включение, так и выключение датчика сбрасывает таймер
+		fl_action_move = cur_motion;
 		if(!fl_5v) {
-			// если питания нет, а датчик движения сработал, то запитать матрицу от аккумулятора
-			fl_allowLEDS = cur_motion;
-			digitalWrite(PIN_RELAY, RELAY_OP(cur_motion));
-			if(fl_allowLEDS && screenIsFree) {
-				// если на экране должно быть время, то сразу его отрисовать
-				// иначе на экране будет непонятно что. Если бежит строка, то
-				// время обновления и так маленькое, естественным путём перерисует
-				delay(RELAY_OP_TIME); // задержка на время срабатывания рэле
-				screenIsFree = false;
-				display_tick();
+			// если питания нет, а датчик движения сработал, то питать матрицу от аккумулятора
+			if(cur_motion) {
+				fl_allowLEDS = cur_motion;
+				digitalWrite(PIN_RELAY, RELAY_OP(cur_motion));
+				if(fl_allowLEDS && screenIsFree) {
+					// если на экране должно быть время, то сразу его отрисовать
+					// иначе на экране будет непонятно что. Если бежит строка, то
+					// время обновления и так маленькое, естественным путём перерисует
+					delay(RELAY_OP_TIME); // задержка на время срабатывания рэле
+					screenIsFree = false;
+					display_tick();
+				}
 			}
 		}
 	}
+	// выключение матрицы с задержкой, если нет питания 5V
+	if(!fl_5v && !cur_motion && fl_allowLEDS && millis()-last_move>(delay_move+2)*1000UL) {
+		fl_allowLEDS = fl_5v;
+		digitalWrite(PIN_RELAY, RELAY_OFF);
+	}
 	// Задержка срабатывания действий при сработке датчика движения, для уменьшения ложных срабатываний
-	if(cur_motion && millis()-last_move>delay_move*1000UL && fl_action_move) {
+	if(fl_action_move && millis()-last_move>delay_move*1000UL) {
 		fl_action_move = false;
 		// остановить будильник если сработал датчик движения
 		if(alarmStartTime) alarmsStop();
@@ -279,11 +281,15 @@ void loop() {
 
 	if(autoBrightnessTimer.isReady() && fl_5v) {
 		int16_t cur_brightness = analogRead(PIN_PHOTO_SENSOR);
+		int16_t min_brightness = cur_brightness > old_brightness ? old_brightness: cur_brightness; 
 		// загрубление датчика освещённости. Чем ярче, тем больше разброс показаний
-		if(abs(cur_brightness-old_brightness)>(cur_brightness>0?(cur_brightness>>4)+1:0) || fl_bright_boost != old_bright_boost) {
+		if(abs(cur_brightness-old_brightness)>(min_brightness>0?(min_brightness>>4)+1:0) || fl_bright_boost != old_bright_boost) {
 			// "охранная" функция, если освещённость изменилась резко, то отослать сообщение
-			if(sec_enable && use_brightness && abs(cur_brightness-old_brightness)>(cur_brightness>0?(cur_brightness>>3)+2:2)) {
-				tb_send_msg(F("Изменилось освещение"));
+			// фоторезистор имеет большую инертность, может приходить два сообщения
+			if(sec_enable && use_brightness && abs(cur_brightness-old_brightness)>(min_brightness>0?(min_brightness>>3)+2:2)) {
+				char buf[80];
+				sprintf_P(buf,PSTR("Изменилось освещение: %i -> %i"), old_brightness, cur_brightness);
+				tb_send_msg(buf);
 				save_log_file(SEC_TEXT_BRIGHTNESS);
 			}
 			// усиление показаний датчика
