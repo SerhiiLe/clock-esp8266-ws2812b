@@ -2,10 +2,10 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief 
- * @version 1.3.0
- * @date 2022-11-03
+ * @version 1.5.0
+ * @date 2023-01-28
  * 
- * @copyright Copyright (c) 2021,2022
+ * @copyright Copyright (c) 2021,2022,2023
  * 
  */
 
@@ -58,6 +58,8 @@ int16_t old_brightness = 5000;
 bool cur_motion = false;
 // время последней сработки датчика движения
 unsigned long last_move = 0;
+// время последнего отключения экрана
+unsigned long last_screen_no5V = 0;
 // флаг отработки действия датчика движения
 bool fl_action_move = true;
 // разрешение выводить бегущую строку (уведомления, день недели и число)
@@ -197,29 +199,35 @@ void loop() {
 			break;
 		case 2:
 			LOG(println, PSTR("Double"));
-			if(fl_password_reset_req) {
-				web_password = "";
-				initRString(PSTR("Пароль временно отключен. Зайдите в настройки и задайте новый!"),CRGB::OrangeRed);
-			} else
-				fl_demo = !fl_demo;
+			if(fl_5v) { // при низком напряжении сенсорная кнопка может давать ложные срабатывания, по этому отключить все функции
+				if(fl_password_reset_req) {
+					web_password = "";
+					initRString(PSTR("Пароль временно отключен. Зайдите в настройки и задайте новый!"),CRGB::OrangeRed);
+				} else
+					fl_demo = !fl_demo;
+			}
 			break;
 		case 3:
 			LOG(println, PSTR("Triple"));
-			if(fl_password_reset_req) {
+			if(fl_5v && fl_password_reset_req) {
 				if(!wifi_isPortal) wifi_startConfig(true);
 			} else
 				initRString("IP: "+wifi_currentIP());
 			break;
 		case 4:
 			LOG(println, PSTR("Quadruple"));
-			char buf[20];
-			sprintf_P(buf,PSTR("%i -> %i -> %i"),analogRead(PIN_PHOTO_SENSOR), old_brightness*bright_boost/100, led_brightness);
-			initRString(buf);
+			if(fl_5v) {
+				char buf[20];
+				sprintf_P(buf,PSTR("%i -> %i -> %i"),analogRead(PIN_PHOTO_SENSOR), old_brightness*bright_boost/100, led_brightness);
+				initRString(buf);
+			}
 			break;
 		case 5:
 			LOG(println, PSTR("Fivefold"));
-			initRString(PSTR("Сброс пароля! Для подтверждения - 2й клик! Или 3й для сброса WiFi. 1 клик - отмена."),CRGB::OrangeRed);
-			fl_password_reset_req = true;
+			if(fl_5v) {
+				initRString(PSTR("Сброс пароля! Для подтверждения - 2 клика! Или 3 для сброса WiFi. 1 клик - отмена."),CRGB::OrangeRed);
+				fl_password_reset_req = true;
+			}
 			break;
 	}
 
@@ -248,7 +256,7 @@ void loop() {
 		fl_action_move = cur_motion;
 		if(!fl_5v) {
 			// если питания нет, а датчик движения сработал, то питать матрицу от аккумулятора
-			if(cur_motion) {
+			if(cur_motion && millis()-last_screen_no5V>(max_move)*500L) {
 				fl_allowLEDS = cur_motion;
 				digitalWrite(PIN_RELAY, RELAY_OP(cur_motion));
 				if(fl_allowLEDS && screenIsFree) {
@@ -262,9 +270,14 @@ void loop() {
 			}
 		}
 	}
-	// выключение матрицы с задержкой, если нет питания 5V
-	if(!fl_5v && !cur_motion && fl_allowLEDS && millis()-last_move>(delay_move+2)*1000UL) {
-		fl_allowLEDS = fl_5v;
+	// выключение матрицы с задержкой ИЛИ по таймауту, если нет питания 5V
+	if((
+		!fl_5v && !cur_motion && fl_allowLEDS && millis()-last_move>(delay_move+2)*1000UL
+		) || (
+		!fl_5v && fl_allowLEDS && millis()-last_move>(max_move)*1000UL
+	)) {
+		fl_allowLEDS = false;
+		last_screen_no5V = millis();
 		digitalWrite(PIN_RELAY, RELAY_OFF);
 	}
 	// Задержка срабатывания действий при сработке датчика движения, для уменьшения ложных срабатываний

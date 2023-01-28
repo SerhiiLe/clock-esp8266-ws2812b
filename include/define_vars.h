@@ -47,6 +47,7 @@ extern uint16_t run_end;
 extern uint8_t wide_font;
 extern uint8_t show_move;
 extern uint8_t delay_move;
+extern uint8_t max_move;
 extern int8_t tz_shift;
 extern uint8_t tz_dst;
 extern uint8_t show_date_short;

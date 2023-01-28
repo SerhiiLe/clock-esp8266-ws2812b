@@ -7,6 +7,7 @@
 #include <ESP8266WebServer.h>
 #include <LittleFS.h>
 #include <ESP8266HTTPUpdateServer.h>
+#include <time.h>
 #include "defines.h"
 #include "web.h"
 #include "settings.h"
@@ -30,6 +31,7 @@ void off_text();
 void sysinfo();
 void play();
 void maintence();
+void set_clock();
 void onoff();
 void send();
 void logout();
@@ -68,6 +70,7 @@ void web_process() {
 		HTTP.on(F("/sysinfo"), sysinfo);
 		HTTP.on(F("/play"), play);
 		HTTP.on(F("/clear"), maintence);
+		HTTP.on(F("/clock"), set_clock);
 		HTTP.on(F("/onoff"), onoff);
 		HTTP.on(F("/send"), send);
 		HTTP.on(F("/logout"), logout);
@@ -267,6 +270,7 @@ void save_settings() {
 	set_simple_checkbox(F("wide_font"), wide_font);
 	set_simple_checkbox(F("show_move"), show_move);
 	set_simple_int(F("delay_move"), delay_move, 0, 10);
+	set_simple_int(F("max_move"), max_move, delay_move, 255);
 	bool sync_time = false;
 	if( set_simple_int(F("tz_shift"), tz_shift, -12, 12) )
 		sync_time = true;
@@ -606,7 +610,7 @@ void play() {
 			break;
 	}
 	char buff[20];
-	sprintf(buff,"%i:%i:%i:%i",mp3_current,mp3_all,cur_Volume,mp3_isPlay());
+	sprintf_P(buff,PSTR("%i:%i:%i:%i"),mp3_current,mp3_all,cur_Volume,mp3_isPlay());
 	text_send(buff);
 }
 
@@ -625,6 +629,54 @@ void send() {
 		}
 	}
 	text_send(F("0"));
+}
+
+// Установка времени. Для крайних случаев, когда интернет отсутствует
+void set_clock() {
+	if(is_no_auth()) return;
+	uint8_t type=0;
+	String name = "t";
+	if(HTTP.hasArg(name)) {
+		struct tm tm;
+		type = HTTP.arg(name).toInt();
+		if(type==0 || type==1) {
+			name = F("time");
+			if(HTTP.hasArg(name)) {
+				size_t pos = HTTP.arg(name).indexOf(":");
+				tm.tm_hour = constrain(HTTP.arg(name).toInt(), 0, 23);
+				tm.tm_min = constrain(HTTP.arg(name).substring(pos+1).toInt(), 0, 59);
+				name = F("date");
+				if(HTTP.hasArg(name)) {
+					size_t pos = HTTP.arg(name).indexOf("-");
+					tm.tm_year = constrain(HTTP.arg(name).toInt()-1900, 0, 65000);
+					tm.tm_mon = constrain(HTTP.arg(name).substring(pos+1).toInt()-1, 0, 11);
+					size_t pos2 = HTTP.arg(name).substring(pos+1).indexOf("-");
+					tm.tm_mday = constrain(HTTP.arg(name).substring(pos+pos2+2).toInt(), 1, 31);
+					name = F("sec");
+					if(HTTP.hasArg(name)) {
+						tm.tm_sec = constrain(HTTP.arg(name).toInt()+1, 0, 60);
+						tm.tm_isdst = tz_dst;
+						time_t t = mktime(&tm);
+						LOG(printf_P,"web time: %llu\n",t);
+						// set the system time
+						timeval tv = { t, 0 };
+						settimeofday(&tv, nullptr);
+					}
+				}
+			}
+		} else {
+			syncTime();
+		}
+		HTTP.sendHeader(F("Location"),F("/maintenance.html"));
+		HTTP.send(303);
+		delay(1);
+	} else {
+		tm t = getTime();
+		HTTP.client().print(PSTR("HTTP/1.1 200\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n{"));
+		HTTP.client().printf_P(PSTR("\"time\":\"%u\","), t.tm_hour*60+t.tm_min);
+		HTTP.client().printf_P(PSTR("\"date\":\"%u-%02u-%02u\"}"), t.tm_year +1900, t.tm_mon +1, t.tm_mday);
+		HTTP.client().stop();
+	}
 }
 
 // Включение/выключение различных режимов

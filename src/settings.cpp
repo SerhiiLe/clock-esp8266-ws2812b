@@ -90,6 +90,7 @@ bool load_config_main() {
 	wide_font = doc[F("wide_font")];
 	show_move = doc[F("show_move")];
 	delay_move = doc[F("delay_move")];
+	max_move = doc[F("max_move")];
 	tz_shift = doc[F("tz_shift")];
 	tz_dst = doc[F("tz_dst")];
 	show_date_short = doc[F("date_short")];
@@ -142,6 +143,7 @@ void save_config_main() {
 	doc[F("wide_font")] = wide_font;
 	doc[F("show_move")] = show_move;
 	doc[F("delay_move")] = delay_move;
+	doc[F("max_move")] = max_move;
 	doc[F("tz_shift")] = tz_shift;
 	doc[F("tz_dst")] = tz_dst;
 	doc[F("date_short")] = show_date_short;

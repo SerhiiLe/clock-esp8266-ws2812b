@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "юникоде",
         "CHSV",
         "CRGB",
         "EMCU_PI",
@@ -19,5 +20,6 @@
         "wifi"
     ],
     "editor.renderWhitespace": "trailing",
-    "editor.insertSpaces": false
+    "editor.insertSpaces": false,
+    "C_Cpp.errorSquiggles": "disabled"
 }
