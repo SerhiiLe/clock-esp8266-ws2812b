@@ -81,6 +81,8 @@ extern String web_password;
 extern uint8_t use_move;
 extern uint8_t use_brightness;
 extern String pin_code;
+extern String clock_name;
+extern uint16_t sensor_timeout;
 extern String tb_name;
 extern String tb_chats;
 extern String tb_secret;
@@ -114,6 +116,14 @@ extern uint8_t sec_curFile;
 extern uint16 sunrise; // время восхода в минутах от начала суток
 extern uint16 sunset; // время заката в минутах от начала суток
 extern bool old_bright_boost; // флаг для изменения уровня яркости
+
+#include <IPAddress.h>
+struct cur_sensor {
+	String hostname;
+	IPAddress ip = IPADDR_NONE;
+	time_t registered = 0;
+};
+extern cur_sensor sensor[];
 
 //----------------------------------------------------
 #if defined(LOG)

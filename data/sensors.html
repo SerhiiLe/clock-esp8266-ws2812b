@@ -2,7 +2,7 @@
 <header>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Maintenance clock</title>
+	<title>Clock settings</title>
 	<style>
 		div#shadow {background-color:rgba(0,0,0,0.8); z-index:2000; width:100%; height:100%; position:absolute; left:0; top:0;}
 		div#shadow div {position: absolute; top: 50%; transform: translate(-50%, -50%); left: 50%; margin-right: -50%; font-size: x-large; color: yellow;}
@@ -17,28 +17,43 @@
 	<body>
 		<div class="head">
 			Управление часами.
-			<div>обслуживание</div>
+			<div>зарегистрированные датчики</div>
 		</div>
-		<div class="menu">
-			<a href="sysinfo.html">Системная информация</a>
-			<a href="clock.html">Установка времени</a>
-            <a href="#" onclick="onoff('demo'); return false;">Проверка матрицы/демо (<span id="demo"></span>)</a>
-            <a href="clear.html">Удалить настройки</a>
-            <a href="clear?t=r" onclick="return confirm('Вы уверены, что хотите перезапустить часы?')">Перезагрузить часы?</a>
-			<a href="upgrade.html">Обновление прошивки</a>
-            <a href="#" onclick="onoff('ftp'); return false;">Включение FTP (<span id="ftp"></span>)</a>
+		<div class="menu" id="list_items">
 		</div>
+		<button onclick="getSensors()">Обновить</button>
 		<div class="footer">
-			<a href="index.html">Вернуться</a>
+			<a href="security.html">Вернуться</a>
 		</div>
 		<div id="shadow"><div>Загрузка...</div></div>
 	</body>
 <script type="text/javascript" encoding="UTF-8">
+function formatTime(secc){
+	if( isNaN(secc) || secc === Infinity ) return '--:--';
+	var ht = secc < 0 ? "-" : "";
+	var sec = Math.abs(secc);
+	var h = Math.floor(sec/3600);
+	var m = Math.floor(sec/60) % 60;
+	var s = parseInt(sec % 60);
+	ht += h + ":" + (m > 9 ? m: '0' + m) + ":" + (s > 9 ? s : '0' + s);
+	return ht;
+}
+function parseSensors(doc) {
+	var li = $g("list_items");
+	li.innerHTML = "";
+	for(var i=0; i<doc.length; i++) {
+		li.appendChild($ee("a",doc[i].num+") "+doc[i].hostname+" ("+formatTime(doc[i].timeout)+")",{href:"http://"+doc[i].ip+"/",target:"_blank"}));
+	}
+}
+function getSensors() {
+	ajaxRequest("sensors","GET",null, function(ajaxResp) {
+		parseSensors(JSON.parse(ajaxResp.responseText));
+	}, dummy);
+}
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
+		parseSensors(JSON.parse(httpGet("sensors")));
 		$g("shadow").style.display = "none";
-		onoff('ftp',0);
-		onoff('demo',0);
 	} else setTimeout(start, 100);
 }
 start();

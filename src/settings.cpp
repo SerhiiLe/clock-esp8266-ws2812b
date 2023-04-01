@@ -1,5 +1,5 @@
 /*
-	Работа с настройкаи.
+	Работа с настройками.
 	Инициализация по умолчанию, чтение из файла, сохранение в файл
 */
 
@@ -214,6 +214,8 @@ bool load_config_telegram() {
 	use_move = doc[F("use_move")];
 	use_brightness = doc[F("use_brightness")];
 	pin_code = doc[F("pin_code")].as<String>();
+	clock_name = doc[F("clock_name")].as<String>();
+	sensor_timeout = doc[F("sensor_timeout")];
 	tb_name = doc[F("tb_name")].as<String>();
 	tb_chats = doc[F("tb_chats")].as<String>();
 	tb_token = doc[F("tb_token")].as<String>();
@@ -236,6 +238,8 @@ void save_config_telegram() {
 	doc[F("use_move")] = use_move;
 	doc[F("use_brightness")] = use_brightness;
 	doc[F("pin_code")] = pin_code;
+	doc[F("clock_name")] = clock_name;
+	doc[F("sensor_timeout")] = sensor_timeout;
 	doc[F("tb_name")] = tb_name;
 	doc[F("tb_chats")] = tb_chats;
 	doc[F("tb_token")] = tb_token;

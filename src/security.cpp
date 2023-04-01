@@ -6,6 +6,8 @@
 
 #include <Arduino.h>
 #include <FastBot.h>
+#include <WiFiClient.h>
+#include <ESP8266HTTPClient.h>
 #include "security.h"
 #include "defines.h"
 #include "settings.h"
@@ -66,6 +68,41 @@ void tb_send_msg(String s) {
 	#else
 	tb.sendMessage(s,tb_chats);
 	#endif
+}
+
+// кодирование строки для GET запросов
+String urlEncode(String str) {
+	unsigned int len = str.length();
+	if(len > 500) len = 500; // ограничение на длину строки, чтобы избежать переполнения стека, 250 символов кирилицей
+	char encodedString[str.length()*3];
+	unsigned int p = 0;
+	char c;
+	char code0;
+	char code1;
+	for (unsigned int i=0; i < len; i++) {
+		c=str.charAt(i);
+		// if(c == ' ') {
+			// encodedString[p++] = '+';
+		// } else 
+		if(isalnum(c)) {
+			encodedString[p++] = c;
+		} else {
+			code1=(c & 0xf)+'0';
+			if((c & 0xf) > 9) {
+				code1 = (c & 0xf) - 10 + 'A';
+			}
+			c = (c>>4) & 0xf;
+			code0 = c+'0';
+			if(c > 9) {
+				code0=c - 10 + 'A';
+			}
+			encodedString[p++] = '%';
+			encodedString[p++] = code0;
+			encodedString[p++] = code1;
+		}
+	}
+	encodedString[p++] = '\0';
+	return String(encodedString);
 }
 
 // Обработка входящего сообщения телеграмм
@@ -141,8 +178,52 @@ void inMsg(FB_msg& msg) {
 				sec_enable?F("включён"):F("отключён"),
 				fl_5v?F("сеть"):F("аккумулятор"),
 				analogRead(PIN_PHOTO_SENSOR), led_brightness);
-			tb.sendMessage(buf, msg.chatID);
+			String sensors = buf;
+			for(uint8_t i=0; i<MAX_SENSORS; i++) {
+				if(sensor[i].registered >= getTimeU() - sensor_timeout*60) {
+					sensors += "%0A" + String(i) + " " + sensor[i].hostname;
+				}
+			}
+			tb.sendMessage(sensors, msg.chatID);
 			return;
+		} else
+		if(msg.text.charAt(0) >= '0' && msg.text.charAt(0) <= '9') {
+			// запрос внешнего датчика
+			int8_t n = msg.text.charAt(0) - 48;
+			if(sensor[n].registered >= getTimeU() - sensor_timeout*60) {
+				String url = F("http://") + sensor[n].ip.toString() + F("/api?pin=") + pin_code + "&";
+				int pos = 1;
+				int len = msg.text.length();
+				if(len<2) {
+					url += F("help");
+				} else {
+					for(; pos<len; pos++)
+						if(msg.text.charAt(pos) != ' ') break;
+					int pos2 = msg.text.indexOf("=");
+					if(pos2>0) {
+						url += msg.text.substring(pos,pos2+1);
+						if(pos2+1 < len)
+							url += urlEncode(msg.text.substring(pos2+1));
+					} else
+						url += msg.text.substring(pos);
+				}
+				LOG(println, url);
+				WiFiClient client;
+				HTTPClient html;
+				html.begin(client, url.c_str());
+				int httpResponseCode = html.GET();
+				if (httpResponseCode == 200) {
+					tb.sendMessage(urlEncode(html.getString()), msg.chatID);
+				} else {
+					tb.sendMessage("error: "+String(httpResponseCode), msg.chatID);
+				}
+		        // Free resources
+		        html.end();
+				return;
+			} else {
+				tb.sendMessage(F("датчик неактивен"), msg.chatID);
+				return;
+			}
 		} else
 		if(msg.text == F("logout")) {
 			int pos1 = tb_chats.indexOf(msg.chatID);
@@ -173,7 +254,7 @@ void inMsg(FB_msg& msg) {
 		// отправить инлайн меню (\t - горизонтальное разделение кнопок, \n - вертикальное
   		// (текст сообщения, кнопки)
   		// bot.inlineMenu("Choose wisely", "Answer 1 \t Answer 2 \t Answer 3 \n Answer 4");
-		if(fl_auth)	tb.showMenuText(F("/help если надо"), F("On\tOff\tStatus\tShow ID\nLogout\tUptime\tLast 20"), msg.chatID);
+		if(fl_auth)	tb.showMenuText(F("/help если надо"), F("On\tOff\tStatus\tShow ID\nLogout\tUptime\tLast 20\tHelp"), msg.chatID);
 		else tb.showMenuText(F("/help если надо"), F("Login\tAbout\tShow ID"), msg.chatID);
 		return;
 	} else
@@ -190,7 +271,18 @@ void inMsg(FB_msg& msg) {
 		return;
 	} else
 	if(msg.text == F("help")) {
-		tb.sendMessage(F("Все возможности в меню:%0AStart - показать меню,%0AStop - спрятать меню."), msg.chatID);
+		tb.sendMessage(F(
+			"Start - показать меню."
+			"%0AStop - спрятать меню."
+			"%0AOn%2FOff - включить%2Fвыключить режим охраны."
+			"%0AStatus - состояние и список доступных внешних датчиков."
+			"%0AShow ID - id это чата."
+			"%0ALogin%2FLogout - авторизация."
+			"%0AUptime - время работы."
+			"%0ALast - последние записи журнала. (1-45 - число записей)"
+			"%0A0-9 команда или 0-9 команда=значение - управление внешним датчиком"
+			"%0A0-9 help - запросить список команд у внешнего датчика по номеру"
+			), msg.chatID);
 		return;
 	}
 	tb.sendMessage(F("Что? Не понятно..."), msg.chatID);

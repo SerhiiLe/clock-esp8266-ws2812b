@@ -8,19 +8,21 @@
 		div#shadow div {position: absolute; top: 50%; transform: translate(-50%, -50%); left: 50%; margin-right: -50%; font-size: x-large; color: yellow;}
 	</style>
 	<link rel="stylesheet" href="styles.css">
-	<link rel="shortcut icon" href="favicon.ico">
-	<link rel="icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="icon" href="favicon.ico">
+	<link rel="shortcut icon" sizes="192x192" href="android-icon.png">
 	<link rel="apple-touch-icon" href="apple-touch-icon.png">
 	<script src="functions.js" type="text/javascript" encoding="UTF-8"></script>
 </header>
 <html>
 	<body>
 		<div class="head">
-			Охранные функции.
+			Управление часами.
+			<div>охранные функции</div>
 		</div>
 		<div class="menu">
 			<a href="#" onclick="onoff('security'); return false;">Режим охраны (<span id="security"></span>)</a>
 			<a href="telegram.html">Настройки</a>
+			<a href="sensors.html">Датчики</a>
 			<a href="#" onclick="show_log(); return false;">Последние события</a>
 			<a href="#" onclick="show_allLog(); return false;">Все события</a>
 		</div>

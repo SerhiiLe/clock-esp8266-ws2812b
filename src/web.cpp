@@ -8,6 +8,7 @@
 #include <LittleFS.h>
 #include <ESP8266HTTPUpdateServer.h>
 #include <time.h>
+#include <ESP8266mDNS.h>
 #include "defines.h"
 #include "web.h"
 #include "settings.h"
@@ -21,6 +22,7 @@
 ESP8266WebServer HTTP(80);
 ESP8266HTTPUpdateServer httpUpdater;
 bool web_isStarted = false;
+MDNSResponder MDNS;
 
 void save_settings();
 void save_telegram();
@@ -35,6 +37,8 @@ void set_clock();
 void onoff();
 void send();
 void logout();
+void sensors();
+void registration();
 
 bool fileSend(String path);
 bool need_save = false;
@@ -43,6 +47,7 @@ bool need_save = false;
 void web_disable() {
 	HTTP.stop();
 	web_isStarted = false;
+	LOG(println, PSTR("HTTP server stoped"));
 }
 
 // отправка простого текста
@@ -56,9 +61,15 @@ void not_found() {
 
 // диспетчер вызовов веб сервера
 void web_process() {
-	if( web_isStarted )
+	if( web_isStarted ) {
 		HTTP.handleClient();
-	else {
+		MDNS.update();
+	} else {
+		//назначаем символьное имя mDNS нашему серверу опираясь на его динамически полученный IP
+		if(MDNS.begin(clock_name, WiFi.localIP())) {
+			MDNS.addService("http", "tcp", 80);
+			LOG(println, PSTR("MDNS responder started"));
+		}
 		HTTP.begin();
 		// Обработка HTTP-запросов
 		HTTP.on(F("/save_settings"), save_settings);
@@ -74,12 +85,18 @@ void web_process() {
 		HTTP.on(F("/onoff"), onoff);
 		HTTP.on(F("/send"), send);
 		HTTP.on(F("/logout"), logout);
+		HTTP.on(F("/sensors"), sensors);
+		HTTP.on(F("/registration"), registration);
+		HTTP.on(F("/who"), [](){
+			text_send(clock_name);
+		});
 		HTTP.onNotFound([](){
 			if(!fileSend(HTTP.uri()))
 				not_found();
 			});
 		web_isStarted = true;
   		httpUpdater.setup(&HTTP, web_login, web_password);
+		LOG(println, PSTR("HTTP server started"));
 	}
 }
 
@@ -315,7 +332,7 @@ void save_settings() {
 	if( set_simple_int(F("timeout_mp3"), timeout_mp3, 1, 255) )
 		timeoutMp3Timer.setInterval(3600000U * timeout_mp3);
 	if( set_simple_int(F("sync_time_period"), sync_time_period, 1, 255) )
-		timeoutMp3Timer.setInterval(3600000U * sync_time_period);
+		ntpSyncTimer.setInterval(3600000U * sync_time_period);
 	if( set_simple_int(F("scroll_period"), scroll_period, 20, 1440) )
 		scrollTimer.setInterval(scroll_period);
 	bool need_web_restart = false;
@@ -343,6 +360,9 @@ void save_telegram() {
 	set_simple_checkbox(F("use_move"), use_move);
 	set_simple_checkbox(F("use_brightness"), use_brightness);
 	set_simple_string(F("pin_code"), pin_code);
+	if( set_simple_string(F("clock_name"), clock_name) )
+		MDNS.setHostname(clock_name.c_str());
+	set_simple_int(F("sensor_timeout"), sensor_timeout, 1, 16000);
 	set_simple_string(F("tb_name"), tb_name);
 	if( set_simple_string(F("tb_chats"), tb_chats) )
 		fl_setTelegram = true;
@@ -709,6 +729,7 @@ void onoff() {
 	text_send(cond?F("1"):F("0"));
 }
 
+// Информация о состоянии железки
 void sysinfo() {
 	if(is_no_auth()) return;
 	char buf[100];
@@ -729,4 +750,74 @@ void sysinfo() {
 	HTTP.client().printf_P(PSTR("\"ResetReason\":\"%s\","), ESP.getResetReason().c_str());
 	HTTP.client().printf_P(PSTR("\"FullVersion\":\"%s\"}"), ESP.getFullVersion().c_str());
 	HTTP.client().stop();
+}
+
+cur_sensor sensor[MAX_SENSORS];
+
+// Информация о зарегистрированных сенсорах
+void sensors() {
+	if(is_no_auth()) return;
+	bool fl = false;
+	HTTP.client().print(PSTR("HTTP/1.1 200\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n["));
+	for(uint8_t i=0; i<MAX_SENSORS; i++) {
+		if(sensor[i].registered >= getTimeU() - sensor_timeout*60 + 60) {
+			if(fl) HTTP.client().print(",");
+			HTTP.client().printf_P(PSTR("{\"num\":%i,"), i);
+			HTTP.client().printf_P(PSTR("\"hostname\":\"%s\","), sensor[i].hostname.c_str());
+			HTTP.client().printf_P(PSTR("\"ip\":\"%s\","), sensor[i].ip.toString().c_str());
+			HTTP.client().printf_P(PSTR("\"timeout\":%i}"), getTimeU() - sensor[i].registered);
+			fl = true;
+		}
+	}
+	HTTP.client().print("]");
+	HTTP.client().stop();
+}
+
+// Регистрация сенсора
+void registration() {
+	// Авторизация примитивная, через shared key, или pin
+	// должно быть всего два параметра: pin (shared key) и name - имя устройства
+	String name = F("pin");
+	if( HTTP.hasArg(name) ) {
+		if( pin_code == HTTP.arg(name) ) {
+			// pin подошел
+			name = F("name");
+			if( HTTP.hasArg(name) ) {
+				IPAddress sensor_ip = HTTP.client().remoteIP();
+				bool fl_found = false;
+				// проверка, зарегистрирован ли уже этот ip
+				for(uint8_t i=0; i<MAX_SENSORS; i++) {
+					if(sensor[i].ip == sensor_ip) {
+						// надо ли обновить hostname
+						if(sensor[i].hostname != HTTP.arg(name))
+							sensor[i].hostname = HTTP.arg(name);
+						// обновить время регистрации
+						sensor[i].registered = getTimeU();
+						fl_found = true;
+						break;
+					}
+				}
+				if(!fl_found) {
+					// новый сенсор, поиск свободной ячейки
+					for(uint8_t i=0; i<MAX_SENSORS; i++) {
+						if(sensor[i].registered < getTimeU() - sensor_timeout*60 - 60) {
+							// найдена свободная ячейка
+							sensor[i].hostname = HTTP.arg(name);
+							sensor[i].ip = sensor_ip;
+							sensor[i].registered = getTimeU();
+							fl_found = true;
+							break;
+						}
+					}
+				}
+				if(fl_found) {
+					LOG(printf_P,PSTR("registered \"%s\" ip %s\n"), HTTP.arg(name).c_str(), sensor_ip.toString().c_str());
+					text_send(F("1"));
+					return;
+				}
+			}
+		}
+	}
+	// любая ошибка, в том числе закончились свободные ячейки
+	text_send(F("0"));
 }
