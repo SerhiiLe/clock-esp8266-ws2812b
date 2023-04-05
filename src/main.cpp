@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief Clock
- * @version 1.6.0
- * @date 2023-04-01
+ * @version 1.6.1
+ * @date 2023-04-05
  * 
  * @copyright Copyright (c) 2021,2022,2023
  * 
@@ -41,7 +41,7 @@ timerMinim clockTimer(512);				// Таймер, чтобы разделител�
 timerMinim scrollTimer(scroll_period);	// Таймер обновления бегущей строки
 timerMinim ntpSyncTimer(3600000U * sync_time_period);  // Таймер синхронизации времени с NTP-сервером 3600000U
 timerMinim clockDate(1000U * show_date_period); // периодичность вывода даты в секундах
-timerMinim textTimer[MAX_RUNNING];
+timerMinim textTimer[MAX_RUNNING];		// таймеры бегущих строк
 timerMinim alarmTimer(1000);			// для будильника, срабатывает каждую секунду
 timerMinim alarmStepTimer(5000);		// шаг увеличения громкости будильника
 timerMinim demoTimer(33);				// таймер для теста/демонстрации экрана

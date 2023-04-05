@@ -101,9 +101,11 @@ var fl_busy = false;
 function send(p) {
 	if(fl_busy) return;
 	fl_busy = true;
+	$g("wait").innerHTML = "w";
 	ajaxRequest("play","POST","p="+p+"&c="+$g("cur").value+"&r="+$g("repeat").value+"&v="+$g("vol").value, function(ajaxResp) {
 		show(ajaxResp.responseText.split(":"));
 		fl_busy = false;
+		$g("wait").innerHTML = "";
 	}, dummy);
 };
 function onoff(id,a=1) {

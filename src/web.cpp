@@ -8,7 +8,6 @@
 #include <LittleFS.h>
 #include <ESP8266HTTPUpdateServer.h>
 #include <time.h>
-#include <ESP8266mDNS.h>
 #include "defines.h"
 #include "web.h"
 #include "settings.h"
@@ -18,11 +17,11 @@
 #include "security.h"
 #include "clock.h"
 #include "wifi_init.h"
+#include "mdns.h"
 
 ESP8266WebServer HTTP(80);
 ESP8266HTTPUpdateServer httpUpdater;
 bool web_isStarted = false;
-MDNSResponder MDNS;
 
 void save_settings();
 void save_telegram();
@@ -46,6 +45,7 @@ bool need_save = false;
 // отключение веб сервера для активации режима настройки wifi
 void web_disable() {
 	HTTP.stop();
+	mdns_start(false);
 	web_isStarted = false;
 	LOG(println, PSTR("HTTP server stoped"));
 }
@@ -61,15 +61,10 @@ void not_found() {
 
 // диспетчер вызовов веб сервера
 void web_process() {
+	mdns_process();
 	if( web_isStarted ) {
 		HTTP.handleClient();
-		MDNS.update();
 	} else {
-		//назначаем символьное имя mDNS нашему серверу опираясь на его динамически полученный IP
-		if(MDNS.begin(clock_name, WiFi.localIP())) {
-			MDNS.addService("http", "tcp", 80);
-			LOG(println, PSTR("MDNS responder started"));
-		}
 		HTTP.begin();
 		// Обработка HTTP-запросов
 		HTTP.on(F("/save_settings"), save_settings);
@@ -361,7 +356,8 @@ void save_telegram() {
 	set_simple_checkbox(F("use_brightness"), use_brightness);
 	set_simple_string(F("pin_code"), pin_code);
 	if( set_simple_string(F("clock_name"), clock_name) )
-		MDNS.setHostname(clock_name.c_str());
+		mdns_setHostname(clock_name.c_str());
+		// MDNS.setHostname(clock_name.c_str());
 	set_simple_int(F("sensor_timeout"), sensor_timeout, 1, 16000);
 	set_simple_string(F("tb_name"), tb_name);
 	if( set_simple_string(F("tb_chats"), tb_chats) )
@@ -624,9 +620,11 @@ void play() {
 			mp3_volume(v);
 			break;
 		default:
-			if(!mp3_isInit) mp3_init();
-			else mp3_reread();
-			if(mp3_isInit) mp3_update();
+			// if(!mp3_isInit) mp3_init();
+			// else mp3_reread();
+			// if(mp3_isInit) mp3_update();
+			mp3_reread();
+			mp3_update();
 			break;
 	}
 	char buff[20];
