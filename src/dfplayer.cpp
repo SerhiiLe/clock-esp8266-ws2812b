@@ -16,9 +16,8 @@
 #ifdef SRX
 #include <SoftwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
-#include "mdns.h"
 
-SoftwareSerial mp3Serial;
+EspSoftwareSerial::UART mp3Serial;
 DFRobotDFPlayerMini dfPlayer;
 #endif
 
@@ -32,7 +31,6 @@ bool mp3_isReady = false;
 // плата установлена, описание функций
 
 void checkInit() {
-	mdns_start(false);
 	if( ! mp3_isInit || timeoutMp3Timer.isReady() ) mp3_init();
 }
 
@@ -54,8 +52,9 @@ void mp3_init() {
 		mp3Serial.flush();
 		dfPlayer.reset();
 	} else {
-		mp3Serial.begin(9600, SWSERIAL_8N1, SRX, STX, false, 64, 16);
-		mp3Serial.enableRx(true);
+		mp3Serial.begin(9600, SWSERIAL_8N1, SRX, STX, false);
+		// mp3Serial.begin(9600, SWSERIAL_8N1, SRX, STX, false, 96, 11);
+		// mp3Serial.enableRx(true);
 		mp3_isReady = dfPlayer.begin(mp3Serial);
 		dfPlayer.setTimeOut(1000);
 		if(mp3_isReady) {

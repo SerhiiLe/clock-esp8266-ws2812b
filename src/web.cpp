@@ -7,6 +7,7 @@
 #include <ESP8266WebServer.h>
 #include <LittleFS.h>
 #include <ESP8266HTTPUpdateServer.h>
+#include <ESP8266mDNS.h>
 #include <time.h>
 #include "defines.h"
 #include "web.h"
@@ -17,7 +18,6 @@
 #include "security.h"
 #include "clock.h"
 #include "wifi_init.h"
-#include "mdns.h"
 
 ESP8266WebServer HTTP(80);
 ESP8266HTTPUpdateServer httpUpdater;
@@ -41,13 +41,17 @@ void registration();
 
 bool fileSend(String path);
 bool need_save = false;
+bool fl_mdns = false;
 
 // отключение веб сервера для активации режима настройки wifi
 void web_disable() {
 	HTTP.stop();
-	mdns_start(false);
 	web_isStarted = false;
 	LOG(println, PSTR("HTTP server stoped"));
+
+	MDNS.close();
+	fl_mdns = false;
+	LOG(println, PSTR("MDNS responder stoped"));
 }
 
 // отправка простого текста
@@ -61,9 +65,9 @@ void not_found() {
 
 // диспетчер вызовов веб сервера
 void web_process() {
-	mdns_process();
 	if( web_isStarted ) {
 		HTTP.handleClient();
+		if(fl_mdns) MDNS.update();
 	} else {
 		HTTP.begin();
 		// Обработка HTTP-запросов
@@ -92,6 +96,12 @@ void web_process() {
 		web_isStarted = true;
   		httpUpdater.setup(&HTTP, web_login, web_password);
 		LOG(println, PSTR("HTTP server started"));
+
+		if(MDNS.begin(clock_name, WiFi.localIP())) {
+			MDNS.addService("http", "tcp", 80);
+			fl_mdns = true;
+			LOG(println, PSTR("MDNS responder started"));
+		}
 	}
 }
 
@@ -356,8 +366,7 @@ void save_telegram() {
 	set_simple_checkbox(F("use_brightness"), use_brightness);
 	set_simple_string(F("pin_code"), pin_code);
 	if( set_simple_string(F("clock_name"), clock_name) )
-		mdns_setHostname(clock_name.c_str());
-		// MDNS.setHostname(clock_name.c_str());
+		if(fl_mdns)	MDNS.setHostname(clock_name.c_str());
 	set_simple_int(F("sensor_timeout"), sensor_timeout, 1, 16000);
 	set_simple_string(F("tb_name"), tb_name);
 	if( set_simple_string(F("tb_chats"), tb_chats) )

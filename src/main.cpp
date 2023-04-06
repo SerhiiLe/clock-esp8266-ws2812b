@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief Clock
- * @version 1.6.1
- * @date 2023-04-05
+ * @version 1.6.2
+ * @date 2023-04-06
  * 
  * @copyright Copyright (c) 2021,2022,2023
  * 
@@ -18,9 +18,9 @@
 #include "defines.h"
 #include <GyverButton.h>
 #include <LittleFS.h>
-#include <ftp.h>
 
 #include "settings.h"
+#include "ftp.h"
 #include "clock.h"
 #include "runningText.h"
 #include "wifi_init.h"
@@ -99,8 +99,12 @@ void setup() {
 	initRString(PSTR("boot"),1,7); //5
 	display_tick();
 	if( LittleFS.begin()) {
-		fs_isStarted = true; // встроенный диск подключился
-		LOG(println, PSTR("LittleFS mounted"));
+		if( LittleFS.exists(F("index.html")) ) {
+			fs_isStarted = true; // встроенный диск подключился
+			LOG(println, PSTR("LittleFS mounted"));
+		} else {
+			LOG(println, PSTR("LittleFS is empty"));
+		}
 	} else {
 		LOG(println, PSTR("ERROR LittleFS mount"));
 		initRString(PSTR("Ошибка подключения встроенного диска!!!"));
