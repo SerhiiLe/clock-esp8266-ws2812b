@@ -729,8 +729,10 @@ void onoff() {
 			// включает/выключает режим "охраны"
 			if(a) sec_enable = !(bool)sec_enable;
 			cond = sec_enable;
-			save_log_file(cond?SEC_TEXT_ENABLE:SEC_TEXT_DISABLE);
-			save_config_security();
+			if(a) {
+				save_log_file(cond?SEC_TEXT_ENABLE:SEC_TEXT_DISABLE);
+				save_config_security();
+			}
 		}
 	}
 	text_send(cond?F("1"):F("0"));
@@ -772,7 +774,7 @@ void sensors() {
 			HTTP.client().printf_P(PSTR("{\"num\":%i,"), i);
 			HTTP.client().printf_P(PSTR("\"hostname\":\"%s\","), sensor[i].hostname.c_str());
 			HTTP.client().printf_P(PSTR("\"ip\":\"%s\","), sensor[i].ip.toString().c_str());
-			HTTP.client().printf_P(PSTR("\"timeout\":%i}"), getTimeU() - sensor[i].registered);
+			HTTP.client().printf_P(PSTR("\"timeout\":%i}"), sensor_timeout*60 + sensor[i].registered - getTimeU());
 			fl = true;
 		}
 	}

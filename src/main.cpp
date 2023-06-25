@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief Clock
- * @version 1.6.2
- * @date 2023-04-06
+ * @version 1.6.4
+ * @date 2023-06-25
  * 
  * @copyright Copyright (c) 2021,2022,2023
  * 

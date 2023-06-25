@@ -71,10 +71,10 @@ void tb_send_msg(String s) {
 }
 
 // кодирование строки для GET запросов
-String urlEncode(String str) {
+String urlEncode(String str, bool params = false) {
 	unsigned int len = str.length();
-	if(len > 500) len = 500; // ограничение на длину строки, чтобы избежать переполнения стека, 250 символов кирилицей
-	char encodedString[str.length()*3];
+	if(len > 500) len = 500; // ограничение на длину строки, чтобы избежать переполнения стека, 250 символов кириллицей
+	char encodedString[len*3];
 	unsigned int p = 0;
 	char c;
 	char code0;
@@ -84,6 +84,9 @@ String urlEncode(String str) {
 		// if(c == ' ') {
 			// encodedString[p++] = '+';
 		// } else 
+		if(params && (c == '&' || c == '=')) {
+			encodedString[p++] = c;
+		} else
 		if(isalnum(c)) {
 			encodedString[p++] = c;
 		} else {
@@ -203,7 +206,7 @@ void inMsg(FB_msg& msg) {
 					if(pos2>0) {
 						url += msg.text.substring(pos,pos2+1);
 						if(pos2+1 < len)
-							url += urlEncode(msg.text.substring(pos2+1));
+							url += urlEncode(msg.text.substring(pos2+1), true);
 					} else
 						url += msg.text.substring(pos);
 				}

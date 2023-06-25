@@ -53,17 +53,14 @@ void mp3_init() {
 		dfPlayer.reset();
 	} else {
 		mp3Serial.begin(9600, SWSERIAL_8N1, SRX, STX, false);
-		// mp3Serial.begin(9600, SWSERIAL_8N1, SRX, STX, false, 96, 11);
-		// mp3Serial.enableRx(true);
-		mp3_isReady = dfPlayer.begin(mp3Serial);
 		dfPlayer.setTimeOut(1000);
+		mp3_isReady = dfPlayer.begin(mp3Serial);
 		if(mp3_isReady) {
 			mp3_isInit = true;
 			mp3_reread();
 		}
 	}
 	if(mp3_isReady) {
-		// delay(100);
 		dfPlayer.EQ(DFPLAYER_EQ_NORMAL);
 		delay(10);
 		mp3_volume(1,false);
