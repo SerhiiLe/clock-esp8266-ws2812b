@@ -40,7 +40,7 @@ boolean mp3_isPlay() {
 }
 
 void mp3_update() {
-	if(mp3_isPlay())
+	if(mp3_isPlay() || mp3_current>mp3_all )
 		mp3_current = dfPlayer.readCurrentFileNumber();
 }
 
@@ -64,6 +64,13 @@ void mp3_init() {
 		dfPlayer.EQ(DFPLAYER_EQ_NORMAL);
 		delay(10);
 		mp3_volume(1,false);
+	}
+	if(dfPlayer.readCurrentFileNumber()>mp3_all) {
+		dfPlayer.start();
+		delay(10);
+		mp3_update();
+		dfPlayer.stop();
+		delay(10);
 	}
 }
 

@@ -73,22 +73,20 @@ void tb_send_msg(String s) {
 // кодирование строки для GET запросов
 String urlEncode(String str, bool params = false) {
 	unsigned int len = str.length();
-	if(len > 500) len = 500; // ограничение на длину строки, чтобы избежать переполнения стека, 250 символов кириллицей
-	char encodedString[len*3];
-	unsigned int p = 0;
+	int buffer_size = len * 3 < TELEGRAM_MAX_LENGTH ? len * 3: TELEGRAM_MAX_LENGTH;
+	char* encodedString = (char*) malloc(buffer_size * sizeof(char));
+	char* p = encodedString;
 	char c;
 	char code0;
 	char code1;
-	for (unsigned int i=0; i < len; i++) {
+	for(unsigned int i=0; i < len; i++) {
+		if(buffer_size+encodedString-p < 3) break;
 		c=str.charAt(i);
-		// if(c == ' ') {
-			// encodedString[p++] = '+';
-		// } else 
 		if(params && (c == '&' || c == '=')) {
-			encodedString[p++] = c;
+			*p++ = c;
 		} else
 		if(isalnum(c)) {
-			encodedString[p++] = c;
+			*p++ = c;
 		} else {
 			code1=(c & 0xf)+'0';
 			if((c & 0xf) > 9) {
@@ -99,13 +97,15 @@ String urlEncode(String str, bool params = false) {
 			if(c > 9) {
 				code0=c - 10 + 'A';
 			}
-			encodedString[p++] = '%';
-			encodedString[p++] = code0;
-			encodedString[p++] = code1;
+			*p++ = '%';
+			*p++ = code0;
+			*p++ = code1;
 		}
 	}
-	encodedString[p++] = '\0';
-	return String(encodedString);
+	*p = 0;
+	String result = String(encodedString);
+	free(encodedString);
+	return result;
 }
 
 // Обработка входящего сообщения телеграмм
