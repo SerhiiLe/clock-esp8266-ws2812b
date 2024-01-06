@@ -56,7 +56,6 @@ String color_to_text(uint32_t c) {
 }
 
 bool load_config_main() {
-	if(!fs_isStarted) return false;
 
 	File configFile = LittleFS.open(F("/config.json"), "r");
 	if (!configFile) {
@@ -131,7 +130,6 @@ bool load_config_main() {
 }
 
 void save_config_main() {
-	if(!fs_isStarted) return;
 
 	StaticJsonDocument<1536> doc; // временный буфер под объект json
 
@@ -191,7 +189,6 @@ void save_config_main() {
 }
 
 bool load_config_telegram() {
-	if(!fs_isStarted) return false;
 
 	File configFile = LittleFS.open(F("/telegram.json"), "r");
 	if (!configFile) {
@@ -231,7 +228,6 @@ bool load_config_telegram() {
 }
 
 void save_config_telegram() {
-	if(!fs_isStarted) return;
 
 	StaticJsonDocument<1024> doc; // временный буфер под объект json
 
@@ -263,7 +259,6 @@ void save_config_telegram() {
 }
 
 bool load_config_alarms() {
-	if(!fs_isStarted) return false;
 
 	File configFile = LittleFS.open(F("/alarms.json"), "r");
 	if (!configFile) {
@@ -296,7 +291,6 @@ bool load_config_alarms() {
 }
 
 void save_config_alarms() {
-	if(!fs_isStarted) return;
 
 	StaticJsonDocument<1024> doc; // временный буфер под объект json
 
@@ -322,7 +316,6 @@ void save_config_alarms() {
 }
 
 bool load_config_texts() {
-	if(!fs_isStarted) return false;
 
 	File configFile = LittleFS.open(F("/texts.json"), "r");
 	if (!configFile) {
@@ -357,7 +350,6 @@ bool load_config_texts() {
 }
 
 void save_config_texts() {
-	if(!fs_isStarted) return;
 
 	StaticJsonDocument<1536> doc; // временный буфер под объект json
 
@@ -383,7 +375,6 @@ void save_config_texts() {
 }
 
 bool load_config_security() {
-	if(!fs_isStarted) return false;
 
 	File configFile = LittleFS.open(F("/security.json"), "r");
 	if (!configFile) {
@@ -411,7 +402,6 @@ bool load_config_security() {
 }
 
 void save_config_security() {
-	if(!fs_isStarted) return;
 
 	StaticJsonDocument<256> doc; // временный буфер под объект json
 
@@ -434,7 +424,6 @@ void save_config_security() {
 
 // чтение последних cnt строк лога
 String read_log_file(int16_t cnt) {
-	if(!fs_isStarted) return String(F("no fs"));
 
 	// всего надо отдать cnt последних строк.
 	// Если файл только начал писаться, то надо показать последние записи предыдущего файла
@@ -468,7 +457,6 @@ String read_log_file(int16_t cnt) {
 	// теперь надо склеить массив в одну строку и отдать назад
 	String str = "";
 	char *ptr;
-	// int16_t nCur = cur;
 	for(int16_t i = min(aCnt,cnt); i > 0; i--) {
 		cur = cur > 0 ? cur-1: cnt-1;
 		ptr = aStr[cur] + strlen(aStr[cur]) - 1;
@@ -479,7 +467,6 @@ String read_log_file(int16_t cnt) {
 }
 
 void save_log_file(uint8_t mt) {
-	if(!fs_isStarted) return;
 
 	char fileName[32];
 	sprintf_P(fileName, SEC_LOG_FILE, sec_curFile);

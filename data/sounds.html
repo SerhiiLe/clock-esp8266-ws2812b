@@ -84,9 +84,11 @@ function sendTr(e) {
 }
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
-		show(httpGet("play").split(":"));
-		update_info();
-		$g("shadow").style.display = "none";
+		ajaxRequest("play","GET",null, function(ajaxResp) {
+			show(ajaxResp.responseText.split(":"));
+			update_info();
+			$g("shadow").style.display = "none";
+		}, dummy);
 	} else setTimeout(start, 100);
 }
 start();

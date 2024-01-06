@@ -144,39 +144,41 @@ function select_days() {
 }
 var doc = [];
 function start() {
-	if (typeof ajaxRequest !== "undefined") { 
-		doc = JSON.parse(httpGet("texts.json"));
-		var li = $g("list_items");
-		for(var i=0; i<doc.length; i++) {
-			var sp1 = $ee("div",(doc[i].t.length? doc[i].t: "&lt;Пусто&gt;"));
-			var sp2 = $e("div",{class:"small top_line"});
-			switch((doc[i].r >> 7) & 3) {
-				case 1:
-					sp2.innerHTML = "каждого " + (doc[i].r >> 10) + "-го числа";
-					break;
-				case 2:
-					var days = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
-					var bit = 2;
-					sp2.innerHTML = "По:";
-					for(var t=1; t<7; t++) {
-						if(doc[i].r & bit) sp2.innerHTML += " "+days[t];
-						bit = bit << 1;
-					}
-					if(doc[i].r & 1) sp2.innerHTML += " "+days[0];
-					break;
-				case 3:
-					sp2.innerHTML = "до конца дня";
-					break;
-				default:
-					sp2.innerHTML = "пока включён";
+	if (typeof ajaxRequest !== "undefined") {
+		ajaxRequest("texts.json","GET",null, function(ajaxResp) {
+			doc = JSON.parse(ajaxResp.responseText);
+			var li = $g("list_items");
+			for(var i=0; i<doc.length; i++) {
+				var sp1 = $ee("div",(doc[i].t.length? doc[i].t: "&lt;Пусто&gt;"));
+				var sp2 = $e("div",{class:"small top_line"});
+				switch((doc[i].r >> 7) & 3) {
+					case 1:
+						sp2.innerHTML = "каждого " + (doc[i].r >> 10) + "-го числа";
+						break;
+					case 2:
+						var days = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+						var bit = 2;
+						sp2.innerHTML = "По:";
+						for(var t=1; t<7; t++) {
+							if(doc[i].r & bit) sp2.innerHTML += " "+days[t];
+							bit = bit << 1;
+						}
+						if(doc[i].r & 1) sp2.innerHTML += " "+days[0];
+						break;
+					case 3:
+						sp2.innerHTML = "до конца дня";
+						break;
+					default:
+						sp2.innerHTML = "пока включён";
+				}
+				var fl = doc[i].r & 512;
+				var td1 = $em("td",[sp1,sp2],{class:(fl?"on":"off"),id:"t"+i,onclick:"show_edit("+i+")"});
+				var input = $e("input",{type:"checkbox",id:"e"+i,onchange:"toggle_edit("+i+",1)"});
+				if(fl) input.checked = true;
+				li.appendChild($em("tr",[td1,$ee("td",input)]));
 			}
-			var fl = doc[i].r & 512;
-			var td1 = $em("td",[sp1,sp2],{class:(fl?"on":"off"),id:"t"+i,onclick:"show_edit("+i+")"});
-			var input = $e("input",{type:"checkbox",id:"e"+i,onchange:"toggle_edit("+i+",1)"});
-			if(fl) input.checked = true;
-			li.appendChild($em("tr",[td1,$ee("td",input)]));
-		}
-		$g("shadow").style.display = "none";
+			$g("shadow").style.display = "none";
+		}, dummy);
 	} else setTimeout(start, 100);
 }
 start();

@@ -52,8 +52,10 @@ function getSensors() {
 }
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
-		parseSensors(JSON.parse(httpGet("sensors")));
-		$g("shadow").style.display = "none";
+		ajaxRequest("sensors","GET",null, function(ajaxResp) {
+			parseSensors(JSON.parse(ajaxResp.responseText));
+			$g("shadow").style.display = "none";
+		}, dummy);
 	} else setTimeout(start, 100);
 }
 start();

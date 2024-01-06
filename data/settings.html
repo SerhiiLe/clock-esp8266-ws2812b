@@ -344,15 +344,16 @@ function show_bright_add_block() {
 }
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
-		fill_settings("config.json","settings");
-		show_run_block();
-		show_color_block();
-		show_color_block2();
-		show_bright_block();
-		init_color_demo();
-		updateBr();
-		show_bright_add_block();
-		$g("shadow").style.display = "none";
+		fill_settings("config.json","settings", () => {
+			show_run_block();
+			show_color_block();
+			show_color_block2();
+			show_bright_block();
+			init_color_demo();
+			updateBr();
+			show_bright_add_block();
+			$g("shadow").style.display = "none";
+		});
 	} else setTimeout(start, 100);
 }
 start();

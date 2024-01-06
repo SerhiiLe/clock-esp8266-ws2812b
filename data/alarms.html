@@ -60,7 +60,11 @@
 							<tr class="sel_days"><td>Воскресенье</td><td><input type="checkbox" name="su" value="1"></td></tr>
 							<tr>
 								<td>Мелодия будильника <button onclick="test_ring();return false;" id="ss">проверить</button></td>
-								<td><input type="number" name="melody" value="1" id="cur" onkeypress="sendTr(event)"> из <span id="col">0</span></td>
+								<td>
+									<input type="number" name="melody" value="1" id="track" onkeypress="sendTr(event)" onfocus="fl_allowUpdate=false;" onfocusout="fl_allowUpdate=true;">
+									из <span id="col">0</span>
+									<input type="hidden" id="cur" name="cur" value="1">
+								</td>
 							</tr>
 							<tr>
 								<td colspan="2">
@@ -97,15 +101,27 @@ function select_days() {
 	}
 }
 var is_play = false;
+var fl_allowUpdate = true;
+function update_info() {
+	ajaxRequest("play","POST","p=0", function(ajaxResp) {
+			const a = ajaxResp.responseText.split(":");
+			if( a[3] == 0 && is_play ) test_ring();
+			if(fl_allowUpdate) show(a);
+			if( a[1] == 0 && ! is_play ) setTimeout(update_info, 2000);
+	}, dummy);
+	if(is_play) setTimeout(update_info, 2000);
+}
 function test_ring() {
 	if(is_play) {
 		$g("ss").innerHTML="проверить";
 		send(6);
 		is_play=false;
 	} else {
+		$g("cur").value = $g("track").value;
 		$g("ss").innerHTML="стоп";
 		send(3);
 		is_play=true;
+		setTimeout(update_info, 5000);
 	}
 }
 function sendTr(e) {
@@ -142,36 +158,40 @@ var texts = [];
 var doc = [];
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
-		doc = JSON.parse(httpGet("texts.json"));
-		$g("txt").appendChild($ee("option","_нет_",{value:-1}));
-		for(var i=0; i<doc.length; i++)
-			$g("txt").appendChild($ee("option", doc[i].t.length>30 ? doc[i].t.substring(0,17)+"..."+doc[i].t.substring(doc[i].t.length-10): doc[i].t, {value:i}));
-		doc = JSON.parse(httpGet("alarms.json"));
-		var li = $g("list_items");
-		for(var i=0; i<doc.length; i++) {
-			var sp1 = $ee("span",print_time(i),{class:"big"});
-			var sp2 = $e("span",{class:"small"});
-			if(doc[i].s & 128) {
-				sp2.innerHTML = " Каждый день";
-			} else if(doc[i].s & 256) {
-				var days = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
-				var bit = 2;
-				for(var t=1; t<7; t++) {
-					if(doc[i].s & bit) sp2.innerHTML += " "+days[t];
-					bit = bit << 1;
+		ajaxRequest("texts.json","GET",null, function(ajaxResp) {
+			doc = JSON.parse(ajaxResp.responseText);
+			$g("txt").appendChild($ee("option","_нет_",{value:-1}));
+			for(var i=0; i<doc.length; i++)
+				$g("txt").appendChild($ee("option", doc[i].t.length>30 ? doc[i].t.substring(0,17)+"..."+doc[i].t.substring(doc[i].t.length-10): doc[i].t, {value:i}));
+			ajaxRequest("alarms.json","GET",null, function(ajaxResp) {
+				doc = JSON.parse(ajaxResp.responseText);
+				var li = $g("list_items");
+				for(var i=0; i<doc.length; i++) {
+					var sp1 = $ee("span",print_time(i),{class:"big"});
+					var sp2 = $e("span",{class:"small"});
+					if(doc[i].s & 128) {
+						sp2.innerHTML = " Каждый день";
+					} else if(doc[i].s & 256) {
+						var days = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+						var bit = 2;
+						for(var t=1; t<7; t++) {
+							if(doc[i].s & bit) sp2.innerHTML += " "+days[t];
+							bit = bit << 1;
+						}
+						if(doc[i].s & 1) sp2.innerHTML += " "+days[0];
+					} else {
+						sp2.innerHTML = " Один раз";
+					}
+					var fl = doc[i].s & 512;
+					var td1 = $em("td",[sp1,sp2],{class:(fl?"on":"off"),id:"t"+i,onclick:"show_edit("+i+")"});
+					var input = $e("input",{type:"checkbox",id:"e"+i,onchange:"toggle_edit("+i+",0)"});
+					if(fl) input.checked = true;
+					li.appendChild($em("tr",[td1,$ee("td",input)]));
 				}
-				if(doc[i].s & 1) sp2.innerHTML += " "+days[0];
-			} else {
-				sp2.innerHTML = " Один раз";
-			}
-			var fl = doc[i].s & 512;
-			var td1 = $em("td",[sp1,sp2],{class:(fl?"on":"off"),id:"t"+i,onclick:"show_edit("+i+")"});
-			var input = $e("input",{type:"checkbox",id:"e"+i,onchange:"toggle_edit("+i+",0)"});
-			if(fl) input.checked = true;
-			li.appendChild($em("tr",[td1,$ee("td",input)]));
-		}
-		show(httpGet("play").split(":"));
-		$g("shadow").style.display = "none";
+				update_info();
+				$g("shadow").style.display = "none";
+			}, dummy);
+		}, dummy);
 	} else setTimeout(start, 100);
 }
 start();

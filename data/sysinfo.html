@@ -105,15 +105,17 @@ function parseInfo(doc) {
 		}
 	}
 }
-function getInfo() {
+function getInfo(cbfunc=null) {
 	ajaxRequest("sysinfo","GET",null, function(ajaxResp) {
 		parseInfo(JSON.parse(ajaxResp.responseText));
+		if(cbfunc !== null) cbfunc();
 	}, dummy);
 }
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
-		parseInfo(JSON.parse(httpGet("sysinfo")));
-		$g("shadow").style.display = "none";
+		getInfo( () => {
+			$g("shadow").style.display = "none";
+		});
 	} else setTimeout(start, 100);
 }
 start();

@@ -2,11 +2,10 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief Clock
- * @version 1.6.4
- * @date 2023-06-25
+ * @version 1.6.5
+ * @date 2024-01-06
  * 
- * @copyright Copyright (c) 2021,2022,2023
- * 
+ * @copyright Copyright (c) 2021,2022,2023,2024
  */
 
 /*
@@ -80,6 +79,8 @@ uint8_t active_alarm = 0;
 bool fl_bright_boost = false;
 // старое значение fl_bright_boost
 bool old_bright_boost = true;
+// статус процесса загрузки
+uint8_t boot_stage = 1;
 
 void setup() {
 	Serial.begin(115200);
@@ -98,41 +99,77 @@ void setup() {
 	// initRString(PSTR("..."),1,8);
 	initRString(PSTR("boot"),1,7); //5
 	display_tick();
-	if( LittleFS.begin()) {
-		if( LittleFS.exists(F("index.html")) ) {
-			fs_isStarted = true; // встроенный диск подключился
-			LOG(println, PSTR("LittleFS mounted"));
-		} else {
-			LOG(println, PSTR("LittleFS is empty"));
-		}
-	} else {
-		LOG(println, PSTR("ERROR LittleFS mount"));
-		initRString(PSTR("Ошибка подключения встроенного диска!!!"));
+}
+
+bool boot_check() {
+	if( ! screenIsFree ) {
+		if(scrollTimer.isReady()) display_tick();
+		return true;
 	}
-	if(!load_config_main()) {
-		LOG(println, PSTR("Create new config file"));
-		//  Создаем файл запив в него данные по умолчанию, при любой ошибке чтения
-		save_config_main();
+	switch (boot_stage)	{
+		case 1: // попытка подключить диск
+			if( LittleFS.begin()) {
+				if( LittleFS.exists(F("index.html")) ) {
+					fs_isStarted = true; // встроенный диск подключился
+					LOG(println, PSTR("LittleFS mounted"));
+				} else {
+					LOG(println, PSTR("LittleFS is empty"));
+					initRString(PSTR("Диск пустой, загрузите файлы!"));
+				}
+			} else {
+				LOG(println, PSTR("ERROR LittleFS mount"));
+				initRString(PSTR("Ошибка подключения встроенного диска!!!"));
+			}
+			break;
+		case 2: // Загрузка или создание файла конфигурации
+			if(!load_config_main()) {
+				LOG(println, PSTR("Create new config file"));
+				//  Создаем файл запив в него данные по умолчанию, при любой ошибке чтения
+				save_config_main();
+				initRString(PSTR("Создан новый файл конфигурации."));
+			}
+			break;
+		case 3: // Загрузка или создание файла со списком будильников
+			if(!load_config_alarms()) {
+				LOG(println, PSTR("Create new alarms file"));
+				save_config_alarms(); // Создаем файл
+				initRString(PSTR("Создан новый файл списка будильников."));
+			}
+			break;
+		case 4: // Загрузка или создание файла со списком бегущих строк
+			if(!load_config_texts()) {
+				LOG(println, PSTR("Create new texts file"));
+				save_config_texts(); // Создаем файл
+				initRString(PSTR("Создан новый файл списка строк."));
+			}
+			break;
+		case 5:
+			if(!load_config_security()) {
+				LOG(println, PSTR("Create new security file"));
+				save_config_security();	// Создаем файл
+			}
+			break;
+		case 6:
+			if(!load_config_telegram()) {
+				LOG(println, PSTR("Create new telegram file"));
+				save_config_telegram();	// Создаем файл
+				initRString(PSTR("Создан новый файл настроек telegram."));
+			}
+			break;
+		case 7:
+			wifi_setup();
+			break;
+		case 8:
+			init_telegram();
+			break;
+
+		default:
+			boot_stage = 0;
+			initRString(str_hello);
+			return false;
 	}
-	if(!load_config_alarms()) {
-		LOG(println, PSTR("Create new alarms file"));
-		save_config_alarms(); // Создаем файл
-	}
-	if(!load_config_texts()) {
-		LOG(println, PSTR("Create new texts file"));
-		save_config_texts(); // Создаем файл
-	}
-	if(!load_config_security()) {
-		LOG(println, PSTR("Create new security file"));
-		save_config_security();	// Создаем файл
-	}
-	if(!load_config_telegram()) {
-		LOG(println, PSTR("Create new telegram file"));
-		save_config_telegram();	// Создаем файл
-	}
-	initRString(str_hello);
-	wifi_setup();
-	init_telegram();
+	boot_stage++;
+	return true;
 }
 
 // выключение всех активных в данный момент будильников
@@ -155,6 +192,10 @@ void loop() {
 	bool fl_save = false;
 	tm t;
 
+	if( boot_stage ) {
+		if( boot_check() ) return;
+	}
+
 	wifi_process();
 	if( wifi_isConnected ) {
 		// установка времени по ntp.
@@ -167,6 +208,12 @@ void loop() {
 		ftp_process();
 		web_process();
 		if(telegramTimer.isReady()) tb_tick();
+		// если файловая система пустая, то включить FTP, чтобы можно было просто скопировать файлы.
+		if( ! fs_isStarted && ! ftp_isAllow && screenIsFree ) {
+			ftp_isAllow = true;
+			sprintf_P(timeString, PSTR("FTP для загрузки файлов включён IP: %s"), wifi_currentIP().c_str());
+			initRString(timeString);
+		}
 	}
 
 	if( mp3_isInit ) mp3_check();
@@ -365,6 +412,7 @@ void loop() {
 								mp3_play(alarms[i].melody); // запустить мелодию
 								alarmStepTimer.reset();
 								alarmStartTime = getTimeU(); // чтобы избежать конфликтов между будильниками на одно время и отсчитывать максимальное время работы
+								last_move = millis(); // сброс времени последнего движения, иначе будильник может выключится уже на первой секунде
 							}
 							alarms[i].settings = alarms[i].settings | 1024; // установить флаг активности
 						}
@@ -393,6 +441,7 @@ void loop() {
 			delay(10);
 			mp3_play(alarms[active_alarm].melody);
 			alarmStartTime = getTimeU();
+			last_move = millis();
 		} else
 			// мелодия играет, увеличить громкость на единицу
 			if(cur_Volume<volume_finish) mp3_volume(++cur_Volume);

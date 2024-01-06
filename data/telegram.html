@@ -106,8 +106,9 @@
 <script type="text/javascript" encoding="UTF-8">
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
-		fill_settings("telegram.json","settings");
-		$g("shadow").style.display = "none";
+		fill_settings("telegram.json","settings", () => {
+			$g("shadow").style.display = "none";
+		});
 	} else setTimeout(start, 100);
 }
 start();

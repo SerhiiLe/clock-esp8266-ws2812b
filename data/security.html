@@ -99,9 +99,11 @@ function show_allLog() {
 }
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
-		doc = JSON.parse(httpGet("security.json"));
-		$g("security").innerHTML = doc["sec_enable"] ? "On": "Off";
-		$g("shadow").style.display = "none";
+		ajaxRequest("security.json","GET",null, function(ajaxResp) {
+			doc = JSON.parse(ajaxResp.responseText);
+			$g("security").innerHTML = doc["sec_enable"] ? "On": "Off";
+			$g("shadow").style.display = "none";
+		}, dummy);
 	} else setTimeout(start, 100);
 }
 start();

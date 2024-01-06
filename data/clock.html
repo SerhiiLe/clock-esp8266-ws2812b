@@ -58,8 +58,9 @@ function set_browser_time() {
 }
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
-		fill_settings("clock","clock");
-		$g("shadow").style.display = "none";
+		fill_settings("clock","clock", () => {
+			$g("shadow").style.display = "none";
+		});
 	} else setTimeout(start, 100);
 }
 start();
