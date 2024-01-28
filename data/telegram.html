@@ -21,80 +21,68 @@
 		</div>
 		<div class="content">
 			<form action="save_telegram" autocomplete="off" method="post" name="settings">
-				<table class="params">
-					<thead>
-						<tr>
-							<th>Параметр</th>
-							<th>Значение</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							<td colspan="2" class="center i b">Общие настройки</td>
-						</tr>
-						<tr>
-							<td>Включить датчик движения</td>
-							<td><input name="use_move" type="checkbox" value="1"></td>
-						</tr>
-						<tr>
-							<td>Включить датчик освещённости</td>
-							<td><input name="use_brightness" type="checkbox" value="1"></td>
-						</tr>
-						<tr>
-							<td>PIN для доступа к /send?pin=XXX&msg=</td>
-							<td><input name="pin_code" type="text" value=""></td>
-						</tr>
-						<tr>
-							<td>mDNS имя часов</td>
-							<td><input name="clock_name" type="text" value="clock"></td>
-						</tr>
-						<tr>
-							<td>Время жизни сенсора, в минутах (1-16000)</td>
-							<td><input name="sensor_timeout" type="text" value="20"></td>
-						</tr>
-						<tr>
-							<td colspan="2" class="center i b">Настройки Telegram</td>
-						</tr>
-						<tr>
-							<td colspan="2">
-								Название / адрес бота:
-								<input name="tb_name" type="text" class="long">
-							</td>
-						</tr>
-						<tr>
-							<td colspan="2">
-								Chat ID (номера разрешенных чатов через запятую):
-								<input name="tb_chats" type="text" class="long">
-							</td>
-						</tr>
-						<tr>
-							<td colspan="2">
-								Bot token:
-								<input name="tb_token" type="text" class="long">
-							</td>
-						</tr>
-						<tr>
-							<td>Пароль для активации чата</td>
-							<td><input name="tb_secret" type="text" value=""></td>
-						</tr>
-						<tr>
-							<td>Интервал опроса новых сообщений, в секундах (0=откл.)</td>
-							<td><input name="tb_rate" type="number" value="300"></td>
-						</tr>
-						<tr>
-							<td>Ускоренный интервал опроса новых сообщений, после нового сообщения, в секундах (1-600)</td>
-							<td><input name="tb_accelerated" type="number" value="10"></td>
-						</tr>
-						<tr>
-							<td>Время на которе ускоряется опрос новых сообщений, после нового сообщения, в секундах (1-3600)</td>
-							<td><input name="tb_accelerate" type="number" value="900"></td>
-						</tr>
-						<tr>
-							<td>Время на которе прекращается опрос новых сообщений, после сбоя, в секундах (900-3600)</td>
-							<td><input name="tb_ban" type="number" value="1800"></td>
-						</tr>
-					</tbody>
-				</table>
+				<div class="holder">
+					<div class="row">
+						<div class="b">Параметр</div>
+						<div class="b">Значение</div>
+					</div>
+					<div class="one i b center">Общие настройки</div>
+					<div class="row">
+						<div>Включить датчик движения</div>
+						<div><input name="use_move" type="checkbox" value="1"></div>
+					</div>
+					<div class="row">
+						<div>Включить датчик освещённости</div>
+						<div><input name="use_brightness" type="checkbox" value="1"></div>
+					</div>
+					<div class="row">
+						<div>PIN для регистрации<br>
+							<span class="small">и доступа к странице отправки сообщений по адресу <span class="nb">/send?pin=THIS_PIN&msg=YOUR_TEXT</span></span>
+						</div>
+						<div><input name="pin_code" type="text" value=""></div>
+					</div>
+					<div class="row">
+						<div>Название часов в локальной сети (mDNS)</div>
+						<div class="nb">http://<input name="clock_name" type="text" value="clock">.local</div>
+					</div>
+					<div class="row">
+						<div>Время жизни сенсора, в минутах (1-16000)</div>
+						<div><input name="sensor_timeout" type="text" value="20"></div>
+					</div>
+					<div class="one i b center">Настройки Telegram</div>
+					<div class="one">
+						Название / адрес бота:
+						<input name="tb_name" type="text" class="long">
+					</div>
+					<div class="one">
+						Chat ID (номера разрешенных чатов через запятую):
+						<input name="tb_chats" type="text" class="long">
+					</div>
+					<div class="one">
+						Bot token:
+						<input name="tb_token" type="text" class="long">
+					</div>
+					<div class="row">
+						<div>Пароль для активации чата</div>
+						<div><input name="tb_secret" type="text" value="" class="m"></div>
+					</div>
+					<div class="row">
+						<div>Интервал опроса новых сообщений, в секундах (0=откл.)</div>
+						<div><input name="tb_rate" type="number" value="300"></div>
+					</div>
+					<div class="row">
+						<div>Ускоренный интервал опроса новых сообщений, после нового сообщения, в секундах (1-600)</div>
+						<div><input name="tb_accelerated" type="number" value="10"></div>
+					</div>
+					<div class="row">
+						<div>Время на которе ускоряется опрос новых сообщений, после нового сообщения, в секундах (1-3600)</div>
+						<div><input name="tb_accelerate" type="number" value="900"></div>
+					</div>
+					<div class="row">
+						<div>Время на которе прекращается опрос новых сообщений, после сбоя, в секундах (900-3600)</div>
+						<div><input name="tb_ban" type="number" value="1800"></div>
+					</div>
+				</div>
 				<button>Сохранить</button>
 			</form>
 		</div>

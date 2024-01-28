@@ -33,55 +33,49 @@
 			<div id="edit" style="display:none;">
 				<form action="save_text" autocomplete="off" method="post" name="settings">
 					<input type="hidden" name="target" value="">
-					<table class="params">
-						<tbody>
-							<tr>
-								<td colspan="2" style="text-align: center;">
-									<input type="text" name="text" value="" class="long">
-								</td>
-							</tr>
-							<tr>
-								<td>Периодичность показа в секундах (30..3600)</td>
-								<td><input name="period" value="60"></td>
-							</tr>
-							<tr>
-								<td>Режим цвета</td>
-								<td>
-									<select name="color_mode" onchange="show_color_block()">
-										<option value="0">Один</option>
-										<option value="1">Радуга</option>
-										<option value="2">Разные</option>
-									</select>
-								</td>
-							</tr>
-							<tr class="color0">
-								<td>Цвет цифр (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="color"></div></td>
-								<td><input name="color" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
-							</tr>
-							<tr>
-								<td>Режим повтора</td>
-								<td>
-									<select name="rmode" id="rmode" onchange="select_days()">
-										<option value="0">всегда</option>
-										<option value="1">по дате</option>
-										<option value="2">по дням</option>
-										<option value="3">1 день</option>
-									</select>
-								</td>
-							</tr>
-							<tr class="sel_day">
-								<td>Число месяца (от 1 до 31)</td>
-								<td><input type="number" name="sel_day" value="1"></td>
-							</tr>
-							<tr class="sel_days"><td>Понедельник</td><td><input type="checkbox" name="mo" value="1"></td></tr>
-							<tr class="sel_days"><td>Вторник</td><td><input type="checkbox" name="tu" value="1"></td></tr>
-							<tr class="sel_days"><td>Среда</td><td><input type="checkbox" name="we" value="1"></td></tr>
-							<tr class="sel_days"><td>Четверг</td><td><input type="checkbox" name="th" value="1"></td></tr>
-							<tr class="sel_days"><td>Пятница</td><td><input type="checkbox" name="fr" value="1"></td></tr>
-							<tr class="sel_days"><td>Суббота</td><td><input type="checkbox" name="sa" value="1"></td></tr>
-							<tr class="sel_days"><td>Воскресенье</td><td><input type="checkbox" name="su" value="1"></td></tr>
-						</tbody>
-					</table>
+					<div class="holder narrow">
+						<div class="one"><input type="text" name="text" value="" class="long"></div>
+						<div class="row">
+							<div>Периодичность показа в секундах (30..3600)</div>
+							<div><input name="period" value="60"></div>
+						</div>
+						<div class="row">
+							<div>Режим цвета</div>
+							<div>
+								<select name="color_mode" onchange="show_color_block()">
+									<option value="0">Один</option>
+									<option value="1">Радуга</option>
+									<option value="2">Разные</option>
+								</select>
+							</div>
+						</div>
+						<div class="row color0">
+							<div>Цвет цифр (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="color"></div>
+							<div class="fix"><input name="color" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
+						</div>
+						<div class="row">
+							<div>Режим повтора</div>
+							<div>
+								<select name="rmode" id="rmode" onchange="select_days()">
+									<option value="0">всегда</option>
+									<option value="1">по дате</option>
+									<option value="2">по дням</option>
+									<option value="3">1 день</option>
+								</select>
+							</div>
+						</div>
+						<div class="row sel_day">
+							<div>Число месяца (от 1 до 31)</div>
+							<div><input type="number" name="sel_day" value="1"></div>
+						</div>
+						<div class="row sel_days"><div>Понедельник</div><div><input type="checkbox" name="mo" value="1"></div></div>
+						<div class="row sel_days"><div>Вторник</div><div><input type="checkbox" name="tu" value="1"></div></div>
+						<div class="row sel_days"><div>Среда</div><div><input type="checkbox" name="we" value="1"></div></div>
+						<div class="row sel_days"><div>Четверг</div><div><input type="checkbox" name="th" value="1"></div></div>
+						<div class="row sel_days"><div>Пятница</div><div><input type="checkbox" name="fr" value="1"></div></div>
+						<div class="row sel_days"><div>Суббота</div><div><input type="checkbox" name="sa" value="1"></div></div>
+						<div class="row sel_days"><div>Воскресенье</div><div><input type="checkbox" name="su" value="1"></div></div>
+					</div>
 					<button>Сохранить</button>
 				</form>
 			</div>
@@ -102,7 +96,7 @@ function show_color_block() {
 	}
 }
 function show_edit(i) {
-	if(! $g("e"+i).checked) return;
+	// if(! $g("e"+i).checked) return;
 	var f = document.forms["settings"];
 	f.elements["target"].value = i;
 	f.elements["text"].value = doc[i].t;

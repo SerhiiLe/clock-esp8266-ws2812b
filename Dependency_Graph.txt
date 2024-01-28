@@ -1,0 +1,24 @@
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif8266/nodemcuv2.html
+PLATFORM: Espressif 8266 (4.2.1) > NodeMCU 1.0 (ESP-12E Module)
+HARDWARE: ESP8266 80MHz, 80KB RAM, 4MB Flash
+PACKAGES: 
+ - framework-arduinoespressif8266 @ 3.30102.0 (3.1.2) 
+ - tool-esptool @ 1.413.0 (4.13) 
+ - tool-esptoolpy @ 1.30000.201119 (3.0.0) 
+ - toolchain-xtensa @ 2.100300.220621 (10.3.0)
+
+Dependency Graph
+|-- ArduinoJson @ 6.19.3+sha.bf5d0c7
+|-- DFRobotDFPlayerMini @ 1.0.5+sha.e15e9fc
+|-- FastBot @ 1.7.0+sha.666f87f
+|-- FastLED @ 3.5.0+sha.4d73cdd
+|-- FTP @ 0.0.0+sha.f3521ff
+|-- GyverButton @ 3.8.0+sha.9511222
+|-- WiFiManager @ 2.0.9-beta+sha.b436830
+|-- EspSoftwareSerial @ 8.0.1+sha.c0dc6d6
+|-- LittleFS @ 0.1.0
+|-- ESP8266HTTPClient @ 1.2
+|-- ESP8266WiFi @ 1.0
+|-- ESP8266HTTPUpdateServer @ 1.0
+|-- ESP8266WebServer @ 1.0
+|-- ESP8266mDNS @ 1.2

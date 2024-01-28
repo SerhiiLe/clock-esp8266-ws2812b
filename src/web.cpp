@@ -233,9 +233,9 @@ bool set_simple_int(const __FlashStringHelper * name, T &var, long from, long to
 	return false;
 }
 // определение дробных чисел
-bool set_simple_float(const __FlashStringHelper * name, float &var, float from, float to) {
+bool set_simple_float(const __FlashStringHelper * name, float &var, float from, float to, float prec=8.0f) {
 	if( HTTP.hasArg(name) ) {
-		if( HTTP.arg(name).toFloat() != var ) {
+		if( round(HTTP.arg(name).toFloat()*pow(10.0f,prec)) != round(var*pow(10.0f,prec)) ) {
 			var = constrain(HTTP.arg(name).toFloat(), from, to);
 			need_save = true;
 			return true;

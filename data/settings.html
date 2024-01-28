@@ -21,243 +21,224 @@
 		</div>
 		<div class="content">
 			<form action="save_settings" autocomplete="off" method="post" name="settings">
-				<table class="params">
-					<thead>
-						<tr>
-							<th>Параметр</th>
-							<th>Значение</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							<td colspan="2" class="center i b">Общие настройки</td>
-						</tr>
-						<tr>
-							<td>Текст, который будет прокручен после включения часов</td>
-							<td><input name="str_hello" type="text" value=""></td>
-						</tr>
-						<tr>
-							<td>Максимальное время работы будильника в минутах (от 1 до 30)</td>
-							<td><input name="max_alarm_time" type="number" value="5"></td>
-						</tr>
-						<tr>
-							<td>Время работы бегущей строки</td>
-							<td>
-								<select name="run_allow" onchange="show_run_block()">
-									<option value="0">Всегда</option>
-									<option value="1">от и до</option>
-									<option value="2">Откл.</option>
-								</select>
-							</td>
-						</tr>
-						<tr class="timerun">
-							<td>Время с которого отображать</td>
-							<td><input type="time" name="run_begin" value="00:00"></td>
-						</tr>
-						<tr class="timerun">
-							<td>Время до которого отображать</td>
-							<td><input type="time" name="run_end" value="00:00"></td>
-						</tr>
-						<tr>
-							<td>Использовать широкий шрифт</td>
-							<td><input name="wide_font" type="checkbox" value="1"></td>
-						</tr>
-						<tr>
-							<td>Включить индикатор движения</td>
-							<td><input name="show_move" type="checkbox" value="1"></td>
-						</tr>
-						<tr>
-							<td>Задержка реакции на движения (от 0 до 10 сек.)</td>
-							<td><input name="delay_move" type="number" value="4"></td>
-						</tr>
-						<tr>
-							<td>Максимальное время работы матрицы от аккумулятора (больше задержки, до 255 сек.)</td>
-							<td><input name="max_move" type="number" value="30"></td>
-						</tr>
-						<tr>
-							<td colspan="2" class="center i b">Настройка времени</td>
-						</tr>
-						<tr>
-							<td>Временная зона (смещение относительно Гринвича) (от -12 до 12)</td>
-							<td><input name="tz_shift" type="number" value="0"></td>
-						</tr>
-						<tr>
-							<td>Летнее время</td>
-							<td><input name="tz_dst" type="checkbox" value="1"></td>
-						</tr>
-						<tr>
-							<td>Периодичность синхронизации ntp. (1-255 часов)</td>
-							<td><input name="sync_time_period" type="number" value="8"></td>
-						</tr>
-						<tr>
-							<td colspan="2" class="center i b">Отображение времени и даты</td>
-						</tr>
-						<tr>
-							<td>Сокращенный формат даты</td>
-							<td><input name="date_short" type="checkbox" value="1"></td>
-						</tr>
-						<tr>
-							<td>Периодичность вывода даты в секундах (время показа примерно 15сек) (>20)</td>
-							<td><input name="date_period" type="number" value="0"></td>
-						</tr>
-						<tr>
-							<td>Режим цвета времени</td>
-							<td>
-								<select name="time_color" onchange="show_color_block()">
-									<option value="0">Один</option>
-									<option value="1">Радуга</option>
-									<option value="2">Разные</option>
-									<option value="3">Свой</option>
-								</select>
-							</td>
-						</tr>
-						<tr class="color0">
-							<td>Цвет цифр (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="time_color0"></div></td>
-							<td><input name="time_color0" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
-						</tr>
-						<tr class="color3">
-							<td>Цвет цифры 1 часы (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="time_color1"></div></td>
-							<td><input name="time_color1" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
-						</tr>
-						<tr class="color3">
-							<td>Цвет цифры 2 часы (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="time_color2"></div></td>
-							<td><input name="time_color2" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
-						</tr>
-						<tr class="color3">
-							<td>Цвет разделителя (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="time_color3"></div></td>
-							<td><input name="time_color3" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
-						</tr>
-						<tr class="color3">
-							<td>Цвет цифры 1 минуты (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="time_color4"></div></td>
-							<td><input name="time_color4" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
-						</tr>
-						<tr class="color3">
-							<td>Цвет цифры 2 минуты (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="time_color5"></div></td>
-							<td><input name="time_color5" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
-						</tr>
-						<tr>
-							<td>Режим цвета даты</td>
-							<td>
-								<select name="date_color" onchange="show_color_block2()">
-									<option value="0">Один</option>
-									<option value="1">Радуга</option>
-									<option value="2">Разные</option>
-								</select>
-							</td>
-						</tr>
-						<tr class="color00">
-							<td>Цвет букв (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)<div class="color_demo" id="date_color0"></div></td>
-							<td><input name="date_color0" type="color" value="#FFFFFF" oninput="color_demo(this)"></td>
-						</tr>
-						<tr>
-							<td colspan="2" class="center i b">Настройки экрана</td>
-						</tr>
-						<tr>
-							<td>Режим яркости экрана</td>
-							<td>
-								<select name="bright_mode" onchange="show_bright_block()">
-									<option value="0">Авто</option>
-									<option value="1">Лимит</option>
-									<option value="2">Ручное</option>
-								</select>
-							</td>
-						</tr>
-						<tr class="bright0">
-							<td colspan="2">
-								<span id="brN">Яркость</span>: <span id="brV">0</span>
-								<input type="range" min="1" max="255" step="1" value="30" class="long" name="bright0" id="brC" oninput="updateBr()">
-							</td>
-						</tr>
-						<tr class="bright1">
-							<td>Усиление датчика освещённости в процентах (от 1 до 1000)</td>
-							<td><input name="br_boost" type="number" value="100"></td>
-						</tr>
-						<tr>
-							<td>Дополнительно увеличивать яркость по времени:<br>
-								восход/закат или сумерки (гражданские, навигационные, астрономические) или по времени
-							</td>
-							<td>
-								<select name="boost_mode" onchange="show_bright_add_block()">
-									<option value="0">Нет</option>
-									<option value="1">Солнце</option>
-									<option value="2">Сумерки</option>
-									<option value="3">Навиг.</option>
-									<option value="4">Астрон.</option>
-									<option value="5">Время</option>
-								</select>
-							</td>
-						</tr>
-						<tr class="bright2">
-							<td>+ к яркости (от 1 до 255)</td>
-							<td><input name="br_add" type="number" value="1"></td>
-						</tr>
-						<tr class="bright3">
-							<td>Широта (LAT.itude)</td>
-							<td><input name="latitude" type="text" value="0.0"></td>
-						</tr>
-						<tr class="bright3">
-							<td>Долгота (LON.gitude)</td>
-							<td><input name="longitude" type="text" value="0.0"></td>
-						</tr>
-						<tr class="br_time">
-							<td>Время начала увеличения яркости</td>
-							<td><input type="time" name="br_begin" value="00:00"></td>
-						</tr>
-						<tr class="br_time">
-							<td>Время окончания увеличения яркости</td>
-							<td><input type="time" name="br_end" value="00:00"></td>
-						</tr>
-						<tr>
-							<td>Лимит по току в миллиамперах (от 200 до 15000)</td>
-							<td><input name="max_power" type="number" value="2000"></td>
-						</tr>
-						<tr>
-							<td>Перевернуть экран</td>
-							<td>
-								<select name="turn_display">
-									<option value="0">Нет</option>
-									<option value="1">H</option>
-									<option value="2">V</option>
-									<option value="3">H+V</option>
-								</select>
-							</td>
-						</tr>
-						<tr>
-							<td>Задержка между обновлениями бегущей строки в миллисекундах, определяет скорость движения (>20)</td>
-							<td><input name="scroll_period" type="number" value="0"></td>
-						</tr>
-						<tr>
-							<td colspan="2" class="center i b">Будильник</td>
-						</tr>
-						<tr>
-							<td>Начальная громкость будильника (от 1 до 30)</td>
-							<td><input name="volume_start" type="number" value="5"></td>
-						</tr>
-						<tr>
-							<td>Максимальная громкость будильника (от 1 до 30 но не меньше начальной)</td>
-							<td><input name="volume_finish" type="number" value="30"></td>
-						</tr>
-						<tr>
-							<td>Период увеличения громкости (от 1 до 30 сек.)</td>
-							<td><input name="volume_period" type="number" value="5"></td>
-						</tr>
-						<tr>
-							<td>Время до принудительного сброса модуля mp3. (1-255 часов)</td>
-							<td><input name="timeout_mp3" type="number" value="36"></td>
-						</tr>
-						<tr>
-							<td colspan="2" class="center i b">Доступ к настройкам</td>
-						</tr>
-						<tr>
-							<td>login</td>
-							<td><input name="web_login" type="text" value=""></td>
-						</tr>
-						<tr>
-							<td>password</td>
-							<td><input name="web_password" type="text" value=""></td>
-						</tr>
-					</tbody>
-				</table>
+				<div class="holder">
+					<div class="row">
+						<div class="b">Параметр</div>
+						<div class="b">Значение</div>
+					</div>
+					<div class="one i b center">Общие настройки</div>
+					<div class="row">
+						<div>Текст, который будет прокручен после включения часов</div>
+						<div><input name="str_hello" type="text" value="" class="m"></div>
+					</div>
+					<div class="row">
+						<div>Максимальное время работы будильника в минутах (от 1 до 30)</div>
+						<div><input name="max_alarm_time" type="number" value="5"></div>
+					</div>
+					<div class="row">
+						<div>Время работы бегущей строки</div>
+						<div>
+							<select name="run_allow" onchange="show_run_block()">
+								<option value="0">Всегда</option>
+								<option value="1">от и до</option>
+								<option value="2">Откл.</option>
+							</select>
+						</div>
+					</div>
+					<div class="row timerun">
+						<div>Время с которого отображать</div>
+						<div><input type="time" name="run_begin" value="00:00"></div>
+					</div>
+					<div class="row timerun">
+						<div>Время до которого отображать</div>
+						<div><input type="time" name="run_end" value="00:00"></div>
+					</div>
+					<div class="row">
+						<div>Использовать широкий шрифт</div>
+						<div><input name="wide_font" type="checkbox" value="1"></div>
+					</div>
+					<div class="row">
+						<div>Включить индикатор движения</div>
+						<div><input name="show_move" type="checkbox" value="1"></div>
+					</div>
+					<div class="row">
+						<div>Задержка реакции на движения (от 0 до 10 сек.)</div>
+						<div><input name="delay_move" type="number" value="4"></div>
+					</div>
+					<div class="row">
+						<div>Максимальное время работы матрицы от аккумулятора (больше задержки, до 255 сек.)</div>
+						<div><input name="max_move" type="number" value="30"></div>
+					</div>
+					<div class="one i b center">Настройка времени</div>
+					<div class="row">
+						<div>Временная зона (смещение относительно Гринвича) (от -12 до 12)</div>
+						<div><input name="tz_shift" type="number" value="0"></div>
+					</div>
+					<div class="row">
+						<div>Летнее время</div>
+						<div><input name="tz_dst" type="checkbox" value="1"></div>
+					</div>
+					<div class="row">
+						<div>Периодичность синхронизации ntp. (1-255 часов)</div>
+						<div><input name="sync_time_period" type="number" value="8"></div>
+					</div>
+					<div class="one i b center">Отображение времени и даты</div>
+					<div class="row">
+						<div>Сокращенный формат даты</div>
+						<div><input name="date_short" type="checkbox" value="1"></div>
+					</div>
+					<div class="row">
+						<div>Периодичность вывода даты в секундах (&gt;20 сек.)</div>
+						<div><input name="date_period" type="number" value="0"></div>
+					</div>
+					<div class="row">
+						<div>Режим цвета времени</div>
+						<div>
+							<select name="time_color" onchange="show_color_block()">
+								<option value="0">Один</option>
+								<option value="1">Радуга</option>
+								<option value="2">Разные</option>
+								<option value="3">Свой</option>
+							</select>
+						</div>
+					</div>
+					<div class="row color0">
+						<div>Цвет цифр (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color0"></div>
+						<div class="fix"><input name="time_color0" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
+					</div>
+					<div class="row color3">
+						<div>Цвет цифры 1 часы (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color1"></div>
+						<div class="fix"><input name="time_color1" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
+					</div>
+					<div class="row color3">
+						<div>Цвет цифры 2 часы (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color2"></div>
+						<div class="fix"><input name="time_color2" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
+					</div>
+					<div class="row color3">
+						<div>Цвет разделителя (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color3"></div>
+						<div class="fix"><input name="time_color3" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
+					</div>
+					<div class="row color3">
+						<div>Цвет цифры 1 минуты (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color4"></div>
+						<div class="fix"><input name="time_color4" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
+					</div>
+					<div class="row color3">
+						<div>Цвет цифры 2 минуты (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color5"></div>
+						<div class="fix"><input name="time_color5" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
+					</div>
+					<div class="row">
+						<div>Режим цвета даты</div>
+						<div>
+							<select name="date_color" onchange="show_color_block2()">
+								<option value="0">Один</option>
+								<option value="1">Радуга</option>
+								<option value="2">Разные</option>
+							</select>
+						</div>
+					</div>
+					<div class="row color00">
+						<div>Цвет букв (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="date_color0"></div>
+						<div class="fix"><input name="date_color0" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
+					</div>
+					<div class="one i b center">Настройки экрана</div>
+					<div class="row">
+						<div>Режим яркости экрана</div>
+						<div>
+							<select name="bright_mode" onchange="show_bright_block()">
+								<option value="0">Авто</option>
+								<option value="1">Лимит</option>
+								<option value="2">Ручной</option>
+							</select>
+						</div>
+					</div>
+					<div class="one bright0">
+						<div><span id="brN">Яркость</span>: <span id="brV">0</span></div>
+						<div><input type="range" min="1" max="255" step="1" value="30" class="long" name="bright0" id="brC" oninput="updateBr()"></div>
+					</div>
+					<div class="row bright1">
+						<div>Усиление датчика освещённости в процентах (от 1 до 1000)</div>
+						<div><input name="br_boost" type="number" value="100"></div>
+					</div>
+					<div class="row">
+						<div>Дополнительно увеличивать яркость по времени:<br>
+							восход/закат или сумерки (гражданские, навигационные, астрономические) или по времени</div>
+						<div>
+							<select name="boost_mode" onchange="show_bright_add_block()">
+								<option value="0">Нет</option>
+								<option value="1">Солнце</option>
+								<option value="2">Сумерки</option>
+								<option value="3">Навиг.</option>
+								<option value="4">Астрон.</option>
+								<option value="5">Время</option>
+							</select>
+						</div>
+					</div>
+					<div class="row bright2">
+						<div>+ к яркости (от 1 до 255)</div>
+						<div><input name="br_add" type="number" value="1"></div>
+					</div>
+					<div class="row bright3">
+						<div>Широта (LAT.itude)</div>
+						<div><input name="latitude" type="text" value="0.0" class="m"></div>
+					</div>
+					<div class="row bright3">
+						<div>Долгота (LON.gitude)</div>
+						<div><input name="longitude" type="text" value="0.0" class="m"></div>
+					</div>
+					<div class="row br_time">
+						<div>Время начала увеличения яркости</div>
+						<div><input type="time" name="br_begin" value="00:00"></div>
+					</div>
+					<div class="row br_time">
+						<div>Время окончания увеличения яркости</div>
+						<div><input type="time" name="br_end" value="00:00"></div>
+					</div>
+					<div class="row">
+						<div>Лимит по току в миллиамперах (от 200 до 15000)</div>
+						<div><input name="max_power" type="number" value="2000"></div>
+					</div>
+					<div class="row">
+						<div>Перевернуть экран</div>
+						<div>
+							<select name="turn_display">
+								<option value="0">Нет</option>
+								<option value="1">H</option>
+								<option value="2">V</option>
+								<option value="3">H+V</option>
+							</select>
+						</div>
+					</div>
+					<div class="row">
+						<div>Задержка между обновлениями бегущей строки в миллисекундах, определяет скорость движения (&gt;20)</div>
+						<div><input name="scroll_period" type="number" value="40"></div>
+					</div>
+					<div class="one i b">Будильник</div>
+					<div class="row">
+						<div>Начальная громкость будильника (от 1 до 30)</div>
+						<div><input name="volume_start" type="number" value="5"></div>
+					</div>
+					<div class="row">
+						<div>Максимальная громкость будильника (от 1 до 30 но не меньше начальной)</div>
+						<div><input name="volume_finish" type="number" value="30"></div>
+					</div>
+					<div class="row">
+						<div>Период увеличения громкости (от 1 до 30 сек.)</div>
+						<div><input name="volume_period" type="number" value="5"></div>
+					</div>
+					<div class="row">
+						<div>Время до принудительного сброса модуля mp3. (1-255 часов)</div>
+						<div><input name="timeout_mp3" type="number" value="36"></div>
+					</div>
+					<div class="one i b center">Доступ к настройкам</div>
+					<div class="row">
+						<div>login</div>
+						<div><input name="web_login" type="text" value="" class="m"></div>
+					</div>
+					<div class="row">
+						<div>password</div>
+						<div><input name="web_password" type="text" value="" class="m"></div>
+					</div>
+				</div>
 				<button>Сохранить</button>
 			</form>
 		</div>

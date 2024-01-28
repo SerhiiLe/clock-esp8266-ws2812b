@@ -34,51 +34,49 @@
 				<form action="save_alarm" autocomplete="off" method="post" name="settings">
 					<input type="hidden" name="target" value="">
 					<input type="hidden" name="repeat" value="0" id="repeat">
-					<table class="params">
-						<tbody>
-							<tr>
-								<td colspan="2" style="text-align: center;">
-									<input type="time" name="time" value="00:00" class="bbig">
-								</td>
-							</tr>
-							<tr>
-								<td>Периодичность</td>
-								<td>
-									<select name="rmode" id="rmode" onchange="select_days()">
-										<option value="0">один раз</option>
-										<option value="1">каждый день</option>
-										<option value="2">по дням</option>
-									</select>
-								</td>
-							</tr>
-							<tr class="sel_days"><td>Понедельник</td><td><input type="checkbox" name="mo" value="1"></td></tr>
-							<tr class="sel_days"><td>Вторник</td><td><input type="checkbox" name="tu" value="1"></td></tr>
-							<tr class="sel_days"><td>Среда</td><td><input type="checkbox" name="we" value="1"></td></tr>
-							<tr class="sel_days"><td>Четверг</td><td><input type="checkbox" name="th" value="1"></td></tr>
-							<tr class="sel_days"><td>Пятница</td><td><input type="checkbox" name="fr" value="1"></td></tr>
-							<tr class="sel_days"><td>Суббота</td><td><input type="checkbox" name="sa" value="1"></td></tr>
-							<tr class="sel_days"><td>Воскресенье</td><td><input type="checkbox" name="su" value="1"></td></tr>
-							<tr>
-								<td>Мелодия будильника <button onclick="test_ring();return false;" id="ss">проверить</button></td>
-								<td>
-									<input type="number" name="melody" value="1" id="track" onkeypress="sendTr(event)" onfocus="fl_allowUpdate=false;" onfocusout="fl_allowUpdate=true;">
-									из <span id="col">0</span>
-									<input type="hidden" id="cur" name="cur" value="1">
-								</td>
-							</tr>
-							<tr>
-								<td colspan="2">
-									<div>
-										громкость: <span id="volume">0</span> <span id="wait"></span>
-									</div>
-									<input type="range" min="1" max="30" step="1" value="15" class="long" id="vol" oninput="sendVol()">
-								</td>
-							</tr>
-							<tr>
-								<td colspan="2">текст:<div style="float:right"><select name="txt" id="txt"></select></div></td>
-							</tr>
-						</tbody>
-					</table>
+					<div class="holder narrow params">
+						<div class="one center">
+							<input type="time" name="time" value="00:00" class="bbig">
+						</div>
+						<div class="row">
+							<div>Периодичность</div>
+							<div>
+								<select name="rmode" id="rmode" onchange="select_days()">
+									<option value="0">один раз</option>
+									<option value="1">каждый день</option>
+									<option value="2">по дням</option>
+								</select>
+							</div>
+						</div>
+						<div class="row sel_days"><div>Понедельник</div><div><input type="checkbox" name="mo" value="1"></div></div>
+						<div class="row sel_days"><div>Вторник</div><div><input type="checkbox" name="tu" value="1"></div></div>
+						<div class="row sel_days"><div>Среда</div><div><input type="checkbox" name="we" value="1"></div></div>
+						<div class="row sel_days"><div>Четверг</div><div><input type="checkbox" name="th" value="1"></div></div>
+						<div class="row sel_days"><div>Пятница</div><div><input type="checkbox" name="fr" value="1"></div></div>
+						<div class="row sel_days"><div>Суббота</div><div><input type="checkbox" name="sa" value="1"></div></div>
+						<div class="row sel_days"><div>Воскресенье</div><div><input type="checkbox" name="su" value="1"></div></div>
+						<div class="row">
+							<div>Мелодия будильника <button onclick="test_ring();return false;" id="ss">проверить</button></div>
+							<div>
+								<input type="number" name="melody" value="1" id="track" onkeypress="sendTr(event)" onfocus="fl_allowUpdate=false;" onfocusout="fl_allowUpdate=true;">
+								из <span id="col">0</span>
+								<input type="hidden" id="cur" name="cur" value="1">
+							</div>
+						</div>
+						<div class="one">
+							<div>
+								громкость: <span id="volume">0</span> <span id="wait"></span>
+							</div>
+							<input type="range" min="1" max="30" step="1" value="15" class="long" id="vol" oninput="sendVol()">
+						</div>
+						<div class="row">
+							<div>текст:</div>
+							<div><select name="txt" id="txt"></select></div>
+						</div>
+						<div class="one small">
+							Текст берётся из "бегущих строк". Оттуда же и оформление. Чтобы строка была только в будильнике надо выбрать режим "по дням" и не выбирать дни.
+						</div>
+					</div>
 					<button>Сохранить</button>
 				</form>
 			</div>
@@ -129,7 +127,7 @@ function sendTr(e) {
 		is_play = false;
 }
 function show_edit(i) {
-	if(! $g("e"+i).checked) return;
+	// if(! $g("e"+i).checked) return;
 	var f = document.forms["settings"];
 	f.elements["target"].value = i;
 	f.elements["time"].value = print_time(i);

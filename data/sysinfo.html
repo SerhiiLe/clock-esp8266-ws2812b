@@ -20,70 +20,70 @@
 			<div>Системная информация</div>
 		</div>
 		<div class="content">
-			<table class="params">
-				<tbody>
-					<tr>
-						<td>Uptime</td>
-						<td><span id="Uptime"></span></td>
-					</tr>
-					<tr>
-						<td>Time</td>
-						<td><span id="Time"></span></td>
-					</tr>
-					<tr>
-						<td>Date</td>
-						<td><span id="Date"></span></td>
-					</tr>
-					<tr>
-						<td>Sunrise</td>
-						<td><span id="Sunrise"></span></td>
-					</tr>
-					<tr>
-						<td>Sunset</td>
-						<td><span id="Sunset"></span></td>
-					</tr>
-					<tr>
-						<td>Illumination</td>
-						<td><span id="Illumination"></span></td>
-					</tr>
-					<tr>
-						<td>Led Brightness</td>
-						<td><span id="LedBrightness"></span></td>
-					</tr>
-					<tr>
-						<td>Power</td>
-						<td><span id="fl_5v"></span></td>
-					</tr>
-					<tr>
-						<td>WiFi RSSI</td>
-						<td><span id="Rssi"></span> dBm</td>
-					</tr>
-					<tr>
-						<td>Free Heap</td>
-						<td><span id="FreeHeap"></span> bytes</td>
-					</tr>
-					<tr>
-						<td>Max Free Block Size</td>
-						<td><span id="MaxFreeBlockSize"></span> bytes</td>
-					</tr>
-					<tr>
-						<td>Heap Fragmentation</td>
-						<td><span id="HeapFragmentation"></span> %</td>
-					</tr>
-					<tr>
-						<td>Cpu Freq</td>
-						<td><span id="CpuFreqMHz"></span> MHz</td>
-					</tr>
-					<tr>
-						<td>Reset Reason</td>
-						<td><span id="ResetReason"></span></td>
-					</tr>
-					<tr>
-						<td>Platform Version</td>
-						<td><span id="FullVersion"></span></td>
-					</tr>
-				</tbody>
-			</table>
+			<div class="content">
+				<div class="holder narrow">
+					<div class="row">
+						<div>Uptime</div>
+						<div id="Uptime"></div>
+					</div>
+					<div class="row">
+						<div>Time</div>
+						<div id="Time"></div>
+					</div>
+					<div class="row">
+						<div>Date</div>
+						<div id="Date"></div>
+					</div>
+					<div class="row">
+						<div>Sunrise</div>
+						<div id="Sunrise"></div>
+					</div>
+					<div class="row">
+						<div>Sunset</div>
+						<div id="Sunset"></div>
+					</div>
+					<div class="row">
+						<div>Illumination</div>
+						<div id="Illumination"></div>
+					</div>
+					<div class="row">
+						<div>Led Brightness</div>
+						<div id="LedBrightness"></div>
+					</div>
+					<div class="row">
+						<div>Power</div>
+						<div><span id="fl_5v"></span></div>
+					</div>
+					<div class="row">
+						<div>WiFi RSSI</div>
+						<div id="Rssi"></div>
+					</div>
+					<div class="row">
+						<div>Free Heap</div>
+						<div><span id="FreeHeap"></span>&nbsp;bytes</div>
+					</div>
+					<div class="row">
+						<div>Max Free Block Size</div>
+						<div><span id="MaxFreeBlockSize"></span>&nbsp;bytes</div>
+					</div>
+					<div class="row">
+						<div>Heap Fragmentation</div>
+						<div><span id="HeapFragmentation"></span>&nbsp;%</div>
+					</div>
+					<div class="row">
+						<div>Cpu Freq</div>
+						<div><span id="CpuFreqMHz"></span>&nbsp;MHz</div>
+					</div>
+					<div class="row">
+						<div>Reset Reason</div>
+						<div id="ResetReason"></div>
+					</div>
+					<div class="row">
+						<div>Platform Version</div>
+						<div id="FullVersion"></div>
+					</div>
+				</div>
+	
 			<button onclick="getInfo()">Обновить</button>
 		</div>
 		<div class="footer">

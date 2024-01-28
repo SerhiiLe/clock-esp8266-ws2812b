@@ -104,12 +104,6 @@ table.generic {
 input.ss {
 	width: 4em;
 }
-div.color_demo {
-	width: 1.5em;
-	height: 1em;
-	border: solid 1px silver;
-	float: right;
-}
 .bigt {
 	font-size: large;
 }
@@ -128,9 +122,72 @@ input.long {
 .blue {
 	color: blue;
 }
- 
+
+.holder {
+	min-width: 15em;
+	max-width: 40em;
+	display: flex;
+	flex-flow: column nowrap;
+	margin: 10px auto;
+	border-collapse: collapse;
+}
+.narrow {
+	max-width: 25em;
+}
+.row {
+	display: flex;
+	flex-flow: row nowrap;
+	width: 100%;
+	border-bottom: 1px solid silver;
+	align-items: center;
+	padding: 1px;
+}
+.one {
+	display: block;
+	border-bottom: 1px solid silver;
+	padding: 1px;
+}
+.row :first-child {
+	text-align: left;
+}
+.row :last-child {
+	text-align: right;
+}
+.row div {
+	flex: 1 fit-content;
+}
+.row :last-child input {
+	text-align: left;
+	width: 5em;
+}
+.row button {
+	text-align: center !important;
+}
+input.m {
+	width: 8em !important;
+}
+.nb {
+	white-space: nowrap;
+}
+div.color_demo {
+	width: 1.5em;
+	height: 1em;
+	border: solid 1px silver;
+	/* float: right; */
+	flex: unset !important;
+}
+.row div.fix {
+	/* width: 6em; */
+	flex-grow: unset;
+	padding-left: 1em;
+}
+
 @media screen and (max-width: 640px) {
 	body {
+		font-family: sans;
+	}
+	input,button,select {
+		font-size: 1em;
 		font-family: sans;
 	}
 }
