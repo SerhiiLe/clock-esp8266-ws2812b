@@ -69,7 +69,7 @@ void wifi_startConfig(bool fl) {
 		wm.setConfigPortalBlocking(false);
 		wm.startConfigPortal(SSID);
 		LOG(println, PSTR("ConfigPortal is started"));
-		wifi_message = F("Для настройки WiFi подключитесь к \"")+String(SSID)+F("\", IP: 192.168.4.1");
+		wifi_message = String(F("Для настройки WiFi подключитесь к \""))+String(SSID)+String(F("\", IP: 192.168.4.1"));
 		initRString(wifi_message,CRGB::White);
 		wifi_isPortal = true;
 	} else {

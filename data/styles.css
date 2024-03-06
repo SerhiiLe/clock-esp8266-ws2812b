@@ -23,7 +23,7 @@ div.menu {
 	text-align: center;
 }
 div.menu a, div.footer a, button {
-	background-color: aqua;
+	background-color: #87f5fa;
 	padding: 0.5em;
 	margin: 1em auto;
 	min-width: 10em;

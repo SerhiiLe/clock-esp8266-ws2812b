@@ -7,7 +7,11 @@
 #include <Arduino.h>
 #include <FastBot.h>
 #include <WiFiClient.h>
+#ifdef ESP32
+#include <HTTPClient.h>
+#else // ESP8266
 #include <ESP8266HTTPClient.h>
+#endif
 #include "security.h"
 #include "defines.h"
 #include "settings.h"
@@ -194,7 +198,7 @@ void inMsg(FB_msg& msg) {
 			// запрос внешнего датчика
 			int8_t n = msg.text.charAt(0) - 48;
 			if(sensor[n].registered >= getTimeU() - sensor_timeout*60) {
-				String url = F("http://") + sensor[n].ip.toString() + F("/api?pin=") + pin_code + "&";
+				String url = String(F("http://")) + sensor[n].ip.toString() + String(F("/api?pin=")) + pin_code + "&";
 				int pos = 1;
 				int len = msg.text.length();
 				if(len<2) {

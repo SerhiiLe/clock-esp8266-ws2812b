@@ -5,18 +5,31 @@
 
 /*** описание констант, которые описывают конкретное "железо" ***/
 
+#if ESP32 == 1 // ESP32
+#define PIN_LED 22 // LED матрица
+#define PIN_PHOTO_SENSOR 36 // фоторезистор
+#define PIN_BUTTON 19 // кнопка управления
+#define PIN_MOTION 18 // детектор движения
+#define PIN_5V 21 // детектор наличия питания (5 Вольт). Закомментировать, если не подключен
+#define PIN_RELAY 26 // реле выключатель питания матрицы
+#define RELAY_TYPE 1 // тип реле, срабатывает по: 0 - низкому, 1 - высокому уровню. 
+#define LED_MOTION 17 // светодиод индикатор движения. Закомментировать для вывода на матрицу.
+#define SRX 23 // software serial RX DFPlayer. Закомментировать, если не подключен
+#define STX 5 // software serial TX DFPlayer
+#else // ESP8266
 #define PIN_LED 5 // LED матрица
 #define PIN_PHOTO_SENSOR A0 // фоторезистор
 #define PIN_BUTTON 12 // кнопка управления
-#define SENSOR_BUTTON 1 // сенсорная кнопка - 1, обычная - 0
 #define PIN_MOTION 14 // детектор движения
 #define PIN_5V 4 // детектор наличия питания (5 Вольт). Закомментировать, если не подключен
 #define PIN_RELAY 16 // реле выключатель питания матрицы
-#define RELAY_OP_TIME 10 // время срабатывания реле по даташиту. ms
 #define RELAY_TYPE 1 // тип реле, срабатывает по: 0 - низкому, 1 - высокому уровню. 
-#define LED_MOTION 0 // светодиод индикатор движения
+#define LED_MOTION 0 // светодиод индикатор движения. Закомментировать для вывода на матрицу.
 #define SRX 13 // software serial RX DFPlayer. Закомментировать, если не подключен
 #define STX 15 // software serial TX DFPlayer
+#endif
+#define SENSOR_BUTTON 1 // сенсорная кнопка - 1, обычная - 0
+#define RELAY_OP_TIME 10 // время срабатывания реле по даташиту. ms
 
 /*** ограничение потребления матрицей ***/
 

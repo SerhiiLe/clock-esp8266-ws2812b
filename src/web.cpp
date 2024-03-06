@@ -4,12 +4,19 @@
 */
 
 #include <Arduino.h>
+#include "defines.h"
+#ifdef ESP32
+#include <WebServer.h>
+#include "mHTTPUpdateServer.h"
+#include <ESPmDNS.h>
+#include <rom/rtc.h>
+#else // ESP8266
 #include <ESP8266WebServer.h>
-#include <LittleFS.h>
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266mDNS.h>
+#endif
+#include <LittleFS.h>
 #include <time.h>
-#include "defines.h"
 #include "web.h"
 #include "settings.h"
 #include "runningText.h"
@@ -19,8 +26,14 @@
 #include "clock.h"
 #include "wifi_init.h"
 
+#ifdef ESP32
+WebServer HTTP(80);
+HTTPUpdateServer httpUpdater;
+#endif
+#ifdef ESP8266
 ESP8266WebServer HTTP(80);
 ESP8266HTTPUpdateServer httpUpdater;
+#endif
 bool web_isStarted = false;
 
 void save_settings();
@@ -49,7 +62,11 @@ void web_disable() {
 	web_isStarted = false;
 	LOG(println, PSTR("HTTP server stoped"));
 
+	#ifdef ESP32
+	MDNS.disableWorkstation();
+	#else // ESP8266
 	MDNS.close();
+	#endif
 	fl_mdns = false;
 	LOG(println, PSTR("MDNS responder stoped"));
 }
@@ -67,7 +84,9 @@ void not_found() {
 void web_process() {
 	if( web_isStarted ) {
 		HTTP.handleClient();
+		#ifdef ESP8266
 		if(fl_mdns) MDNS.update();
+		#endif
 	} else {
 		HTTP.begin();
 		// Обработка HTTP-запросов
@@ -97,7 +116,11 @@ void web_process() {
   		httpUpdater.setup(&HTTP, web_login, web_password);
 		LOG(println, PSTR("HTTP server started"));
 
+		#ifdef ESP32
+		if(MDNS.begin(clock_name.c_str())) {
+		#else // ESP8266
 		if(MDNS.begin(clock_name, WiFi.localIP())) {
+		#endif
 			MDNS.addService("http", "tcp", 80);
 			fl_mdns = true;
 			LOG(println, PSTR("MDNS responder started"));
@@ -298,16 +321,27 @@ void save_settings() {
 		sync_time = true;
 	if( set_simple_checkbox(F("tz_dst"), tz_dst) )
 		sync_time = true;
+	set_simple_int(F("tiny_clock"), tiny_clock, 0, 4);
+	set_simple_int(F("dots_style"), dots_style, 0, 11);
 	set_simple_checkbox(F("date_short"), show_date_short);
 	if( set_simple_int(F("date_period"), show_date_period, 20, 1439) )
 		clockDate.setInterval(1000U * show_date_period);
 	set_simple_int(F("time_color"), show_time_color, 0, 3);
 	set_simple_color(F("time_color0"), show_time_color0);
+	// цвет часов
 	set_simple_color(F("time_color1"), show_time_col[0]);
-	set_simple_color(F("time_color2"), show_time_col[1]);
+	show_time_col[1] = show_time_col[0];
+	// set_simple_color(F("time_color2"), show_time_col[1]);
+	// цвет разделителей
 	set_simple_color(F("time_color3"), show_time_col[2]);
+	show_time_col[5] = show_time_col[2];
+	// цвет минут
 	set_simple_color(F("time_color4"), show_time_col[3]);
-	set_simple_color(F("time_color5"), show_time_col[4]);
+	show_time_col[4] = show_time_col[3];
+	// set_simple_color(F("time_color5"), show_time_col[4]);
+	// цвет секунд
+	set_simple_color(F("time_color6"), show_time_col[6]);
+	show_time_col[7] = show_time_col[6];
 	set_simple_int(F("date_color"), show_date_color, 0, 2);
 	set_simple_color(F("date_color0"), show_date_color0);
 	bool need_bright = false;
@@ -366,7 +400,11 @@ void save_telegram() {
 	set_simple_checkbox(F("use_brightness"), use_brightness);
 	set_simple_string(F("pin_code"), pin_code);
 	if( set_simple_string(F("clock_name"), clock_name) )
+		#ifdef ESP32
+		if(fl_mdns)	MDNS.setInstanceName(clock_name.c_str());
+		#else // ESP8266
 		if(fl_mdns)	MDNS.setHostname(clock_name.c_str());
+		#endif
 	set_simple_int(F("sensor_timeout"), sensor_timeout, 1, 16000);
 	set_simple_string(F("tb_name"), tb_name);
 	if( set_simple_string(F("tb_chats"), tb_chats) )
@@ -391,7 +429,11 @@ void save_telegram() {
 // перезагрузка часов, сброс ком-порта, отключение сети и диска, чтобы ничего не мешало перезагрузке
 void reboot_clock() {
 	Serial.flush();
+	#ifdef ESP32
+	WiFi.getSleep();
+	#else // ESP8266
 	WiFi.forceSleepBegin(); //disable AP & station by calling "WiFi.mode(WIFI_OFF)" & put modem to sleep
+	#endif
 	LittleFS.end();
 	delay(1000);
 	ESP.restart();
@@ -738,6 +780,31 @@ void onoff() {
 	text_send(cond?F("1"):F("0"));
 }
 
+#ifdef ESP32
+// декодирование информации о причине перезагрузки ядра
+const char* print_reset_reason(uint8_t core, char *buf) {
+  switch ( rtc_get_reset_reason(core) ) {
+    case 1 : sprintf(buf, "POWERON_RESET"); break;          /**<1, Vbat power on reset*/
+    case 3 : sprintf(buf, "SW_RESET"); break;               /**<3, Software reset digital core*/
+    case 4 : sprintf(buf, "OWDT_RESET"); break;             /**<4, Legacy watch dog reset digital core*/
+    case 5 : sprintf(buf, "DEEPSLEEP_RESET"); break;        /**<5, Deep Sleep reset digital core*/
+    case 6 : sprintf(buf, "SDIO_RESET"); break;             /**<6, Reset by SLC module, reset digital core*/
+    case 7 : sprintf(buf, "TG0WDT_SYS_RESET"); break;       /**<7, Timer Group0 Watch dog reset digital core*/
+    case 8 : sprintf(buf, "TG1WDT_SYS_RESET"); break;       /**<8, Timer Group1 Watch dog reset digital core*/
+    case 9 : sprintf(buf, "RTCWDT_SYS_RESET"); break;       /**<9, RTC Watch dog Reset digital core*/
+    case 10 : sprintf(buf, "INTRUSION_RESET"); break;       /**<10, Instrusion tested to reset CPU*/
+    case 11 : sprintf(buf, "TGWDT_CPU_RESET"); break;       /**<11, Time Group reset CPU*/
+    case 12 : sprintf(buf, "SW_CPU_RESET"); break;          /**<12, Software reset CPU*/
+    case 13 : sprintf(buf, "RTCWDT_CPU_RESET"); break;      /**<13, RTC Watch dog Reset CPU*/
+    case 14 : sprintf(buf, "EXT_CPU_RESET"); break;         /**<14, for APP CPU, reseted by PRO CPU*/
+    case 15 : sprintf(buf, "RTCWDT_BROWN_OUT_RESET"); break;/**<15, Reset when the vdd voltage is not stable*/
+    case 16 : sprintf(buf, "RTCWDT_RTC_RESET"); break;      /**<16, RTC Watch dog reset digital core and rtc module*/
+    default : sprintf(buf, "NO_MEAN");
+  }
+  return buf;
+}
+#endif
+
 // Информация о состоянии железки
 void sysinfo() {
 	if(is_no_auth()) return;
@@ -753,11 +820,19 @@ void sysinfo() {
 	HTTP.client().printf_P(PSTR("\"fl_5v\":%i,"), fl_5v);
 	HTTP.client().printf_P(PSTR("\"Rssi\":%i,"), wifi_rssi());
 	HTTP.client().printf_P(PSTR("\"FreeHeap\":%i,"), ESP.getFreeHeap());
+	#ifdef ESP32
+	HTTP.client().printf("\"MaxFreeBlockSize\":%i,", ESP.getMaxAllocHeap());
+	HTTP.client().printf("\"HeapFragmentation\":%i,", 100-ESP.getMaxAllocHeap()*100/ESP.getFreeHeap());
+	HTTP.client().printf("\"ResetReason\":\"%s, %s\",", print_reset_reason(0, buf), print_reset_reason(1, buf));
+	HTTP.client().printf("\"FullVersion\":\"%s\",", ESP.getSdkVersion());
+	#else // ESP8266
 	HTTP.client().printf_P(PSTR("\"MaxFreeBlockSize\":%i,"), ESP.getMaxFreeBlockSize());
 	HTTP.client().printf_P(PSTR("\"HeapFragmentation\":%i,"), ESP.getHeapFragmentation());
-	HTTP.client().printf_P(PSTR("\"CpuFreqMHz\":%i,"), ESP.getCpuFreqMHz());
 	HTTP.client().printf_P(PSTR("\"ResetReason\":\"%s\","), ESP.getResetReason().c_str());
-	HTTP.client().printf_P(PSTR("\"FullVersion\":\"%s\"}"), ESP.getFullVersion().c_str());
+	HTTP.client().printf_P(PSTR("\"FullVersion\":\"%s\","), ESP.getFullVersion().c_str());
+	#endif
+	HTTP.client().printf_P(PSTR("\"CpuFreqMHz\":%i,"), ESP.getCpuFreqMHz());
+	HTTP.client().printf_P(PSTR("\"BuildTime\":\"%s %s\"}"), F(__DATE__), F(__TIME__));
 	HTTP.client().stop();
 }
 

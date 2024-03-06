@@ -84,6 +84,37 @@
 					</div>
 					<div class="one i b center">Отображение времени и даты</div>
 					<div class="row">
+						<div>Стиль отображения времени</div>
+						<div>
+							<select name="tiny_clock" onchange="show_dots_block()">
+								<option value="0">Обычный</option>
+								<option value="1">Широкий</option>
+								<option value="2">Узкий</option>
+								<option value="3">Цифровой</option>
+								<option value="4">Крошечный</option>
+							</select>
+						</div>
+					</div>
+					<div class="row dots">
+						<div>Стиль отображения разделителя ':'</div>
+						<div>
+							<select name="dots_style">
+								<option value="0">Обычный</option>
+								<option value="1">Обычный 1</option>
+								<option value="2">Качели 0.5</option>
+								<option value="3">Качели 1</option>
+								<option value="4">Биение 0.5</option>
+								<option value="5">Биение 1</option>
+								<option value="6">Семафор 0.5</option>
+								<option value="7">Семафор 1</option>
+								<option value="8">Капля</option>
+								<option value="9">Четверть</option>
+								<option value="10">Мозаика</option>
+								<option value="11">Статичный</option>
+							</select>
+						</div>
+					</div>
+					<div class="row">
 						<div>Сокращенный формат даты</div>
 						<div><input name="date_short" type="checkbox" value="1"></div>
 					</div>
@@ -107,24 +138,20 @@
 						<div class="fix"><input name="time_color0" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
 					</div>
 					<div class="row color3">
-						<div>Цвет цифры 1 часы (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color1"></div>
+						<div>Цвет цифр часы (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color1"></div>
 						<div class="fix"><input name="time_color1" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
-					</div>
-					<div class="row color3">
-						<div>Цвет цифры 2 часы (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color2"></div>
-						<div class="fix"><input name="time_color2" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
 					</div>
 					<div class="row color3">
 						<div>Цвет разделителя (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color3"></div>
 						<div class="fix"><input name="time_color3" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
 					</div>
 					<div class="row color3">
-						<div>Цвет цифры 1 минуты (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color4"></div>
+						<div>Цвет цифр минуты (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color4"></div>
 						<div class="fix"><input name="time_color4" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
 					</div>
-					<div class="row color3">
-						<div>Цвет цифры 2 минуты (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color5"></div>
-						<div class="fix"><input name="time_color5" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
+					<div class="row color4">
+						<div>Цвет цифры секунды (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="time_color6"></div>
+						<div class="fix"><input name="time_color6" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
 					</div>
 					<div class="row">
 						<div>Режим цвета даты</div>
@@ -263,15 +290,32 @@ function show_color_block() {
 		case "0":
 			toggle_by_class("color0",true);
 			toggle_by_class("color3",false);
+			toggle_by_class("color4",false);
 			break;
 		case "3":
 			toggle_by_class("color0",false);
 			toggle_by_class("color3",true);
+			if(document.forms["settings"].elements["tiny_clock"].value > 1 )
+				toggle_by_class("color4",true);
+			else
+				toggle_by_class("color4",false);
 			break;
 		default:
 			toggle_by_class("color0",false);
 			toggle_by_class("color3",false);
+			toggle_by_class("color4",false);
 	}
+}
+function show_dots_block() {
+	switch(document.forms["settings"].elements["tiny_clock"].value) {
+		case "0":
+		case "1":
+			toggle_by_class("dots",true);
+			break;
+		default:
+			toggle_by_class("dots",false);
+	}
+	show_color_block();
 }
 function show_color_block2() {
 	switch(document.forms["settings"].elements["date_color"].value) {
@@ -329,6 +373,7 @@ function start() {
 			show_run_block();
 			show_color_block();
 			show_color_block2();
+			show_dots_block();
 			show_bright_block();
 			init_color_demo();
 			updateBr();

@@ -16,12 +16,12 @@ extern bool ftp_isAllow;
 extern bool fl_5v;
 extern bool fl_allowLEDS;
 extern bool fl_timeNotSync;
+extern bool fl_led_motion;
 
 // таймеры должны быть доступны в разных местах
 #include "timerMinim.h"
 extern timerMinim scrollTimer;          // таймер скроллинга
 extern timerMinim autoBrightnessTimer;  // Таймер отслеживания показаний датчика света при включенной авторегулировки яркости матрицы
-extern timerMinim saveSettingsTimer;    // Таймер отложенного сохранения настроек
 extern timerMinim ntpSyncTimer;         // Таймер синхронизации времени с NTP-сервером
 extern timerMinim scrollTimer;          // Таймер задержки между обновлениями бегущей строки, определяет скорость движения
 extern timerMinim clockDate;            // Таймер периодичности вывода даты в виде бегущей строки (длительность примерно 15 секунд)
@@ -52,6 +52,8 @@ extern int8_t tz_shift;
 extern uint8_t tz_dst;
 extern uint8_t show_date_short;
 extern uint16_t show_date_period;
+extern uint8_t tiny_clock;
+extern uint8_t dots_style;
 extern uint8_t show_time_color;
 extern uint32_t show_time_color0;
 extern uint32_t show_time_col[];
@@ -113,17 +115,26 @@ extern cur_text texts[];
 extern uint8_t sec_enable;
 extern uint8_t sec_curFile;
 
-extern uint16 sunrise; // время восхода в минутах от начала суток
-extern uint16 sunset; // время заката в минутах от начала суток
+extern uint16_t sunrise; // время восхода в минутах от начала суток
+extern uint16_t sunset; // время заката в минутах от начала суток
 extern bool old_bright_boost; // флаг для изменения уровня яркости
 
 #include <IPAddress.h>
 struct cur_sensor {
 	String hostname;
-	IPAddress ip = IPADDR_NONE;
+	IPAddress ip = {0,0,0,0}; // IPADDR_NONE;
 	time_t registered = 0;
 };
 extern cur_sensor sensor[];
+
+extern const byte fontSemicolon[][4] PROGMEM;
+extern bool fl_tiny_clock;
+extern bool screenIsFree;
+
+#ifdef ESP32
+#define SPIFFS LittleFS
+#define FORMAT_LITTLEFS_IF_FAILED true
+#endif
 
 //----------------------------------------------------
 #if defined(LOG)

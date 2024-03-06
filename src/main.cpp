@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief Clock
- * @version 1.6.5
- * @date 2024-01-06
+ * @version 2.0.0
+ * @date 2024-02-28
  * 
  * @copyright Copyright (c) 2021,2022,2023,2024
  */
@@ -28,6 +28,7 @@
 #include "dfplayer.h"
 #include "demo.h"
 #include "security.h"
+#include "digitsOnly.h"
 
 #if SENSOR_BUTTON == 1
 GButton btn(PIN_BUTTON, LOW_PULL, NORM_OPEN); // комбинация для сенсорной кнопки
@@ -55,6 +56,8 @@ time_t alarmStartTime = 0;
 int16_t old_brightness = 5000;
 // состояние датчика движения
 bool cur_motion = false;
+// индикация движения
+bool fl_led_motion = false;
 // время последней сработки датчика движения
 unsigned long last_move = 0;
 // время последнего отключения экрана
@@ -82,14 +85,23 @@ bool old_bright_boost = true;
 // статус процесса загрузки
 uint8_t boot_stage = 1;
 
+#ifdef ESP32
+TaskHandle_t TaskWeb;
+void TaskWebCode( void * pvParameters );
+#endif
+
 void setup() {
 	Serial.begin(115200);
 	Serial.println(PSTR("Starting..."));
+	#ifdef LED_MOTION
 	pinMode(LED_MOTION, OUTPUT);
+	#endif
+	#ifdef PIN_MOTION
 	pinMode(PIN_MOTION, INPUT);
-#ifdef PIN_5V
+	#endif
+	#ifdef PIN_5V
 	pinMode(PIN_5V, INPUT);
-#endif
+	#endif
 	pinMode(PIN_RELAY, OUTPUT);
 	digitalWrite(PIN_RELAY, RELAY_OFF);
 	delay(RELAY_OP_TIME); // задержка на время срабатывания (выключения) рэле. А вообще должно было стоять рэле LOW и тогда после старта оно бы сразу было выключено.
@@ -108,8 +120,12 @@ bool boot_check() {
 	}
 	switch (boot_stage)	{
 		case 1: // попытка подключить диск
-			if( LittleFS.begin()) {
-				if( LittleFS.exists(F("index.html")) ) {
+			#ifdef ESP32
+			if( LittleFS.begin(true) ) {
+			#else
+			if( LittleFS.begin() ) {
+			#endif
+				if( LittleFS.exists(F("/index.html")) ) {
 					fs_isStarted = true; // встроенный диск подключился
 					LOG(println, PSTR("LittleFS mounted"));
 				} else {
@@ -166,6 +182,20 @@ bool boot_check() {
 		default:
 			boot_stage = 0;
 			initRString(str_hello);
+			#ifdef ESP32
+			// создание задачи для FreeRTOS, которая будет исполняться на отдельном ядре, чтобы не тормозить и не сбивать основной цикл
+			// для esp32-c3 это не имеет большого значения, так как там всего одно ядро, но и хуже не будет
+			// если ядра два, то на #0 крутится wifi и сервисы, а на #1 задача "Arduino". Если ядро одно, то на #0 будет несколько задач.
+			xTaskCreatePinnedToCore(
+							TaskWebCode, /* Task function. */
+							"TaskWeb",   /* name of task. */
+							10000,       /* Stack size of task */
+							NULL,        /* parameter of the task */
+							1,           /* priority of the task */
+							&TaskWeb,    /* Task handle to keep track of created task */
+							0);          /* pin task to core 0 */                  
+			#endif
+			LOG(println, PSTR("Clock started"));
 			return false;
 	}
 	boot_stage++;
@@ -186,16 +216,8 @@ void alarmsStop() {
 			alarms[i].settings |= 2048;
 }
 
-void loop() {
-	int16_t i = 0;
-	bool fl_doit = false;
-	bool fl_save = false;
-	tm t;
-
-	if( boot_stage ) {
-		if( boot_check() ) return;
-	}
-
+// все функции, которые используют сеть, из основного цикла для возможности работы на втором ядре esp32
+void network_pool() {
 	wifi_process();
 	if( wifi_isConnected ) {
 		// установка времени по ntp.
@@ -215,6 +237,21 @@ void loop() {
 			initRString(timeString);
 		}
 	}
+}
+
+void loop() {
+	int16_t i = 0;
+	bool fl_doit = false;
+	bool fl_save = false;
+	tm t;
+
+	if( boot_stage ) {
+		if( boot_check() ) return;
+	}
+
+	#ifdef ESP8266
+	network_pool();
+	#endif
 
 	if( mp3_isInit ) mp3_check();
 	btn.tick();
@@ -283,7 +320,7 @@ void loop() {
 	}
 
 	// проверка наличия напряжения 5 Вольт
-#ifdef PIN_5V
+	#ifdef PIN_5V
 	if(digitalRead(PIN_5V) != fl_5v) {
 		fl_5v = ! fl_5v;
 		if(sec_enable) save_log_file(fl_5v ? SEC_TEXT_POWERED: SEC_TEXT_POWEROFF);
@@ -297,12 +334,16 @@ void loop() {
 			if(bright_mode==2) set_brightness(bright0);
 		}
 	}
-#endif
+	#endif
 
+	#ifdef PIN_MOTION
 	// проверка статуса датчика движения
 	if(digitalRead(PIN_MOTION) != cur_motion) {
 		cur_motion = ! cur_motion;
-		digitalWrite(LED_MOTION, show_move || alarmStartTime ? cur_motion: 0);
+		fl_led_motion = show_move || alarmStartTime ? cur_motion: false;
+		#ifdef LED_MOTION
+		digitalWrite(LED_MOTION, fl_led_motion);
+		#endif
 		last_move = millis(); // как включение, так и выключение датчика сбрасывает таймер
 		fl_action_move = cur_motion;
 		if(!fl_5v) {
@@ -342,6 +383,7 @@ void loop() {
 			save_log_file(SEC_TEXT_MOVE);
 		}
 	}
+	#endif
 
 	if(autoBrightnessTimer.isReady() && fl_5v) {
 		int16_t cur_brightness = analogRead(PIN_PHOTO_SENSOR);
@@ -361,6 +403,16 @@ void loop() {
 			// дополнительная яркость по времени
 			uint8_t add_val = fl_bright_boost ? bright_add: 0;
 			switch(bright_mode) {
+				#ifdef ESP32
+				case 0: // полный автомат от 1 до 255
+					set_brightness(constrain((val >> 4) + 1 + add_val, 1, 255));
+					break;
+				case 1: // автоматический с ограничителем
+					set_brightness(constrain((( val * bright0 ) >> 12) + 1 + add_val, 1,255));
+					break;
+				default: // ручной
+					set_brightness(constrain((uint16_t)bright0 + (uint16_t)add_val, 1, 255));
+				#else
 				case 0: // полный автомат от 1 до 255
 					set_brightness(constrain((val >> 2) + 1 + add_val, 1, 255));
 					break;
@@ -369,6 +421,7 @@ void loop() {
 					break;
 				default: // ручной
 					set_brightness(constrain((uint16_t)bright0 + (uint16_t)add_val, 1, 255));
+				#endif
 			}
 			old_brightness = cur_brightness;
 			old_bright_boost = fl_bright_boost;
@@ -486,9 +539,33 @@ void loop() {
 			initRString(show_date_short ? dateCurrentTextShort(timeString): dateCurrentTextLong(timeString),
 				show_date_color > 0 ? show_date_color: show_date_color0);
 	}
+	// // если всё уже показано, то вывести время
+	// if(!fl_demo && screenIsFree && clockTimer.isReady())
+	// 	initRString(clockCurrentText(timeString), show_time_color > 0 ? show_time_color: show_time_color0, CLOCK_SHIFT);
+
 	// если всё уже показано, то вывести время
-	if(!fl_demo && screenIsFree && clockTimer.isReady())
-		initRString(clockCurrentText(timeString), show_time_color > 0 ? show_time_color: show_time_color0, CLOCK_SHIFT);
+	if(!fl_demo && screenIsFree && clockTimer.isReady()) {
+		switch (tiny_clock) {
+			case FONT_WIDE: // широкий шрифт
+				clockCurrentText(timeString);
+				changeDots(timeString);
+				printMedium(timeString, FONT_WIDE, 0);
+				break;
+			case FONT_NARROW: // узкий
+			case FONT_DIGIT: // цифровой
+				clockTinyText(timeString);
+				printMedium(timeString, FONT_TINY, printMedium(timeString, tiny_clock, 0) + 1, 8, 6);
+				break;
+			case FONT_TINY: // крошечный
+				printMedium(clockTinyText(timeString), FONT_TINY, 3, 8);
+				break;
+			default:
+				clockCurrentText(timeString);
+				changeDots(timeString);
+				initRString(timeString, show_time_color > 0 ? show_time_color: show_time_color0, CLOCK_SHIFT);
+				break;
+		}
+	}
 
 	if(fl_demo) {
 		if(demoTimer.isReady()) demo_tick();
@@ -496,3 +573,19 @@ void loop() {
 		if(scrollTimer.isReady()) display_tick();
 	}
 }
+
+#ifdef ESP32
+// Работа с сетью
+void TaskWebCode( void * pvParameters ) {
+	LOG(print, "TaskWeb running on core ");
+	LOG(println, xPortGetCoreID());
+	vTaskDelay(1);
+
+	for(;;) {
+		// единственное, что должна делать эта задача - обслуживать сеть
+		network_pool();
+		// обязательная пауза, чтобы задача смогла вернуть управление FreeRTOS, иначе будет срабатывать watchdog timer
+		vTaskDelay(1);
+	}
+}
+#endif

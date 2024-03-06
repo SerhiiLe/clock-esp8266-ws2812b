@@ -19,6 +19,7 @@ byte char_to_byte(char n) {
 }
 
 uint32_t text_to_color(const char *s) {
+	if( s == nullptr ) return 0xffffff;
 	uint32_t c = 0;
 	int8_t i = 0;
 	byte t = 0;
@@ -64,7 +65,7 @@ bool load_config_main() {
 		return false;
 	}
 
-	StaticJsonDocument<1536> doc; // временный буфер под объект json
+	JsonDocument doc; // временный буфер под объект json
 
 	DeserializationError error = deserializeJson(doc, configFile);
 	configFile.close();
@@ -92,15 +93,22 @@ bool load_config_main() {
 	max_move = doc[F("max_move")];
 	tz_shift = doc[F("tz_shift")];
 	tz_dst = doc[F("tz_dst")];
+	tiny_clock = doc[F("tiny_clock")];
+	dots_style = doc[F("dots_style")];
 	show_date_short = doc[F("date_short")];
 	show_date_period = doc[F("date_period")]; clockDate.setInterval(1000U * show_date_period);
 	show_time_color = doc[F("time_color")];
 	show_time_color0 = text_to_color(doc[F("time_color0")]);
 	show_time_col[0] = text_to_color(doc[F("time_color1")]);
-	show_time_col[1] = text_to_color(doc[F("time_color2")]);
+	show_time_col[1] = show_time_col[0];
+	// show_time_col[1] = text_to_color(doc[F("time_color2")]);
 	show_time_col[2] = text_to_color(doc[F("time_color3")]);
+	show_time_col[5] = show_time_col[2];
 	show_time_col[3] = text_to_color(doc[F("time_color4")]);
-	show_time_col[4] = text_to_color(doc[F("time_color5")]);
+	show_time_col[4] = show_time_col[3];
+	// show_time_col[4] = text_to_color(doc[F("time_color5")]);
+	show_time_col[6] = text_to_color(doc[F("time_color6")]);
+	show_time_col[7] = show_time_col[6];
 	show_date_color = doc[F("date_color")];
 	show_date_color0 = text_to_color(doc[F("date_color0")]);
 	bright_mode = doc[F("bright_mode")];
@@ -125,13 +133,13 @@ bool load_config_main() {
 	web_login = doc[F("web_login")].as<String>();
 	web_password = doc[F("web_password")].as<String>();
 
-	LOG(printf_P, PSTR("размер объекта config: %i\n"), doc.memoryUsage());
+	LOG(println, PSTR("Main config loaded."));
 	return true;
 }
 
 void save_config_main() {
 
-	StaticJsonDocument<1536> doc; // временный буфер под объект json
+	JsonDocument doc; // временный буфер под объект json
 
 	doc[F("str_hello")] = str_hello;
 	doc[F("max_alarm_time")] = max_alarm_time;
@@ -144,15 +152,18 @@ void save_config_main() {
 	doc[F("max_move")] = max_move;
 	doc[F("tz_shift")] = tz_shift;
 	doc[F("tz_dst")] = tz_dst;
+	doc[F("tiny_clock")] = tiny_clock;
+	doc[F("dots_style")] = dots_style;
 	doc[F("date_short")] = show_date_short;
 	doc[F("date_period")] = show_date_period;
 	doc[F("time_color")] = show_time_color;
 	doc[F("time_color0")] = color_to_text(show_time_color0);
 	doc[F("time_color1")] = color_to_text(show_time_col[0]);
-	doc[F("time_color2")] = color_to_text(show_time_col[1]);
+	// doc[F("time_color2")] = color_to_text(show_time_col[1]);
 	doc[F("time_color3")] = color_to_text(show_time_col[2]);
 	doc[F("time_color4")] = color_to_text(show_time_col[3]);
-	doc[F("time_color5")] = color_to_text(show_time_col[4]);
+	// doc[F("time_color5")] = color_to_text(show_time_col[4]);
+	doc[F("time_color6")] = color_to_text(show_time_col[6]);
 	doc[F("date_color")] = show_date_color;
 	doc[F("date_color0")] = color_to_text(show_date_color0);
 	doc[F("bright_mode")] = bright_mode;
@@ -185,7 +196,7 @@ void save_config_main() {
 	configFile.close(); // не забыть закрыть файл
 	delay(4);
 
-	LOG(printf_P, PSTR("размер объекта config: %i\n"), doc.memoryUsage());
+	LOG(println, PSTR("Main config saved."));
 }
 
 bool load_config_telegram() {
@@ -197,7 +208,7 @@ bool load_config_telegram() {
 		return false;
 	}
 
-	StaticJsonDocument<1024> doc; // временный буфер под объект json
+	JsonDocument doc; // временный буфер под объект json
 
 	DeserializationError error = deserializeJson(doc, configFile);
 	configFile.close();
@@ -223,13 +234,13 @@ bool load_config_telegram() {
 	tb_accelerate = doc[F("tb_accelerate")];
 	tb_ban = doc[F("tb_ban")];
 
-	LOG(printf_P, PSTR("размер объекта config: %i\n"), doc.memoryUsage());
+	LOG(println, PSTR("Telegram config loaded."));
 	return true;
 }
 
 void save_config_telegram() {
 
-	StaticJsonDocument<1024> doc; // временный буфер под объект json
+	JsonDocument doc; // временный буфер под объект json
 
 	doc[F("use_move")] = use_move;
 	doc[F("use_brightness")] = use_brightness;
@@ -255,7 +266,7 @@ void save_config_telegram() {
 	configFile.close(); // не забыть закрыть файл
 	delay(2);
 
-	LOG(printf_P, PSTR("размер объекта config: %i\n"), doc.memoryUsage());
+	LOG(println, PSTR("Telegram config saved."));
 }
 
 bool load_config_alarms() {
@@ -267,7 +278,7 @@ bool load_config_alarms() {
 		return false;
 	}
 
-	StaticJsonDocument<1024> doc; // временный буфер под объект json
+	JsonDocument doc; // временный буфер под объект json
 
 	DeserializationError error = deserializeJson(doc, configFile);
 	configFile.close();
@@ -286,13 +297,13 @@ bool load_config_alarms() {
 		alarms[i].text = doc[i]["t"];
 	}
 
-	LOG(printf_P, PSTR("размер объекта alarms: %i\n"), doc.memoryUsage());
+	LOG(println, PSTR("Alarms config loaded."));
 	return true;
 }
 
 void save_config_alarms() {
 
-	StaticJsonDocument<1024> doc; // временный буфер под объект json
+	JsonDocument doc; // временный буфер под объект json
 
 	for( int i=0; i<MAX_ALARMS; i++) {
 		doc[i]["s"] = alarms[i].settings;
@@ -312,7 +323,7 @@ void save_config_alarms() {
 	configFile.close(); // не забыть закрыть файл
 	delay(2);
 
-	LOG(printf_P, PSTR("размер объекта alarms: %i\n"), doc.memoryUsage());
+	LOG(println, PSTR("Alarms config saved."));
 }
 
 bool load_config_texts() {
@@ -324,7 +335,7 @@ bool load_config_texts() {
 		return false;
 	}
 
-	StaticJsonDocument<1536> doc; // временный буфер под объект json
+	JsonDocument doc; // временный буфер под объект json
 
 	DeserializationError error = deserializeJson(doc, configFile);
 	configFile.close();
@@ -345,13 +356,13 @@ bool load_config_texts() {
 		textTimer[i].setInterval(texts[i].period*1000U);
 	}
 
-	LOG(printf_P, PSTR("размер объекта texts: %i\n"), doc.memoryUsage());
+	LOG(println, PSTR("Texts config loaded."));
 	return true;
 }
 
 void save_config_texts() {
 
-	StaticJsonDocument<1536> doc; // временный буфер под объект json
+	JsonDocument doc; // временный буфер под объект json
 
 	for( int i=0; i<MAX_RUNNING; i++) {
 		doc[i]["t"] = texts[i].text;
@@ -371,7 +382,7 @@ void save_config_texts() {
 	configFile.close(); // не забыть закрыть файл
 	delay(4);
 
-	LOG(printf_P, PSTR("размер объекта texts: %i\n"), doc.memoryUsage());
+	LOG(println, PSTR("Texts config saved."));
 }
 
 bool load_config_security() {
@@ -383,7 +394,7 @@ bool load_config_security() {
 		return false;
 	}
 
-	StaticJsonDocument<256> doc; // временный буфер под объект json
+	JsonDocument doc; // временный буфер под объект json
 
 	DeserializationError error = deserializeJson(doc, configFile);
 	configFile.close();
@@ -397,13 +408,13 @@ bool load_config_security() {
 	sec_enable = doc[F("sec_enable")];
 	sec_curFile = doc[F("sec_curFile")];
 
-	LOG(printf_P, PSTR("размер объекта security: %i\n"), doc.memoryUsage());
+	LOG(println, PSTR("Security config loaded."));
 	return true;
 }
 
 void save_config_security() {
 
-	StaticJsonDocument<256> doc; // временный буфер под объект json
+	JsonDocument doc; // временный буфер под объект json
 
 	doc[F("sec_enable")] = sec_enable;
 	doc[F("sec_curFile")] = sec_curFile;
@@ -419,7 +430,7 @@ void save_config_security() {
 	configFile.close(); // не забыть закрыть файл
 	delay(2);
 
-	LOG(printf_P, PSTR("размер объекта security: %i\n"), doc.memoryUsage());
+	LOG(println, PSTR("Security config saved."));
 }
 
 // чтение последних cnt строк лога

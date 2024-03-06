@@ -15,6 +15,7 @@
         "Minim",
         "NODEMCU",
         "oled",
+        "PROGMEM",
         "RRGGBB",
         "Rssi",
         "SENSOR",

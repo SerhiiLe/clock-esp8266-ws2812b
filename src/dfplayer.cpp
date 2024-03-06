@@ -40,8 +40,18 @@ boolean mp3_isPlay() {
 }
 
 void mp3_update() {
-	if(mp3_isPlay() || mp3_current>mp3_all )
-		mp3_current = dfPlayer.readCurrentFileNumber();
+	if(mp3_isPlay() || mp3_current>mp3_all ) {
+		int mp3_new = mp3_current;
+		for(uint8_t cnt = 0; cnt < 10; cnt++) {
+			mp3_new = dfPlayer.readCurrentFileNumber();
+			if( mp3_new > mp3_all ) {
+				delay(20);
+				continue;
+			}
+			mp3_current = mp3_new;
+			break;
+		}
+	}
 }
 
 // DFPlayer медленный и любит при каждом чихе отваливаться, по этому много проверок и задержек. Некрасиво, но работает достаточно устойчиво.
@@ -53,7 +63,7 @@ void mp3_init() {
 		dfPlayer.reset();
 	} else {
 		mp3Serial.begin(9600, SWSERIAL_8N1, SRX, STX, false);
-		dfPlayer.setTimeOut(1000);
+		dfPlayer.setTimeOut(500);
 		mp3_isReady = dfPlayer.begin(mp3Serial);
 		if(mp3_isReady) {
 			mp3_isInit = true;
@@ -76,21 +86,21 @@ void mp3_init() {
 
 void mp3_volume(uint8_t t, boolean p) {
 	checkInit();
-	int cur = 0, old = 0;
+	int cur = 0, old = 0, cnt = 0;
 	while(true) {
 		cur = dfPlayer.readVolume();
-		if( cur<0 ) {
-			mp3_init();
-			delay(10);
+		if( cur==old || cur<0 || cur>30 ) {
+			if( cnt++ > 20 ) {
+				mp3_init();
+				cnt = 0;
+				old = 0;
+			}
+			delay(20);
 			continue;
-		}
+		} else cnt = 0;
 		if( cur==t ) {
 			if (p) cur_Volume = t;
 			break;
-		}
-		if( cur==old ) {
-			delay(10);
-			continue;
 		}
 		old=cur;
 		if( cur<t ) {
@@ -110,28 +120,25 @@ void mp3_play(int t) {
 	if( mp3_all == 0 ) return;
 	if( t < 1 || t > mp3_all ) return;
 	LOG(printf_P, PSTR("want track: %i\n"),t);
-	if( ! mp3_isPlay() ) dfPlayer.start();
-	delay(100);
+	if( ! mp3_isPlay() ) {
+		dfPlayer.start();
+		delay(100);
+	}
 	if(dfPlayer.readCurrentFileNumber() != t) {
 		int cur = 0, old = 0, cnt = 0;
 		while(true) {
 			cur = dfPlayer.readCurrentFileNumber();
 			LOG(printf_P, PSTR("track: %i\n"),cur);
-			if( cur<0 ) {
-				mp3_init();
-				delay(10);
-				continue;
-			}
 			if( cur==t ) break;
-			if( cur==old ) {
+			if( cur==old || cur<0 || cur > mp3_all ) {
 				if( cnt++ > 20 ) {
 					mp3_init();
 					dfPlayer.start();
-					delay(90);
+					delay(80);
 					cnt = 0;
 					old = 0;
 				}
-				delay(10);
+				delay(20);
 				continue;
 			} else cnt = 0;
 			old=cur;
@@ -148,7 +155,7 @@ void mp3_play(int t) {
 				else
 					dfPlayer.next();
 				delay(10);
-			}      
+			}
 		}
 	}
 	mp3_volume(cur_Volume);
@@ -235,7 +242,7 @@ switch (type) {
 		break;
 	case DFPlayerFeedBack:
 		LOG(printf_P, PSTR("Feedback: %i. Play Finished!\n"),value);
-		mp3_current = value;
+		if(value<mp3_all) mp3_current = value;
 		// dfPlayer.stop();
 		break;
 	case DFPlayerError:
@@ -296,4 +303,7 @@ void mp3_disableLoop() {}
 void mp3_enableLoopAll() {}
 void mp3_disableLoopAll() {}
 void mp3_randomAll() {}
+void mp3_next() {}
+void mp3_previous() {}
+
 #endif

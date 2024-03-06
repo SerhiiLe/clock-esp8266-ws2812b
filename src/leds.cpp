@@ -137,8 +137,15 @@ void display_setup() {
 
 void display_tick() {
 	if(screenIsFree) return;
-	drawString();
+	if(fl_tiny_clock) {
+		screenIsFree = true;
+		fl_tiny_clock = false;
+	} else
+		drawString();
 	if(!fl_allowLEDS) return;
+	#ifndef LED_MOTION
+	if(fl_led_motion) drawPixelXY(WIDTH - 1, 0, CRGB::Green);
+	#endif
 	unsigned long start = 0;
 	// вывод часто срывается, по этому выводить кадр пока не получится. Признак неудачи - отклонение > 25%
 	do {
