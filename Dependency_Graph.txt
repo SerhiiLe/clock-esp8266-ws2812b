@@ -8,14 +8,15 @@ PACKAGES:
  - toolchain-xtensa @ 2.100300.220621 (10.3.0)
 
 Dependency Graph
-|-- ArduinoJson @ 6.19.3+sha.bf5d0c7
-|-- DFRobotDFPlayerMini @ 1.0.5+sha.e15e9fc
-|-- FastBot @ 1.7.0+sha.666f87f
-|-- FastLED @ 3.5.0+sha.4d73cdd
+|-- ArduinoJson @ 7.0.3+sha.ca2f80a
+|-- DFRobotDFPlayerMini @ 1.0.6+sha.47c0149
+|-- FastBot @ 2.27.0+sha.d513c67
+|-- FastLED @ 3.6.0+sha.9307a29
 |-- FTP @ 0.0.0+sha.f3521ff
-|-- GyverButton @ 3.8.0+sha.9511222
-|-- WiFiManager @ 2.0.9-beta+sha.b436830
-|-- EspSoftwareSerial @ 8.0.1+sha.c0dc6d6
+|-- GyverButton @ 3.8.0+sha.579f6c1
+|-- WiFiManager @ 2.0.17+sha.d82d0a1
+|-- EspSoftwareSerial @ 8.2.0+sha.40038df
+|-- ghostl @ 1.0.1+sha.52a206b
 |-- LittleFS @ 0.1.0
 |-- ESP8266HTTPClient @ 1.2
 |-- ESP8266WiFi @ 1.0

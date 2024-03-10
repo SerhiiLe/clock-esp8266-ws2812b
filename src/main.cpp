@@ -239,6 +239,87 @@ void network_pool() {
 	}
 }
 
+// функции которые отвечают за будильник вынесены из основного цикла из-за медленной работы с dfPlayer. Часы будут продолжать идти, web будет недоступен
+void alarms_pool() {
+	int16_t i = 0;
+	bool fl_doit = false;
+	bool fl_save = false;
+	tm t;
+
+	if(alarmTimer.isReady()) {
+		fl_save = false;
+		t = getTime();
+		// проверка времени работы бегущей строки
+		i = t.tm_hour*60+t.tm_min;
+		fl_run_allow = run_allow == 0 || (run_allow == 1 && i >= run_begin && i <= run_end);
+		fl_bright_boost = boost_mode != 0 && 
+			((boost_mode > 0 && boost_mode < 5 && i >= sunrise && i <= sunset) ||
+			(boost_mode == 5 && i >= bright_begin && i <= bright_end));
+		// перебор всех будильников, чтобы найти активный
+		for(i=0; i<MAX_ALARMS; i++)
+			if(alarms[i].settings & 512) {
+				// активный будильник найден, проверка времени срабатывания
+				if(alarms[i].hour == t.tm_hour && alarms[i].minute == t.tm_min) {
+					// защита от повторного запуска
+					if(!(alarms[i].settings & 1024)) {
+						// определение других критериев срабатывания
+						fl_doit = false;
+						switch ((alarms[i].settings >> 7) & 3) {
+							case 0: // разово
+							case 1: // каждый день
+								fl_doit = true;
+								break;
+							case 2: // по дням
+								if((alarms[i].settings >> t.tm_wday) & 1)
+									fl_doit = true;
+						}
+						if(fl_doit) { // будильник сработал
+							if(alarmStartTime == 0) {
+								active_alarm = i;
+								mp3_volume(volume_start); // начинать с маленькой громкости
+								mp3_reread(); // перечитать количество треков, почему-то без этого может не запуститься
+								mp3_enableLoop(); // зациклить мелодию
+								delay(10);
+								mp3_play(alarms[i].melody); // запустить мелодию
+								alarmStepTimer.reset();
+								alarmStartTime = getTimeU(); // чтобы избежать конфликтов между будильниками на одно время и отсчитывать максимальное время работы
+								last_move = millis(); // сброс времени последнего движения, иначе будильник может выключится уже на первой секунде
+							}
+							alarms[i].settings = alarms[i].settings | 1024; // установить флаг активности
+						}
+					}
+				} else if(alarms[i].settings & 2048) { // будильник уже разбудил
+					alarms[i].settings &= ~(3072U); // сбросить флаги активности
+					if(((alarms[i].settings >> 7) & 3) == 0) { // это разовый будильник, надо отключить и сохранить настройки
+						alarms[i].settings &= ~(512U);
+						fl_save = true;
+					}
+				}
+			}
+		if(fl_save) save_config_alarms();
+	}
+	// плавное увеличение громкости и ограничение на время работы будильника
+	if(alarmStartTime && alarmStepTimer.isReady()) {
+		i = alarms[active_alarm].text;
+		if(screenIsFree && i >= 0) {
+			// вывод текста только на время работы будильника
+			initRString(texts[i].text, texts[i].color_mode > 0 ? texts[i].color_mode: texts[i].color);
+		}
+		if(!mp3_isPlay()) {
+			// мелодия не запустилась, повторить весь цикл сначала. Редко, но случается :(
+			mp3_reread();
+			mp3_enableLoop();
+			delay(10);
+			mp3_play(alarms[active_alarm].melody);
+			alarmStartTime = getTimeU();
+			last_move = millis();
+		} else
+			// мелодия играет, увеличить громкость на единицу
+			if(cur_Volume<volume_finish) mp3_volume(++cur_Volume);
+		if(alarmStartTime + max_alarm_time * 60 < getTimeU()) alarmsStop(); // будильник своё отработал, наверное не разбудил
+	}
+}
+
 void loop() {
 	int16_t i = 0;
 	bool fl_doit = false;
@@ -428,78 +509,9 @@ void loop() {
 		}
 	}
 
-	if(alarmTimer.isReady()) {
-		fl_save = false;
-		t = getTime();
-		// проверка времени работы бегущей строки
-		i = t.tm_hour*60+t.tm_min;
-		fl_run_allow = run_allow == 0 || (run_allow == 1 && i >= run_begin && i <= run_end);
-		fl_bright_boost = boost_mode != 0 && 
-			((boost_mode > 0 && boost_mode < 5 && i >= sunrise && i <= sunset) ||
-			(boost_mode == 5 && i >= bright_begin && i <= bright_end));
-		// перебор всех будильников, чтобы найти активный
-		for(i=0; i<MAX_ALARMS; i++)
-			if(alarms[i].settings & 512) {
-				// активный будильник найден, проверка времени срабатывания
-				if(alarms[i].hour == t.tm_hour && alarms[i].minute == t.tm_min) {
-					// защита от повторного запуска
-					if(!(alarms[i].settings & 1024)) {
-						// определение других критериев срабатывания
-						fl_doit = false;
-						switch ((alarms[i].settings >> 7) & 3) {
-							case 0: // разово
-							case 1: // каждый день
-								fl_doit = true;
-								break;
-							case 2: // по дням
-								if((alarms[i].settings >> t.tm_wday) & 1)
-									fl_doit = true;
-						}
-						if(fl_doit) { // будильник сработал
-							if(alarmStartTime == 0) {
-								active_alarm = i;
-								mp3_volume(volume_start); // начинать с маленькой громкости
-								mp3_reread(); // перечитать количество треков, почему-то без этого может не запуститься
-								mp3_enableLoop(); // зациклить мелодию
-								delay(10);
-								mp3_play(alarms[i].melody); // запустить мелодию
-								alarmStepTimer.reset();
-								alarmStartTime = getTimeU(); // чтобы избежать конфликтов между будильниками на одно время и отсчитывать максимальное время работы
-								last_move = millis(); // сброс времени последнего движения, иначе будильник может выключится уже на первой секунде
-							}
-							alarms[i].settings = alarms[i].settings | 1024; // установить флаг активности
-						}
-					}
-				} else if(alarms[i].settings & 2048) { // будильник уже разбудил
-					alarms[i].settings &= ~(3072U); // сбросить флаги активности
-					if(((alarms[i].settings >> 7) & 3) == 0) { // это разовый будильник, надо отключить и сохранить настройки
-						alarms[i].settings &= ~(512U);
-						fl_save = true;
-					}
-				}
-			}
-		if(fl_save) save_config_alarms();
-	}
-	// плавное увеличение громкости и ограничение на время работы будильника
-	if(alarmStartTime && alarmStepTimer.isReady()) {
-		i = alarms[active_alarm].text;
-		if(screenIsFree && i >= 0) {
-			// вывод текста только на время работы будильника
-			initRString(texts[i].text, texts[i].color_mode > 0 ? texts[i].color_mode: texts[i].color);
-		}
-		if(!mp3_isPlay()) {
-			// мелодия не запустилась, повторить весь цикл сначала. Редко, но случается :(
-			mp3_reread();
-			mp3_enableLoop();
-			delay(10);
-			mp3_play(alarms[active_alarm].melody);
-			alarmStartTime = getTimeU();
-			last_move = millis();
-		} else
-			// мелодия играет, увеличить громкость на единицу
-			if(cur_Volume<volume_finish) mp3_volume(++cur_Volume);
-		if(alarmStartTime + max_alarm_time * 60 < getTimeU()) alarmsStop(); // будильник своё отработал, наверное не разбудил
-	}
+	#ifdef ESP8266
+	alarms_pool();
+	#endif
 
 	// если экран освободился, то выбор, что сейчас надо выводить.
 	// проверка разрешения выводить бегущую строку
@@ -582,8 +594,10 @@ void TaskWebCode( void * pvParameters ) {
 	vTaskDelay(1);
 
 	for(;;) {
-		// единственное, что должна делать эта задача - обслуживать сеть
+		// эта задача должна обслуживать сеть
 		network_pool();
+		// и работу будильника. Будильнику много не надо, но dfPlayer...
+		alarms_pool();
 		// обязательная пауза, чтобы задача смогла вернуть управление FreeRTOS, иначе будет срабатывать watchdog timer
 		vTaskDelay(1);
 	}

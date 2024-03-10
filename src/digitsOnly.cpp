@@ -144,8 +144,8 @@ int16_t drawMedium(const char c, int16_t x, CRGB color, uint8_t font_style) {
 // отрисовка циферблата нестандартными шрифтами
 int16_t printMedium(const char* txt, uint8_t font, int16_t pos, uint8_t limit, uint8_t start_char) {
 	int16_t i = start_char;
-	if( txt[i]==' ' ) pos += tiny_clock == FONT_WIDE ? -1: 1;
-	if( txt[i] == '1' && tiny_clock == FONT_TINY) pos -= 1;
+	if( txt[0]==' ' && tiny_clock != FONT_TINY ) pos += tiny_clock == FONT_WIDE ? -1: 1;
+	if( txt[0]=='1' && tiny_clock == FONT_TINY ) pos -= 1;
 	while (txt[i] != '\0' && i<limit) {
 		CRGB letterColor;
 		if(show_time_color == 1) letterColor = CHSV(byte(pos << 3), 255, 255); // цвет в CHSV (прозрачность, оттенок, насыщенность, яркость) (0,0,255 - белый)

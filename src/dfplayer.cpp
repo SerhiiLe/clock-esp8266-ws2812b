@@ -89,6 +89,10 @@ void mp3_volume(uint8_t t, boolean p) {
 	int cur = 0, old = 0, cnt = 0;
 	while(true) {
 		cur = dfPlayer.readVolume();
+		if( cur==t ) {
+			if (p) cur_Volume = t;
+			break;
+		}
 		if( cur==old || cur<0 || cur>30 ) {
 			if( cnt++ > 20 ) {
 				mp3_init();
@@ -98,10 +102,6 @@ void mp3_volume(uint8_t t, boolean p) {
 			delay(20);
 			continue;
 		} else cnt = 0;
-		if( cur==t ) {
-			if (p) cur_Volume = t;
-			break;
-		}
 		old=cur;
 		if( cur<t ) {
 			dfPlayer.volumeUp();
