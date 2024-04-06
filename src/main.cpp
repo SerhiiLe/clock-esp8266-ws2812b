@@ -87,7 +87,10 @@ uint8_t boot_stage = 1;
 
 #ifdef ESP32
 TaskHandle_t TaskWeb;
+TaskHandle_t TaskAlarm;
 void TaskWebCode( void * pvParameters );
+void TaskAlarmCode( void * pvParameters );
+esp_chip_info_t chip_info;
 #endif
 
 void setup() {
@@ -111,6 +114,9 @@ void setup() {
 	// initRString(PSTR("..."),1,8);
 	initRString(PSTR("boot"),1,7); //5
 	display_tick();
+	#ifdef ESP32
+	esp_chip_info(&chip_info); // get the ESP32 chip information
+	#endif
 }
 
 bool boot_check() {
@@ -194,6 +200,14 @@ bool boot_check() {
 							1,           /* priority of the task */
 							&TaskWeb,    /* Task handle to keep track of created task */
 							0);          /* pin task to core 0 */                  
+			xTaskCreatePinnedToCore(
+							TaskAlarmCode, /* Task function. */
+							"TaskAlarm",   /* name of task. */
+							10000,       /* Stack size of task */
+							NULL,        /* parameter of the task */
+							1,           /* priority of the task */
+							&TaskWeb,    /* Task handle to keep track of created task */
+							0);          /* pin task to core 0 */                  
 			#endif
 			LOG(println, PSTR("Clock started"));
 			return false;
@@ -239,7 +253,8 @@ void network_pool() {
 	}
 }
 
-// функции которые отвечают за будильник вынесены из основного цикла из-за медленной работы с dfPlayer. Часы будут продолжать идти, web будет недоступен
+// функция которая отвечает за будильник вынесена из основного цикла из-за медленной работы с dfPlayer. Часы будут продолжать идти, web будет недоступен
+// возможны перезагрузки ядра, надо тестировать
 void alarms_pool() {
 	int16_t i = 0;
 	bool fl_doit = false;
@@ -596,7 +611,19 @@ void TaskWebCode( void * pvParameters ) {
 	for(;;) {
 		// эта задача должна обслуживать сеть
 		network_pool();
-		// и работу будильника. Будильнику много не надо, но dfPlayer...
+		// обязательная пауза, чтобы задача смогла вернуть управление FreeRTOS, иначе будет срабатывать watchdog timer
+		vTaskDelay(1);
+	}
+}
+// Работа с будильником
+void TaskAlarmCode( void * pvParameters ) {
+	LOG(print, "TaskAlarm running on core ");
+	LOG(println, xPortGetCoreID());
+	vTaskDelay(1);
+
+	for(;;) {
+		// работа будильника. Будильнику много не надо, но dfPlayer...
+		// если верить документации, то delay() это обёртка вокруг vTaskDelay(), то есть такая обработка не ускорит работу dfPlayer, но не будет тормозить другие функции
 		alarms_pool();
 		// обязательная пауза, чтобы задача смогла вернуть управление FreeRTOS, иначе будет срабатывать watchdog timer
 		vTaskDelay(1);

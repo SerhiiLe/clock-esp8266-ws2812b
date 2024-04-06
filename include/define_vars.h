@@ -134,6 +134,7 @@ extern bool screenIsFree;
 #ifdef ESP32
 #define SPIFFS LittleFS
 #define FORMAT_LITTLEFS_IF_FAILED true
+extern esp_chip_info_t chip_info;
 #endif
 
 //----------------------------------------------------

@@ -23,7 +23,8 @@ const char* clockCurrentText(char *a) {
 // вывод в строку текущего времени для крошечного шрифта
 const char* clockTinyText(char *a) {
 	if( fl_timeNotSync ) {
-		sprintf_P(a, PSTR("  %c  :  "), millis() & 512 ?':':' ');
+		char c = millis() & 512 ?':':' ';
+		sprintf_P(a, PSTR("00%c  %c  "), c, c);
 	} else {
 		tm t = getTime();
 		sprintf_P(a, PSTR("%02u:%02u:%02u"), t.tm_hour, t.tm_min, t.tm_sec);

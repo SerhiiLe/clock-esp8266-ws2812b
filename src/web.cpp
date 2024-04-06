@@ -781,27 +781,65 @@ void onoff() {
 }
 
 #ifdef ESP32
+const char* print_full_platform_info(char* buf) {
+	int p = 0;
+	const char *cpu;
+	switch (chip_info.model) {
+		case 1: // ESP32
+			cpu = "ESP32";
+			break;
+		case 2: // ESP32-S2
+			cpu = "ESP32-S2";
+			break;
+		case 9: // ESP32-S3
+			cpu = "ESP32-S4";
+			break;
+		case 5: // ESP32-C3
+			cpu = "ESP32-C3";
+			break;
+		case 6: // ESP32-H2
+			cpu = "ESP32-H2";
+			break;
+		default:
+			cpu = "unknown";
+	}
+	p = sprintf(buf, "Chip:%s_r%u/", cpu, chip_info.revision);
+	p += sprintf(buf+p, "Cores:%u/%s", chip_info.cores, ESP.getSdkVersion());
+	return buf;
+}
+
 // декодирование информации о причине перезагрузки ядра
-const char* print_reset_reason(uint8_t core, char *buf) {
-  switch ( rtc_get_reset_reason(core) ) {
-    case 1 : sprintf(buf, "POWERON_RESET"); break;          /**<1, Vbat power on reset*/
-    case 3 : sprintf(buf, "SW_RESET"); break;               /**<3, Software reset digital core*/
-    case 4 : sprintf(buf, "OWDT_RESET"); break;             /**<4, Legacy watch dog reset digital core*/
-    case 5 : sprintf(buf, "DEEPSLEEP_RESET"); break;        /**<5, Deep Sleep reset digital core*/
-    case 6 : sprintf(buf, "SDIO_RESET"); break;             /**<6, Reset by SLC module, reset digital core*/
-    case 7 : sprintf(buf, "TG0WDT_SYS_RESET"); break;       /**<7, Timer Group0 Watch dog reset digital core*/
-    case 8 : sprintf(buf, "TG1WDT_SYS_RESET"); break;       /**<8, Timer Group1 Watch dog reset digital core*/
-    case 9 : sprintf(buf, "RTCWDT_SYS_RESET"); break;       /**<9, RTC Watch dog Reset digital core*/
-    case 10 : sprintf(buf, "INTRUSION_RESET"); break;       /**<10, Instrusion tested to reset CPU*/
-    case 11 : sprintf(buf, "TGWDT_CPU_RESET"); break;       /**<11, Time Group reset CPU*/
-    case 12 : sprintf(buf, "SW_CPU_RESET"); break;          /**<12, Software reset CPU*/
-    case 13 : sprintf(buf, "RTCWDT_CPU_RESET"); break;      /**<13, RTC Watch dog Reset CPU*/
-    case 14 : sprintf(buf, "EXT_CPU_RESET"); break;         /**<14, for APP CPU, reseted by PRO CPU*/
-    case 15 : sprintf(buf, "RTCWDT_BROWN_OUT_RESET"); break;/**<15, Reset when the vdd voltage is not stable*/
-    case 16 : sprintf(buf, "RTCWDT_RTC_RESET"); break;      /**<16, RTC Watch dog reset digital core and rtc module*/
-    default : sprintf(buf, "NO_MEAN");
-  }
-  return buf;
+const char* print_reset_reason(char *buf) {
+	int p = 0;
+	uint8_t old_reason = 127;
+	const char *res;
+	for(int i=0; i<chip_info.cores; i++) {
+		uint8_t reason = rtc_get_reset_reason(i);
+		if( old_reason != reason ) {
+			old_reason = reason;
+			if( p ) p += sprintf(buf+p, ", ");
+			switch ( reason ) {
+				case 1 : res = "PowerON"; break;        	       /**<1, Vbat power on reset*/
+				case 3 : res = "SW_RESET"; break;               /**<3, Software reset digital core*/
+				case 4 : res = "OWDT_RESET"; break;             /**<4, Legacy watch dog reset digital core*/
+				case 5 : res = "DeepSleep"; break;              /**<5, Deep Sleep reset digital core*/
+				case 6 : res = "SDIO_RESET"; break;             /**<6, Reset by SLC module, reset digital core*/
+				case 7 : res = "TG0WDT_SYS_RESET"; break;       /**<7, Timer Group0 Watch dog reset digital core*/
+				case 8 : res = "TG1WDT_SYS_RESET"; break;       /**<8, Timer Group1 Watch dog reset digital core*/
+				case 9 : res = "RTCWDT_SYS_RESET"; break;       /**<9, RTC Watch dog Reset digital core*/
+				case 10 : res = "INTRUSION_RESET"; break;       /**<10, Intrusion tested to reset CPU*/
+				case 11 : res = "TGWDT_CPU_RESET"; break;       /**<11, Time Group reset CPU*/
+				case 12 : res = "SW_CPU_RESET"; break;          /**<12, Software reset CPU*/
+				case 13 : res = "RTCWDT_CPU_RESET"; break;      /**<13, RTC Watch dog Reset CPU*/
+				case 14 : res = "EXT_CPU_RESET"; break;         /**<14, for APP CPU, reseted by PRO CPU*/
+				case 15 : res = "RTCWDT_BROWN_OUT"; break;	    /**<15, Reset when the vdd voltage is not stable*/
+				case 16 : res = "RTCWDT_RTC_RESET"; break;      /**<16, RTC Watch dog reset digital core and rtc module*/
+				default : res = "NO_MEAN";
+			}
+			p += sprintf(buf+p, "%s", res);
+		}
+	}
+	return buf;
 }
 #endif
 
@@ -823,8 +861,8 @@ void sysinfo() {
 	#ifdef ESP32
 	HTTP.client().printf("\"MaxFreeBlockSize\":%i,", ESP.getMaxAllocHeap());
 	HTTP.client().printf("\"HeapFragmentation\":%i,", 100-ESP.getMaxAllocHeap()*100/ESP.getFreeHeap());
-	HTTP.client().printf("\"ResetReason\":\"%s, %s\",", print_reset_reason(0, buf), print_reset_reason(1, buf));
-	HTTP.client().printf("\"FullVersion\":\"%s\",", ESP.getSdkVersion());
+	HTTP.client().printf("\"ResetReason\":\"%s\",", print_reset_reason(buf));
+	HTTP.client().printf("\"FullVersion\":\"%s\",", print_full_platform_info(buf));
 	#else // ESP8266
 	HTTP.client().printf_P(PSTR("\"MaxFreeBlockSize\":%i,"), ESP.getMaxFreeBlockSize());
 	HTTP.client().printf_P(PSTR("\"HeapFragmentation\":%i,"), ESP.getHeapFragmentation());
