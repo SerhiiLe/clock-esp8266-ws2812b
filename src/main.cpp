@@ -202,11 +202,11 @@ bool boot_check() {
 							0);          /* pin task to core 0 */                  
 			xTaskCreatePinnedToCore(
 							TaskAlarmCode, /* Task function. */
-							"TaskAlarm",   /* name of task. */
+							"TaskAlarm", /* name of task. */
 							10000,       /* Stack size of task */
 							NULL,        /* parameter of the task */
 							1,           /* priority of the task */
-							&TaskWeb,    /* Task handle to keep track of created task */
+							&TaskAlarm,  /* Task handle to keep track of created task */
 							0);          /* pin task to core 0 */                  
 			#endif
 			LOG(println, PSTR("Clock started"));

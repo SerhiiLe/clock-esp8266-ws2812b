@@ -744,7 +744,9 @@ void set_clock() {
 		HTTP.client().print(PSTR("HTTP/1.1 200\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n{"));
 		HTTP.client().printf_P(PSTR("\"time\":\"%u\","), t.tm_hour*60+t.tm_min);
 		HTTP.client().printf_P(PSTR("\"date\":\"%u-%02u-%02u\"}"), t.tm_year +1900, t.tm_mon +1, t.tm_mday);
+		#ifdef ESP8266
 		HTTP.client().stop();
+		#endif
 	}
 }
 
@@ -871,7 +873,9 @@ void sysinfo() {
 	#endif
 	HTTP.client().printf_P(PSTR("\"CpuFreqMHz\":%i,"), ESP.getCpuFreqMHz());
 	HTTP.client().printf_P(PSTR("\"BuildTime\":\"%s %s\"}"), F(__DATE__), F(__TIME__));
+	#ifdef ESP8266
 	HTTP.client().stop();
+	#endif
 }
 
 cur_sensor sensor[MAX_SENSORS];
@@ -892,7 +896,9 @@ void sensors() {
 		}
 	}
 	HTTP.client().print("]");
+	#ifdef ESP8266
 	HTTP.client().stop();
+	#endif
 }
 
 // Регистрация сенсора
