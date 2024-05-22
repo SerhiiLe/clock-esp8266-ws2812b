@@ -63,7 +63,7 @@ void mp3_init() {
 		dfPlayer.reset();
 	} else {
 		mp3Serial.begin(9600, SWSERIAL_8N1, SRX, STX, false);
-		dfPlayer.setTimeOut(500);
+		dfPlayer.setTimeOut(1000);
 		mp3_isReady = dfPlayer.begin(mp3Serial);
 		if(mp3_isReady) {
 			mp3_isInit = true;
@@ -96,6 +96,7 @@ void mp3_volume(uint8_t t, boolean p) {
 		if( cur==old || cur<0 || cur>30 ) {
 			if( cnt++ > 20 ) {
 				mp3_init();
+				delay(80);
 				cnt = 0;
 				old = 0;
 			}
@@ -130,7 +131,7 @@ void mp3_play(int t) {
 			cur = dfPlayer.readCurrentFileNumber();
 			LOG(printf_P, PSTR("track: %i\n"),cur);
 			if( cur==t ) break;
-			if( cur==old || cur<0 || cur > mp3_all ) {
+			if( cur==old || cur<=0 || cur > mp3_all ) {
 				if( cnt++ > 20 ) {
 					mp3_init();
 					dfPlayer.start();

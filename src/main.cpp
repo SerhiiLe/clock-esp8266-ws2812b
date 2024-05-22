@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief Clock
- * @version 2.0.0
- * @date 2024-02-28
+ * @version 2.0.1
+ * @date 2024-05-24
  * 
  * @copyright Copyright (c) 2021,2022,2023,2024
  */
@@ -291,10 +291,10 @@ void alarms_pool() {
 						if(fl_doit) { // будильник сработал
 							if(alarmStartTime == 0) {
 								active_alarm = i;
-								mp3_volume(volume_start); // начинать с маленькой громкости
 								mp3_reread(); // перечитать количество треков, почему-то без этого может не запуститься
 								mp3_enableLoop(); // зациклить мелодию
 								delay(10);
+								cur_Volume = volume_start;
 								mp3_play(alarms[i].melody); // запустить мелодию
 								alarmStepTimer.reset();
 								alarmStartTime = getTimeU(); // чтобы избежать конфликтов между будильниками на одно время и отсчитывать максимальное время работы
