@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief Clock
- * @version 2.0.1
- * @date 2024-05-24
+ * @version 2.0.2
+ * @date 2024-05-26
  * 
  * @copyright Copyright (c) 2021,2022,2023,2024
  */
@@ -580,6 +580,7 @@ void loop() {
 				break;
 			case FONT_NARROW: // узкий
 			case FONT_DIGIT: // цифровой
+			case FONT_DIGIT2: // цифровой2
 				clockTinyText(timeString);
 				printMedium(timeString, FONT_TINY, printMedium(timeString, tiny_clock, 0) + 1, 8, 6);
 				break;

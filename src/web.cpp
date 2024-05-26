@@ -321,7 +321,7 @@ void save_settings() {
 		sync_time = true;
 	if( set_simple_checkbox(F("tz_dst"), tz_dst) )
 		sync_time = true;
-	set_simple_int(F("tiny_clock"), tiny_clock, 0, 4);
+	set_simple_int(F("tiny_clock"), tiny_clock, 0, 5);
 	set_simple_int(F("dots_style"), dots_style, 0, 11);
 	set_simple_checkbox(F("date_short"), show_date_short);
 	if( set_simple_int(F("date_period"), show_date_period, 20, 1439) )

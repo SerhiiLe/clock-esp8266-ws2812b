@@ -8,6 +8,7 @@ const char* changeDots(char* txt);
 #define FONT_WIDE 1
 #define FONT_NARROW 2
 #define FONT_DIGIT 3
-#define FONT_TINY 4
+#define FONT_DIGIT2 4
+#define FONT_TINY 5
 
 #endif
