@@ -38,7 +38,7 @@ time_t disable_telegram = 0;
 // Установка токена и списка подписанных чатов
 void setup_telegram() {
 	// tb.setChatID(tb_chats); // не нужно, так как передаётся при каждой отправке
-	tb.setToken(tb_token);
+	tb.setToken(ts.tb_token);
 }
 
 // Инициализация бота
@@ -52,12 +52,12 @@ void init_telegram() {
 // Опрос телеграмм в ожидании команд для обработки
 void tb_tick() {
 	if(disable_telegram) {
-		if(getTimeU() - disable_telegram > tb_ban) disable_telegram = 0;
+		if(getTimeU() - disable_telegram > ts.tb_ban) disable_telegram = 0;
 	} else {
 		// проверка времени ускорения работы telegram
 		if(last_telegram)
-			if(getTimeU() - last_telegram > tb_accelerate) {
-				telegramTimer.setInterval(1000U * tb_rate);
+			if(getTimeU() - last_telegram > ts.tb_accelerate) {
+				telegramTimer.setInterval(1000U * ts.tb_rate);
 				last_telegram = 0;
 			}
 		// собственно сам запрос новых сообщений телеграм
@@ -68,7 +68,7 @@ void tb_tick() {
 // Отправка сообщения о сработке датчика во все подписанные чаты телеграмм
 void tb_send_msg(String s) {
 	#ifdef DEBUG
-	LOG(printf_P, PSTR("Send to telegram: %i\n"), tb.sendMessage(s,tb_chats));
+	LOG(printf_P, PSTR("Send to telegram: %i\n"), tb.sendMessage(s,ts.tb_chats));
 	#else
 	tb.sendMessage(s,tb_chats);
 	#endif
@@ -119,8 +119,8 @@ void inMsg(FB_msg& msg) {
 	// выводим ID чата, имя юзера и текст сообщения
 	LOG(printf_P, PSTR("From telegram:%s;%s;%s;%s;%s.\n"),msg.chatID,msg.username,msg.first_name,msg.ID,msg.text);
 
-	if(last_telegram == 0 && tb_rate > tb_accelerated) {
-		telegramTimer.setInterval(1000U * tb_accelerated);
+	if(last_telegram == 0 && ts.tb_rate > ts.tb_accelerated) {
+		telegramTimer.setInterval(1000U * ts.tb_accelerated);
 	}
 	last_telegram = getTimeU();
 
@@ -129,12 +129,12 @@ void inMsg(FB_msg& msg) {
 	bool fl_start = false;
 	if(fl_secretWanted) {
 		fl_secretWanted = false;
-		if(msg.text == tb_secret) {
+		if(msg.text == ts.tb_secret) {
 			tb.deleteMessage(0, msg.chatID);
 			tb.deleteMessage(1, msg.chatID);
 			tb.sendMessage(F("Добро пожаловать!"), msg.chatID);
-			if(tb_chats.length()>0) tb_chats += ",";
-			tb_chats += msg.chatID;
+			if(ts.tb_chats.length()>0) ts.tb_chats += ",";
+			ts.tb_chats += msg.chatID;
 			save_config_main();
 		} else {
 			tb.deleteMessage(0, msg.chatID);
@@ -149,8 +149,8 @@ void inMsg(FB_msg& msg) {
 
 	bool fl_auth = true;
 	// проверка авторизован ли этот чат
-	if(tb_chats.length() == 0) fl_auth = false;
-	if(tb_chats.length() > 0 && tb_chats.indexOf(msg.chatID) < 0) fl_auth = false;
+	if(ts.tb_chats.length() == 0) fl_auth = false;
+	if(ts.tb_chats.length() > 0 && ts.tb_chats.indexOf(msg.chatID) < 0) fl_auth = false;
 
 	if(fl_auth) {
 		if(msg.text.startsWith(F("last"))) {
@@ -187,7 +187,7 @@ void inMsg(FB_msg& msg) {
 				analogRead(PIN_PHOTO_SENSOR), led_brightness);
 			String sensors = buf;
 			for(uint8_t i=0; i<MAX_SENSORS; i++) {
-				if(sensor[i].registered >= getTimeU() - sensor_timeout*60) {
+				if(sensor[i].registered >= getTimeU() - ts.sensor_timeout*60) {
 					sensors += "%0A" + String(i) + " " + sensor[i].hostname;
 				}
 			}
@@ -197,8 +197,8 @@ void inMsg(FB_msg& msg) {
 		if(msg.text.charAt(0) >= '0' && msg.text.charAt(0) <= '9') {
 			// запрос внешнего датчика
 			int8_t n = msg.text.charAt(0) - 48;
-			if(sensor[n].registered >= getTimeU() - sensor_timeout*60) {
-				String url = String(F("http://")) + sensor[n].ip.toString() + String(F("/api?pin=")) + pin_code + "&";
+			if(sensor[n].registered >= getTimeU() - ts.sensor_timeout*60) {
+				String url = String(F("http://")) + sensor[n].ip.toString() + String(F("/api?pin=")) + ts.pin_code + "&";
 				int pos = 1;
 				int len = msg.text.length();
 				if(len<2) {
@@ -233,16 +233,16 @@ void inMsg(FB_msg& msg) {
 			}
 		} else
 		if(msg.text == F("logout")) {
-			int pos1 = tb_chats.indexOf(msg.chatID);
+			int pos1 = ts.tb_chats.indexOf(msg.chatID);
 			if(pos1<0) {
 				tb.sendMessage(F("err"), msg.chatID);
 				return;
 			}
-			int pos2 = tb_chats.indexOf(",", pos1);
+			int pos2 = ts.tb_chats.indexOf(",", pos1);
 			if(pos1>0) pos1--;
-			String nt = tb_chats.substring(0,pos1);
-			if(pos2>0) nt = tb_chats.substring(pos2);
-			tb_chats = nt;
+			String nt = ts.tb_chats.substring(0,pos1);
+			if(pos2>0) nt = ts.tb_chats.substring(pos2);
+			ts.tb_chats = nt;
 			save_config_main();
 			tb.sendMessage(F("Вышли..."), msg.chatID);
 			fl_start = true;

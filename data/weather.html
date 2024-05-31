@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<header>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Weather settings</title>
+	<style>
+		div#shadow {background-color:rgba(0,0,0,0.8); z-index:2000; width:100%; height:100%; position:absolute; left:0; top:0;}
+		div#shadow div {position: absolute; top: 50%; transform: translate(-50%, -50%); left: 50%; margin-right: -50%; font-size: x-large; color: yellow;}
+	</style>
+	<link rel="stylesheet" href="styles.css">
+	<link rel="icon" href="favicon.ico">
+	<link rel="shortcut icon" sizes="192x192" href="android-icon.png">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<script src="functions.js" type="text/javascript" encoding="UTF-8"></script>
+</header>
+<html>
+	<body>
+		<div class="head">
+			Управление часами.
+			<div>информация о погоде</div>
+		</div>
+		<div class="content holder narrow">
+			<form action="save_weather" autocomplete="off" method="post" name="settings">
+				<div class="one i b center">Погода из Internet</div>
+				<div class="row">
+					<div>Использовать погоду из&nbsp;<a href="https://open-meteo.com/en/docs" target="_blank" class="nb">https://open-meteo.com</a>
+						<br><span class="small">(надо указать координаты в <a href="settings.html" target="_blank">настройках</a>)</span></div>
+					<div><input name="weather" type="checkbox" value="1" onchange="show_weather_block()"></div>
+				</div>
+				<div class="weather">
+					<fieldset style="margin-bottom: 1em;">
+						<legend>Погода из Internet сейчас:</legend>
+						<p id="cur_weather"></p>
+					</fieldset>
+					<div class="row">
+						<div>Периодичность обновления информации о погоде (&gt;15 мин.)</div>
+						<div>
+							<select name="sync_weather_period">
+								<option value="15">15</option>
+								<option value="30">30</option>
+								<option value="45">45</option>
+								<option value="60">60</option>
+							</select>
+							минут
+						</div>
+					</div>
+					<div class="row">
+						<div>Периодичность вывода погоды на экран (30-3600):</div>
+						<div class="nb"><input type="number" name="show_weather_period" value="90"> секунд</div>
+					</div>
+					<fieldset>
+						<legend>Отображать:</legend>
+						<div class="row">
+							<div>Расшифровку погоды</div>
+							<div><input name="weather_code" type="checkbox" value="1"></div>
+						</div>
+						<div class="row">
+							<div>Температуру</div>
+							<div><input name="temperature" type="checkbox" value="1"></div>
+						</div>
+						<div class="row">
+							<div>Температуру по ощущениям</div>
+							<div><input name="a_temperature" type="checkbox" value="1"></div>
+						</div>
+						<div class="row">
+							<div>Влажность</div>
+							<div><input name="humidity" type="checkbox" value="1"></div>
+						</div>
+						<div class="row">
+							<div>Плотность облаков</div>
+							<div><input name="cloud" type="checkbox" value="1"></div>
+						</div>
+						<div class="row">
+							<div>Атмосферное давление</div>
+							<div><input name="pressure" type="checkbox" value="1"></div>
+						</div>
+						<div class="row">
+							<div>Скорость ветра</div>
+							<div><input name="wind_speed" type="checkbox" value="1"></div>
+						</div>
+						<div class="row">
+							<div>Направление ветра</div>
+							<div><input name="wind_direction" type="checkbox" value="1"></div>
+						</div>
+						<div class="row">
+							<div>Направление ветра словами</div>
+							<div><input name="wind_direction2" type="checkbox" value="1"></div>
+						</div>
+						<div class="row">
+							<div>Порывы ветра</div>
+							<div><input name="wind_gusts" type="checkbox" value="1"></div>
+						</div>
+					</fieldset>
+				</div>
+				<button>Сохранить</button>
+			</form>
+		</div>
+
+		<div class="footer">
+			<a href="index.html" id="return">Вернуться</a>
+		</div>
+		<div id="debug"><div>
+		<div id="shadow"><div>Загрузка...</div></div>
+	</body>
+<script type="text/javascript" encoding="UTF-8">
+function show_weather_block() {
+	if(document.forms["settings"].elements["weather"].checked)
+		toggle_by_class("weather",true);
+	else
+		toggle_by_class("weather",false);
+}
+function start() {
+	if (typeof ajaxRequest !== "undefined") {
+		fill_settings("weather.json", "settings", ()=> {
+			show_weather_block();
+			$g("shadow").style.display = "none";
+		});
+		ajaxRequest("show_weather", "GET", null, function(ajaxResp) {
+			$g("cur_weather").innerHTML = ajaxResp.responseText;
+		}, dummy);
+	} else setTimeout(start, 100);
+}
+start();
+</script>
+</html>

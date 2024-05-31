@@ -29,6 +29,7 @@
 #include "demo.h"
 #include "security.h"
 #include "digitsOnly.h"
+#include "webClient.h"
 
 #if SENSOR_BUTTON == 1
 GButton btn(PIN_BUTTON, LOW_PULL, NORM_OPEN); // комбинация для сенсорной кнопки
@@ -38,15 +39,17 @@ GButton btn(PIN_BUTTON); // комбинация для обычной кноп�
 
 timerMinim autoBrightnessTimer(500);	// Таймер отслеживания показаний датчика света при включенном авторегулировании яркости матрицы
 timerMinim clockTimer(512);				// Таймер, чтобы разделитель часов и минут мигал примерно каждую секунду
-timerMinim scrollTimer(scroll_period);	// Таймер обновления бегущей строки
-timerMinim ntpSyncTimer(3600000U * sync_time_period);  // Таймер синхронизации времени с NTP-сервером 3600000U
-timerMinim clockDate(1000U * show_date_period); // периодичность вывода даты в секундах
+timerMinim scrollTimer(gs.scroll_period);	// Таймер обновления бегущей строки
+timerMinim ntpSyncTimer(3600000U * gs.sync_time_period);  // Таймер синхронизации времени с NTP-сервером 3600000U
+timerMinim clockDate(1000U * gs.show_date_period); // периодичность вывода даты в секундах
 timerMinim textTimer[MAX_RUNNING];		// таймеры бегущих строк
 timerMinim alarmTimer(1000);			// для будильника, срабатывает каждую секунду
 timerMinim alarmStepTimer(5000);		// шаг увеличения громкости будильника
 timerMinim demoTimer(33);				// таймер для теста/демонстрации экрана
-timerMinim telegramTimer(1000U * tb_accelerated);	// период опроса команд из Телеграм
-timerMinim timeoutMp3Timer(3600000U * timeout_mp3); // таймер принудительного сброса mp3
+timerMinim telegramTimer(1000U * ts.tb_accelerated);	// период опроса команд из Телеграм
+timerMinim timeoutMp3Timer(3600000U * gs.timeout_mp3); // таймер принудительного сброса mp3
+timerMinim syncWeatherTimer(60000U * ws.sync_weather_period); // таймер обновления информации о погоде из интернета
+timerMinim quoteUpdateTimer(900000U * (qs.update+1));	// периодичность обновления цитат
 
 // файловая система подключена
 bool fs_isStarted = false;
@@ -84,6 +87,9 @@ bool fl_bright_boost = false;
 bool old_bright_boost = true;
 // статус процесса загрузки
 uint8_t boot_stage = 1;
+// строки для моментального временного отображения
+temp_text messages[MAX_TMP_MESSAGES];
+
 
 #ifdef ESP32
 TaskHandle_t TaskWeb;
@@ -165,29 +171,43 @@ bool boot_check() {
 				initRString(PSTR("Создан новый файл списка строк."));
 			}
 			break;
-		case 5:
+		case 5: // Файл хранящий текущий статус "охраны" на случай перезагрузки
 			if(!load_config_security()) {
 				LOG(println, PSTR("Create new security file"));
 				save_config_security();	// Создаем файл
 			}
 			break;
-		case 6:
+		case 6: // Загрузка или создание файла с настройками телеграм клиента
 			if(!load_config_telegram()) {
 				LOG(println, PSTR("Create new telegram file"));
 				save_config_telegram();	// Создаем файл
 				initRString(PSTR("Создан новый файл настроек telegram."));
 			}
 			break;
-		case 7:
+		case 7: // Загрузка или создание файла с настройками цитат
+			if( ! load_config_quote()) {
+				LOG(println, PSTR("Create new quote file"));
+				save_config_quote(); // Создаем файл
+				initRString(PSTR("Создан новый файл настроек цитат."));
+			}
+			break;
+		case 8: // Загрузка или создание файла с настройками погоды
+			if( ! load_config_weather()) {
+				LOG(println, PSTR("Create new weather file"));
+				save_config_weather(); // Создаем файл
+				initRString(PSTR("Создан новый файл настроек погоды."));
+			}
+			break;
+		case 9:
 			wifi_setup();
 			break;
-		case 8:
+		case 10:
 			init_telegram();
 			break;
 
 		default:
 			boot_stage = 0;
-			initRString(str_hello);
+			initRString(gs.str_hello);
 			#ifdef ESP32
 			// создание задачи для FreeRTOS, которая будет исполняться на отдельном ядре, чтобы не тормозить и не сбивать основной цикл
 			// для esp32-c3 это не имеет большого значения, так как там всего одно ядро, но и хуже не будет
@@ -250,6 +270,14 @@ void network_pool() {
 			sprintf_P(timeString, PSTR("FTP для загрузки файлов включён IP: %s"), wifi_currentIP().c_str());
 			initRString(timeString);
 		}
+		// обновление цитат с сервера
+		if(qs.enabled && (quoteUpdateTimer.isReady() || messages[MESSAGE_QUOTE].count == 0) ) quoteUpdate();
+		// обновление погоды с сервера
+		if(ws.weather && (syncWeatherTimer.isReady() || messages[MESSAGE_WEATHER].count == 0)) weatherUpdate();
+		// если был отправлен запрос на NTP сервер, то подождать и выполнить операции, как будто он выполнился
+		if( fl_ntpRequestIsSend )
+			if( syncTime() )
+				if( gs.tz_adjust && ! ws.weather ) weatherUpdate();
 	}
 }
 
@@ -266,10 +294,10 @@ void alarms_pool() {
 		t = getTime();
 		// проверка времени работы бегущей строки
 		i = t.tm_hour*60+t.tm_min;
-		fl_run_allow = run_allow == 0 || (run_allow == 1 && i >= run_begin && i <= run_end);
-		fl_bright_boost = boost_mode != 0 && 
-			((boost_mode > 0 && boost_mode < 5 && i >= sunrise && i <= sunset) ||
-			(boost_mode == 5 && i >= bright_begin && i <= bright_end));
+		fl_run_allow = gs.run_allow == 0 || (gs.run_allow == 1 && i >= gs.run_begin && i <= gs.run_end);
+		fl_bright_boost = gs.boost_mode != 0 && 
+			((gs.boost_mode > 0 && gs.boost_mode < 5 && i >= sunrise && i <= sunset) ||
+			(gs.boost_mode == 5 && i >= gs.bright_begin && i <= gs.bright_end));
 		// перебор всех будильников, чтобы найти активный
 		for(i=0; i<MAX_ALARMS; i++)
 			if(alarms[i].settings & 512) {
@@ -294,7 +322,7 @@ void alarms_pool() {
 								mp3_reread(); // перечитать количество треков, почему-то без этого может не запуститься
 								mp3_enableLoop(); // зациклить мелодию
 								delay(10);
-								cur_Volume = volume_start;
+								cur_Volume = gs.volume_start;
 								mp3_play(alarms[i].melody); // запустить мелодию
 								alarmStepTimer.reset();
 								alarmStartTime = getTimeU(); // чтобы избежать конфликтов между будильниками на одно время и отсчитывать максимальное время работы
@@ -330,8 +358,8 @@ void alarms_pool() {
 			last_move = millis();
 		} else
 			// мелодия играет, увеличить громкость на единицу
-			if(cur_Volume<volume_finish) mp3_volume(++cur_Volume);
-		if(alarmStartTime + max_alarm_time * 60 < getTimeU()) alarmsStop(); // будильник своё отработал, наверное не разбудил
+			if(cur_Volume<gs.volume_finish) mp3_volume(++cur_Volume);
+		if(alarmStartTime + gs.max_alarm_time * 60 < getTimeU()) alarmsStop(); // будильник своё отработал, наверное не разбудил
 	}
 }
 
@@ -374,7 +402,7 @@ void loop() {
 			else {
 				if(fl_demo) fl_demo = false;
 				else {
-					initRString(dateCurrentTextLong(timeString), show_date_color > 0 ? show_date_color: show_date_color0);
+					initRString(dateCurrentTextLong(timeString), gs.show_date_color > 0 ? gs.show_date_color: gs.show_date_color0);
 					clockDate.reset();
 				}
 			}
@@ -385,7 +413,7 @@ void loop() {
 			LOG(println, PSTR("Double"));
 			if(fl_5v) { // при низком напряжении сенсорная кнопка может давать ложные срабатывания, по этому отключить все функции
 				if(fl_password_reset_req) {
-					web_password = "";
+					gs.web_password = "";
 					initRString(PSTR("Пароль временно отключен. Зайдите в настройки и задайте новый!"),CRGB::OrangeRed);
 				} else
 					fl_demo = !fl_demo;
@@ -402,7 +430,7 @@ void loop() {
 			LOG(println, PSTR("Quadruple"));
 			if(fl_5v) {
 				char buf[20];
-				sprintf_P(buf,PSTR("%i -> %i -> %i"),analogRead(PIN_PHOTO_SENSOR), old_brightness*bright_boost/100, led_brightness);
+				sprintf_P(buf,PSTR("%i -> %i -> %i"),analogRead(PIN_PHOTO_SENSOR), old_brightness*gs.bright_boost/100, led_brightness);
 				initRString(buf);
 			}
 			break;
@@ -427,7 +455,7 @@ void loop() {
 			old_brightness = 1;
 		} else {
 			digitalWrite(PIN_RELAY, RELAY_OFF);
-			if(bright_mode==2) set_brightness(bright0);
+			if(gs.bright_mode==2) set_brightness(gs.bright0);
 		}
 	}
 	#endif
@@ -436,7 +464,7 @@ void loop() {
 	// проверка статуса датчика движения
 	if(digitalRead(PIN_MOTION) != cur_motion) {
 		cur_motion = ! cur_motion;
-		fl_led_motion = show_move || alarmStartTime ? cur_motion: false;
+		fl_led_motion = gs.show_move || alarmStartTime ? cur_motion: false;
 		#ifdef LED_MOTION
 		digitalWrite(LED_MOTION, fl_led_motion);
 		#endif
@@ -444,7 +472,7 @@ void loop() {
 		fl_action_move = cur_motion;
 		if(!fl_5v) {
 			// если питания нет, а датчик движения сработал, то питать матрицу от аккумулятора
-			if(cur_motion && millis()-last_screen_no5V>(max_move)*500L) {
+			if(cur_motion && millis()-last_screen_no5V>(gs.max_move)*500L) {
 				fl_allowLEDS = cur_motion;
 				digitalWrite(PIN_RELAY, RELAY_OP(cur_motion));
 				if(fl_allowLEDS && screenIsFree) {
@@ -460,21 +488,21 @@ void loop() {
 	}
 	// выключение матрицы с задержкой ИЛИ по таймауту, если нет питания 5V
 	if((
-		!fl_5v && !cur_motion && fl_allowLEDS && millis()-last_move>(delay_move+2)*1000UL
+		!fl_5v && !cur_motion && fl_allowLEDS && millis()-last_move>(gs.delay_move+2)*1000UL
 		) || (
-		!fl_5v && fl_allowLEDS && millis()-last_move>(max_move)*1000UL
+		!fl_5v && fl_allowLEDS && millis()-last_move>(gs.max_move)*1000UL
 	)) {
 		fl_allowLEDS = false;
 		last_screen_no5V = millis();
 		digitalWrite(PIN_RELAY, RELAY_OFF);
 	}
 	// Задержка срабатывания действий при сработке датчика движения, для уменьшения ложных срабатываний
-	if(fl_action_move && millis()-last_move>delay_move*1000UL) {
+	if(fl_action_move && millis()-last_move>gs.delay_move*1000UL) {
 		fl_action_move = false;
 		// остановить будильник если сработал датчик движения
 		if(alarmStartTime) alarmsStop();
 		// отправка уведомления
-		if(sec_enable && use_move) {
+		if(sec_enable && ts.use_move) {
 			tb_send_msg(F("Возможно движение"));
 			save_log_file(SEC_TEXT_MOVE);
 		}
@@ -488,17 +516,17 @@ void loop() {
 		if(abs(cur_brightness-old_brightness)>(min_brightness>0?(min_brightness>>4)+1:0) || fl_bright_boost != old_bright_boost) {
 			// "охранная" функция, если освещённость изменилась резко, то отослать сообщение
 			// фоторезистор имеет большую инертность, может приходить два сообщения
-			if(sec_enable && use_brightness && abs(cur_brightness-old_brightness)>(min_brightness>0?(min_brightness>>3)+2:2)) {
+			if(sec_enable && ts.use_brightness && abs(cur_brightness-old_brightness)>(min_brightness>0?(min_brightness>>3)+2:2)) {
 				char buf[80];
 				sprintf_P(buf,PSTR("Изменилось освещение: %i -> %i"), old_brightness, cur_brightness);
 				tb_send_msg(buf);
 				save_log_file(SEC_TEXT_BRIGHTNESS);
 			}
 			// усиление показаний датчика
-			uint16_t val = bright_boost!=100 ? cur_brightness*bright_boost/100: cur_brightness;
+			uint16_t val = gs.bright_boost!=100 ? cur_brightness*gs.bright_boost/100: cur_brightness;
 			// дополнительная яркость по времени
-			uint8_t add_val = fl_bright_boost ? bright_add: 0;
-			switch(bright_mode) {
+			uint8_t add_val = fl_bright_boost ? gs.bright_add: 0;
+			switch(gs.bright_mode) {
 				#ifdef ESP32
 				case 0: // полный автомат от 1 до 255
 					set_brightness(constrain((val >> 4) + 1 + add_val, 1, 255));
@@ -513,10 +541,10 @@ void loop() {
 					set_brightness(constrain((val >> 2) + 1 + add_val, 1, 255));
 					break;
 				case 1: // автоматический с ограничителем
-					set_brightness(constrain((( val * bright0 ) >> 10) + 1 + add_val, 1,255));
+					set_brightness(constrain((( val * gs.bright0 ) >> 10) + 1 + add_val, 1,255));
 					break;
 				default: // ручной
-					set_brightness(constrain((uint16_t)bright0 + (uint16_t)add_val, 1, 255));
+					set_brightness(constrain((uint16_t)gs.bright0 + (uint16_t)add_val, 1, 255));
 				#endif
 			}
 			old_brightness = cur_brightness;
@@ -561,10 +589,18 @@ void loop() {
 					if(fl_doit) initRString(texts[i].text, texts[i].color_mode > 0 ? texts[i].color_mode: texts[i].color);
 				}
 		if(fl_save) save_config_texts();
+		// затем строки для "моментального" отображения
+		for(i=0; i<MAX_TMP_MESSAGES; i++) {
+			if(screenIsFree)
+				if( messages[i].count > 0 && messages[i].timer.isReady() ) {
+					initRString(messages[i].text);
+					messages[i].count--;
+				}
+		}
 		// затем дата
 		if(screenIsFree && clockDate.isReady())
-			initRString(show_date_short ? dateCurrentTextShort(timeString): dateCurrentTextLong(timeString),
-				show_date_color > 0 ? show_date_color: show_date_color0);
+			initRString(gs.show_date_short ? dateCurrentTextShort(timeString): dateCurrentTextLong(timeString),
+				gs.show_date_color > 0 ? gs.show_date_color: gs.show_date_color0);
 	}
 	// // если всё уже показано, то вывести время
 	// if(!fl_demo && screenIsFree && clockTimer.isReady())
@@ -572,7 +608,7 @@ void loop() {
 
 	// если всё уже показано, то вывести время
 	if(!fl_demo && screenIsFree && clockTimer.isReady()) {
-		switch (tiny_clock) {
+		switch (gs.tiny_clock) {
 			case FONT_WIDE: // широкий шрифт
 				clockCurrentText(timeString);
 				changeDots(timeString);
@@ -582,7 +618,7 @@ void loop() {
 			case FONT_DIGIT: // цифровой
 			case FONT_DIGIT2: // цифровой2
 				clockTinyText(timeString);
-				printMedium(timeString, FONT_TINY, printMedium(timeString, tiny_clock, 0) + 1, 8, 6);
+				printMedium(timeString, FONT_TINY, printMedium(timeString, gs.tiny_clock, 0) + 1, 8, 6);
 				break;
 			case FONT_TINY: // крошечный
 				printMedium(clockTinyText(timeString), FONT_TINY, 3, 8);
@@ -590,7 +626,7 @@ void loop() {
 			default:
 				clockCurrentText(timeString);
 				changeDots(timeString);
-				initRString(timeString, show_time_color > 0 ? show_time_color: show_time_color0, CLOCK_SHIFT);
+				initRString(timeString, gs.show_time_color > 0 ? gs.show_time_color: gs.show_time_color0, CLOCK_SHIFT);
 				break;
 		}
 	}

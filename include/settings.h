@@ -15,6 +15,10 @@ void save_log_file(uint8_t mt);
 uint32_t text_to_color(const char *s);
 String color_to_text(uint32_t n);
 String read_log_file(int16_t cnt);
+bool load_config_quote();
+void save_config_quote();
+bool load_config_weather();
+void save_config_weather();
 
 #define SEC_TEXT_EMPTY 0	// логирование движений отключено
 #define SEC_TEXT_DISABLE 1	// логирование движений отключено

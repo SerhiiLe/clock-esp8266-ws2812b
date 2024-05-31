@@ -7,9 +7,21 @@
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 #include "defines.h"
-#include "settings_init.h"
 #include "settings.h"
 #include "ntp.h"
+
+Global_Settings gs;
+Telegram_Settings ts;
+
+cur_alarm alarms[MAX_ALARMS];
+cur_text texts[MAX_RUNNING];
+
+uint8_t sec_enable = 0;
+uint8_t sec_curFile = 0;
+
+Quote_Settings qs;
+Weather_Settings ws;
+
 
 byte char_to_byte(char n) {
 	if(n>='0' && n<='9') return (byte)n - 48;
@@ -82,56 +94,57 @@ bool load_config_main() {
 	// double latitude = doc["data"][0];
 	// double longitude = doc["data"][1];
 
-	str_hello = doc[F("str_hello")].as<String>();
-	max_alarm_time = doc[F("max_alarm_time")];
-	run_allow = doc[F("run_allow")];
-	run_begin = doc[F("run_begin")];
-	run_end = doc[F("run_end")];
-	wide_font = doc[F("wide_font")];
-	show_move = doc[F("show_move")];
-	delay_move = doc[F("delay_move")];
-	max_move = doc[F("max_move")];
-	tz_shift = doc[F("tz_shift")];
-	tz_dst = doc[F("tz_dst")];
-	tiny_clock = doc[F("tiny_clock")];
-	dots_style = doc[F("dots_style")];
-	show_date_short = doc[F("date_short")];
-	show_date_period = doc[F("date_period")]; clockDate.setInterval(1000U * show_date_period);
-	show_time_color = doc[F("time_color")];
-	show_time_color0 = text_to_color(doc[F("time_color0")]);
-	show_time_col[0] = text_to_color(doc[F("time_color1")]);
-	show_time_col[1] = show_time_col[0];
-	// show_time_col[1] = text_to_color(doc[F("time_color2")]);
-	show_time_col[2] = text_to_color(doc[F("time_color3")]);
-	show_time_col[5] = show_time_col[2];
-	show_time_col[3] = text_to_color(doc[F("time_color4")]);
-	show_time_col[4] = show_time_col[3];
-	// show_time_col[4] = text_to_color(doc[F("time_color5")]);
-	show_time_col[6] = text_to_color(doc[F("time_color6")]);
-	show_time_col[7] = show_time_col[6];
-	show_date_color = doc[F("date_color")];
-	show_date_color0 = text_to_color(doc[F("date_color0")]);
-	bright_mode = doc[F("bright_mode")];
-	bright0 = doc[F("bright0")];
-	bright_boost = doc[F("br_boost")];
-	if(bright_mode==2) set_brightness(bright0);
-	boost_mode = doc[F("boost_mode")];
-	bright_add = doc[F("br_add")];
-	latitude = doc[F("latitude")];
-	longitude = doc[F("longitude")];
-	bright_begin = doc[F("br_begin")];
-	bright_end = doc[F("br_end")];
-	max_power = doc[F("max_power")];
-	if(DEFAULT_POWER > 0) FastLED.setMaxPowerInVoltsAndMilliamps(5, max_power);
-	turn_display = doc[F("turn_display")];
-	volume_start = doc[F("volume_start")];
-	volume_finish = doc[F("volume_finish")];
-	volume_period = doc[F("volume_period")]; alarmStepTimer.setInterval(1000U * volume_period);
-	timeout_mp3 = doc[F("timeout_mp3")]; timeoutMp3Timer.setInterval(3600000U * sync_time_period);
-	sync_time_period = doc[F("sync_time_period")]; ntpSyncTimer.setInterval(3600000U * sync_time_period);
-	scroll_period = doc[F("scroll_period")]; scrollTimer.setInterval(scroll_period);
-	web_login = doc[F("web_login")].as<String>();
-	web_password = doc[F("web_password")].as<String>();
+	gs.str_hello = doc[F("str_hello")].as<String>();
+	gs.max_alarm_time = doc[F("max_alarm_time")];
+	gs.run_allow = doc[F("run_allow")];
+	gs.run_begin = doc[F("run_begin")];
+	gs.run_end = doc[F("run_end")];
+	gs.wide_font = doc[F("wide_font")];
+	gs.show_move = doc[F("show_move")];
+	gs.delay_move = doc[F("delay_move")];
+	gs.max_move = doc[F("max_move")];
+	gs.tz_shift = doc[F("tz_shift")];
+	gs.tz_dst = doc[F("tz_dst")];
+	gs.tz_adjust = doc[F("tz_adjust")];
+	gs.tiny_clock = doc[F("tiny_clock")];
+	gs.dots_style = doc[F("dots_style")];
+	gs.show_date_short = doc[F("date_short")];
+	gs.show_date_period = doc[F("date_period")]; clockDate.setInterval(1000U * gs.show_date_period);
+	gs.show_time_color = doc[F("time_color")];
+	gs.show_time_color0 = text_to_color(doc[F("time_color0")]);
+	gs.show_time_col[0] = text_to_color(doc[F("time_color1")]);
+	gs.show_time_col[1] = gs.show_time_col[0];
+	// gs.show_time_col[1] = text_to_color(doc[F("time_color2")]);
+	gs.show_time_col[2] = text_to_color(doc[F("time_color3")]);
+	gs.show_time_col[5] = gs.show_time_col[2];
+	gs.show_time_col[3] = text_to_color(doc[F("time_color4")]);
+	gs.show_time_col[4] = gs.show_time_col[3];
+	// gs.show_time_col[4] = text_to_color(doc[F("time_color5")]);
+	gs.show_time_col[6] = text_to_color(doc[F("time_color6")]);
+	gs.show_time_col[7] = gs.show_time_col[6];
+	gs.show_date_color = doc[F("date_color")];
+	gs.show_date_color0 = text_to_color(doc[F("date_color0")]);
+	gs.bright_mode = doc[F("bright_mode")];
+	gs.bright0 = doc[F("bright0")];
+	gs.bright_boost = doc[F("br_boost")];
+	if(gs.bright_mode==2) set_brightness(gs.bright0);
+	gs.boost_mode = doc[F("boost_mode")];
+	gs.bright_add = doc[F("br_add")];
+	gs.latitude = doc[F("latitude")];
+	gs.longitude = doc[F("longitude")];
+	gs.bright_begin = doc[F("br_begin")];
+	gs.bright_end = doc[F("br_end")];
+	gs.max_power = doc[F("max_power")];
+	if(DEFAULT_POWER > 0) FastLED.setMaxPowerInVoltsAndMilliamps(5, gs.max_power);
+	gs.turn_display = doc[F("turn_display")];
+	gs.volume_start = doc[F("volume_start")];
+	gs.volume_finish = doc[F("volume_finish")];
+	gs.volume_period = doc[F("volume_period")]; alarmStepTimer.setInterval(1000U * gs.volume_period);
+	gs.timeout_mp3 = doc[F("timeout_mp3")]; timeoutMp3Timer.setInterval(3600000U * gs.sync_time_period);
+	gs.sync_time_period = doc[F("sync_time_period")]; ntpSyncTimer.setInterval(3600000U * gs.sync_time_period);
+	gs.scroll_period = doc[F("scroll_period")]; scrollTimer.setInterval(gs.scroll_period);
+	gs.web_login = doc[F("web_login")].as<String>();
+	gs.web_password = doc[F("web_password")].as<String>();
 
 	LOG(println, PSTR("Main config loaded."));
 	return true;
@@ -141,50 +154,51 @@ void save_config_main() {
 
 	JsonDocument doc; // временный буфер под объект json
 
-	doc[F("str_hello")] = str_hello;
-	doc[F("max_alarm_time")] = max_alarm_time;
-	doc[F("run_allow")] = run_allow;
-	doc[F("run_begin")] = run_begin;
-	doc[F("run_end")] = run_end;
-	doc[F("wide_font")] = wide_font;
-	doc[F("show_move")] = show_move;
-	doc[F("delay_move")] = delay_move;
-	doc[F("max_move")] = max_move;
-	doc[F("tz_shift")] = tz_shift;
-	doc[F("tz_dst")] = tz_dst;
-	doc[F("tiny_clock")] = tiny_clock;
-	doc[F("dots_style")] = dots_style;
-	doc[F("date_short")] = show_date_short;
-	doc[F("date_period")] = show_date_period;
-	doc[F("time_color")] = show_time_color;
-	doc[F("time_color0")] = color_to_text(show_time_color0);
-	doc[F("time_color1")] = color_to_text(show_time_col[0]);
-	// doc[F("time_color2")] = color_to_text(show_time_col[1]);
-	doc[F("time_color3")] = color_to_text(show_time_col[2]);
-	doc[F("time_color4")] = color_to_text(show_time_col[3]);
-	// doc[F("time_color5")] = color_to_text(show_time_col[4]);
-	doc[F("time_color6")] = color_to_text(show_time_col[6]);
-	doc[F("date_color")] = show_date_color;
-	doc[F("date_color0")] = color_to_text(show_date_color0);
-	doc[F("bright_mode")] = bright_mode;
-	doc[F("bright0")] = bright0;
-	doc[F("br_boost")] = bright_boost;
-	doc[F("boost_mode")] = boost_mode;
-	doc[F("br_add")] = bright_add;
-	doc[F("latitude")] = latitude;
-	doc[F("longitude")] = longitude;
-	doc[F("br_begin")] = bright_begin;
-	doc[F("br_end")] = bright_end;
-	doc[F("max_power")] = max_power;
-	doc[F("turn_display")] = turn_display;
-	doc[F("volume_start")] = volume_start;
-	doc[F("volume_finish")] = volume_finish;
-	doc[F("volume_period")] = volume_period;
-	doc[F("timeout_mp3")] = timeout_mp3;
-	doc[F("sync_time_period")] = sync_time_period;
-	doc[F("scroll_period")] = scroll_period;
-	doc[F("web_login")] = web_login;
-	doc[F("web_password")] = web_password;
+	doc[F("str_hello")] = gs.str_hello;
+	doc[F("max_alarm_time")] = gs.max_alarm_time;
+	doc[F("run_allow")] = gs.run_allow;
+	doc[F("run_begin")] = gs.run_begin;
+	doc[F("run_end")] = gs.run_end;
+	doc[F("wide_font")] = gs.wide_font;
+	doc[F("show_move")] = gs.show_move;
+	doc[F("delay_move")] = gs.delay_move;
+	doc[F("max_move")] = gs.max_move;
+	doc[F("tz_shift")] = gs.tz_shift;
+	doc[F("tz_dst")] = gs.tz_dst;
+	doc[F("tz_adjust")] = gs.tz_adjust;
+	doc[F("tiny_clock")] = gs.tiny_clock;
+	doc[F("dots_style")] = gs.dots_style;
+	doc[F("date_short")] = gs.show_date_short;
+	doc[F("date_period")] = gs.show_date_period;
+	doc[F("time_color")] = gs.show_time_color;
+	doc[F("time_color0")] = color_to_text(gs.show_time_color0);
+	doc[F("time_color1")] = color_to_text(gs.show_time_col[0]);
+	// doc[F("time_color2")] = color_to_text(gs.show_time_col[1]);
+	doc[F("time_color3")] = color_to_text(gs.show_time_col[2]);
+	doc[F("time_color4")] = color_to_text(gs.show_time_col[3]);
+	// doc[F("time_color5")] = color_to_text(gs.show_time_col[4]);
+	doc[F("time_color6")] = color_to_text(gs.show_time_col[6]);
+	doc[F("date_color")] = gs.show_date_color;
+	doc[F("date_color0")] = color_to_text(gs.show_date_color0);
+	doc[F("bright_mode")] = gs.bright_mode;
+	doc[F("bright0")] = gs.bright0;
+	doc[F("br_boost")] = gs.bright_boost;
+	doc[F("boost_mode")] = gs.boost_mode;
+	doc[F("br_add")] = gs.bright_add;
+	doc[F("latitude")] = gs.latitude;
+	doc[F("longitude")] = gs.longitude;
+	doc[F("br_begin")] = gs.bright_begin;
+	doc[F("br_end")] = gs.bright_end;
+	doc[F("max_power")] = gs.max_power;
+	doc[F("turn_display")] = gs.turn_display;
+	doc[F("volume_start")] = gs.volume_start;
+	doc[F("volume_finish")] = gs.volume_finish;
+	doc[F("volume_period")] = gs.volume_period;
+	doc[F("timeout_mp3")] = gs.timeout_mp3;
+	doc[F("sync_time_period")] = gs.sync_time_period;
+	doc[F("scroll_period")] = gs.scroll_period;
+	doc[F("web_login")] = gs.web_login;
+	doc[F("web_password")] = gs.web_password;
 
 	File configFile = LittleFS.open(F("/config.json"), "w"); // открытие файла на запись
 	if (!configFile) {
@@ -219,20 +233,20 @@ bool load_config_telegram() {
 		return false;
 	}
 
-	use_move = doc[F("use_move")];
-	use_brightness = doc[F("use_brightness")];
-	pin_code = doc[F("pin_code")].as<String>();
-	clock_name = doc[F("clock_name")].as<String>();
-	sensor_timeout = doc[F("sensor_timeout")];
-	tb_name = doc[F("tb_name")].as<String>();
-	tb_chats = doc[F("tb_chats")].as<String>();
-	tb_token = doc[F("tb_token")].as<String>();
-	tb_secret = doc[F("tb_secret")].as<String>();
-	tb_rate = doc[F("tb_rate")];
-	tb_accelerated = doc[F("tb_accelerated")];
-	telegramTimer.setInterval(1000U * tb_accelerated);
-	tb_accelerate = doc[F("tb_accelerate")];
-	tb_ban = doc[F("tb_ban")];
+	ts.use_move = doc[F("use_move")];
+	ts.use_brightness = doc[F("use_brightness")];
+	ts.pin_code = doc[F("pin_code")].as<String>();
+	ts.clock_name = doc[F("clock_name")].as<String>();
+	ts.sensor_timeout = doc[F("sensor_timeout")];
+	ts.tb_name = doc[F("tb_name")].as<String>();
+	ts.tb_chats = doc[F("tb_chats")].as<String>();
+	ts.tb_token = doc[F("tb_token")].as<String>();
+	ts.tb_secret = doc[F("tb_secret")].as<String>();
+	ts.tb_rate = doc[F("tb_rate")];
+	ts.tb_accelerated = doc[F("tb_accelerated")];
+	telegramTimer.setInterval(1000U * ts.tb_accelerated);
+	ts.tb_accelerate = doc[F("tb_accelerate")];
+	ts.tb_ban = doc[F("tb_ban")];
 
 	LOG(println, PSTR("Telegram config loaded."));
 	return true;
@@ -242,19 +256,19 @@ void save_config_telegram() {
 
 	JsonDocument doc; // временный буфер под объект json
 
-	doc[F("use_move")] = use_move;
-	doc[F("use_brightness")] = use_brightness;
-	doc[F("pin_code")] = pin_code;
-	doc[F("clock_name")] = clock_name;
-	doc[F("sensor_timeout")] = sensor_timeout;
-	doc[F("tb_name")] = tb_name;
-	doc[F("tb_chats")] = tb_chats;
-	doc[F("tb_token")] = tb_token;
-	doc[F("tb_secret")] = tb_secret;
-	doc[F("tb_rate")] = tb_rate;
-	doc[F("tb_accelerated")] = tb_accelerated;
-	doc[F("tb_accelerate")] = tb_accelerate;
-	doc[F("tb_ban")] = tb_ban;
+	doc[F("use_move")] = ts.use_move;
+	doc[F("use_brightness")] = ts.use_brightness;
+	doc[F("pin_code")] = ts.pin_code;
+	doc[F("clock_name")] = ts.clock_name;
+	doc[F("sensor_timeout")] = ts.sensor_timeout;
+	doc[F("tb_name")] = ts.tb_name;
+	doc[F("tb_chats")] = ts.tb_chats;
+	doc[F("tb_token")] = ts.tb_token;
+	doc[F("tb_secret")] = ts.tb_secret;
+	doc[F("tb_rate")] = ts.tb_rate;
+	doc[F("tb_accelerated")] = ts.tb_accelerated;
+	doc[F("tb_accelerate")] = ts.tb_accelerate;
+	doc[F("tb_ban")] = ts.tb_ban;
 
 	File configFile = LittleFS.open(F("/telegram.json"), "w"); // открытие файла на запись
 	if (!configFile) {
@@ -523,4 +537,144 @@ void save_log_file(uint8_t mt) {
 	logFile.flush();
 	logFile.close();
 	delay(2);
+}
+
+// чтение конфигурации сервера цитат
+bool load_config_quote() {
+
+	File configFile = LittleFS.open(F("/quote.json"), "r");
+	if (!configFile) {
+		// если файл не найден  
+		LOG(println, PSTR("Failed to open quote config file"));
+		return false;
+	}
+
+	JsonDocument doc; // временный буфер под объект json
+
+	DeserializationError error = deserializeJson(doc, configFile);
+	configFile.close();
+
+	// Test if parsing succeeds.
+	if (error) {
+		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());
+		return false;
+	}
+
+	qs.enabled = doc[F("enabled")];
+	qs.period = doc[F("period")];
+	qs.update = doc[F("update")];
+	qs.server = doc[F("server")];
+	qs.lang = doc[F("lang")];
+	qs.url = doc[F("url")].as<String>();
+	qs.params = doc[F("params")].as<String>();
+	qs.method = doc[F("method")];
+	qs.type = doc[F("type")];
+	qs.quote_field = doc[F("quote_field")].as<String>();
+	qs.author_field = doc[F("author_field")].as<String>();
+
+	quoteUpdateTimer.setInterval(900000U * (qs.update+1));
+	messages[MESSAGE_QUOTE].timer.setInterval(1000U * qs.period);
+	return true;
+}
+
+// сохранение настроек сервера цитат
+void save_config_quote() {
+
+	JsonDocument doc; // временный буфер под объект json
+
+	doc[F("enabled")] = qs.enabled;
+	doc[F("period")] = qs.period;
+	doc[F("update")] = qs.update;
+	doc[F("server")] = qs.server;
+	doc[F("lang")] = qs.lang;
+	doc[F("url")] = qs.url;
+	doc[F("params")] = qs.params;
+	doc[F("method")] = qs.method;
+	doc[F("type")] = qs.type;
+	doc[F("quote_field")] = qs.quote_field;
+	doc[F("author_field")] = qs.author_field;
+
+	File configFile = LittleFS.open(F("/quote.json"), "w"); // открытие файла на запись
+	if (!configFile) {
+		LOG(println, PSTR("Failed to open config file for writing"));
+		return;
+	}
+	serializeJson(doc, configFile); // Записываем строку json в файл
+	configFile.flush();
+	configFile.close(); // не забыть закрыть файл
+	delay(4);
+}
+
+// чтение конфигурации сервера погоды
+bool load_config_weather() {
+
+	File configFile = LittleFS.open(F("/weather.json"), "r");
+	if (!configFile) {
+		// если файл не найден  
+		LOG(println, PSTR("Failed to open weather config file"));
+		return false;
+	}
+
+	JsonDocument doc; // временный буфер под объект json
+
+	DeserializationError error = deserializeJson(doc, configFile);
+	configFile.close();
+
+	// Test if parsing succeeds.
+	if (error) {
+		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());
+		return false;
+	}
+
+	ws.weather = doc[F("weather")];
+	ws.sync_weather_period = doc[F("sync_weather_period")];
+	ws.show_weather_period = doc[F("show_weather_period")];
+	ws.weather_code = doc[F("weather_code")];
+	ws.temperature = doc[F("temperature")];
+	ws.a_temperature = doc[F("a_temperature")];
+	ws.humidity = doc[F("humidity")];
+	ws.cloud = doc[F("cloud")];
+	ws.pressure = doc[F("pressure")];
+	ws.wind_speed = doc[F("wind_speed")];
+	ws.wind_direction = doc[F("wind_direction")];
+	ws.wind_direction2 = doc[F("wind_direction2")];
+	ws.wind_gusts = doc[F("wind_gusts")];
+	ws.pressure_dir = doc[F("pressure_dir")];
+	ws.forecast = doc[F("forecast")];
+
+	syncWeatherTimer.setInterval(60000U * ws.sync_weather_period);
+	messages[MESSAGE_WEATHER].timer.setInterval(1000U * ws.show_weather_period);
+	return true;
+}
+
+// сохранение настроек сервера погоды
+void save_config_weather() {
+
+	JsonDocument doc; // временный буфер под объект json
+
+	doc[F("weather")] = ws.weather;
+	doc[F("sync_weather_period")] = ws.sync_weather_period;
+	doc[F("show_weather_period")] = ws.show_weather_period;
+	doc[F("weather_code")] = ws.weather_code;
+	doc[F("temperature")] = ws.temperature;
+	doc[F("a_temperature")] = ws.a_temperature;
+	doc[F("humidity")] = ws.humidity;
+	doc[F("cloud")] = ws.cloud;
+	doc[F("pressure")] = ws.pressure;
+	doc[F("wind_speed")] = ws.wind_speed;
+	doc[F("wind_direction")] = ws.wind_direction;
+	doc[F("wind_direction2")] = ws.wind_direction2;
+	doc[F("wind_gusts")] = ws.wind_gusts;
+	doc[F("pressure_dir")] = ws.pressure_dir;
+	doc[F("forecast")] = ws.forecast;
+
+	File configFile = LittleFS.open(F("/weather.json"), "w"); // открытие файла на запись
+	if (!configFile) {
+		LOG(println, PSTR("Failed to open config file for writing"));
+		return;
+	}
+	serializeJson(doc, configFile); // Записываем строку json в файл
+	configFile.flush();
+	configFile.close(); // не забыть закрыть файл
+	delay(4);
 }

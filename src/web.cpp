@@ -25,6 +25,7 @@
 #include "security.h"
 #include "clock.h"
 #include "wifi_init.h"
+#include "webClient.h"
 
 #ifdef ESP32
 WebServer HTTP(80);
@@ -42,6 +43,11 @@ void save_alarm();
 void off_alarm();
 void save_text();
 void off_text();
+void save_quote();
+void show_quote();
+void save_weather();
+void show_weather();
+void show();
 void sysinfo();
 void play();
 void maintence();
@@ -96,6 +102,11 @@ void web_process() {
 		HTTP.on(F("/off_alarm"), off_alarm);
 		HTTP.on(F("/save_text"), save_text);
 		HTTP.on(F("/off_text"), off_text);
+		HTTP.on(F("/save_quote"), save_quote);
+		HTTP.on(F("/show_quote"), show_quote);
+		HTTP.on(F("/save_weather"), save_weather);
+		HTTP.on(F("/show_weather"), show_weather);
+		HTTP.on(F("/show"), show);
 		HTTP.on(F("/sysinfo"), sysinfo);
 		HTTP.on(F("/play"), play);
 		HTTP.on(F("/clear"), maintence);
@@ -106,20 +117,20 @@ void web_process() {
 		HTTP.on(F("/sensors"), sensors);
 		HTTP.on(F("/registration"), registration);
 		HTTP.on(F("/who"), [](){
-			text_send(clock_name);
+			text_send(ts.clock_name);
 		});
 		HTTP.onNotFound([](){
 			if(!fileSend(HTTP.uri()))
 				not_found();
 			});
 		web_isStarted = true;
-  		httpUpdater.setup(&HTTP, web_login, web_password);
+  		httpUpdater.setup(&HTTP, gs.web_login, gs.web_password);
 		LOG(println, PSTR("HTTP server started"));
 
 		#ifdef ESP32
-		if(MDNS.begin(clock_name.c_str())) {
+		if(MDNS.begin(ts.clock_name.c_str())) {
 		#else // ESP8266
-		if(MDNS.begin(clock_name, WiFi.localIP())) {
+		if(MDNS.begin(ts.clock_name, WiFi.localIP())) {
 		#endif
 			MDNS.addService("http", "tcp", 80);
 			fl_mdns = true;
@@ -130,8 +141,8 @@ void web_process() {
 
 // страничка выхода, будет предлагать ввести пароль, пока он не перестанет совпадать с реальным
 void logout() {
-	if(web_login.length() > 0 && web_password.length() > 0)
-		if(HTTP.authenticate(web_login.c_str(), web_password.c_str()))
+	if(gs.web_login.length() > 0 && gs.web_password.length() > 0)
+		if(HTTP.authenticate(gs.web_login.c_str(), gs.web_password.c_str()))
 			HTTP.requestAuthentication(DIGEST_AUTH);
 	if(!fileSend(F("/logged-out.html")))
 		not_found();
@@ -156,8 +167,8 @@ bool is_no_auth() {
 	// const char* www_realm = "Custom Auth Realm";
 	// the Content of the HTML response in case of Unauthorized Access Default:empty
 	// String authFailResponse = "Authentication Failed";
-	if(web_login.length() > 0 && web_password.length() > 0 )
-		if(!HTTP.authenticate(web_login.c_str(), web_password.c_str())) {
+	if(gs.web_login.length() > 0 && gs.web_password.length() > 0 )
+		if(!HTTP.authenticate(gs.web_login.c_str(), gs.web_password.c_str())) {
 		    //Basic Auth Method with Custom realm and Failure Response
 			//return server.requestAuthentication(BASIC_AUTH, www_realm, authFailResponse);
 			//Digest Auth Method with realm="Login Required" and empty Failure Response
@@ -222,6 +233,67 @@ uint16_t decode_time(String s) {
 	uint8_t h = constrain(s.toInt(), 0, 23);
 	uint8_t m = constrain(s.substring(pos+1).toInt(), 0, 59);
 	return h*60 + m;
+}
+
+// печать байта в виде шестнадцатеричного числа
+void print_byte(char *buf, byte c, size_t& pos) {
+	if((c & 0xf) > 9)
+		buf[pos+1] = (c & 0xf) - 10 + 'A';
+	else
+		buf[pos+1] = (c & 0xf) + '0';
+	c = (c>>4) & 0xf;
+	if(c > 9)
+		buf[pos]=c - 10 + 'A';
+	else
+		buf[pos] = c+'0';
+	pos += 2;
+}
+
+// кодирование строки для json
+const char* jsonEncode(char* buf, const char *str, size_t max_length) {
+	// size_t len = strlen(str);
+	size_t p = 0, i = 0;
+	byte c;
+
+	while( str[i] != '\0' && p < max_length-8) {
+		// Выделение символа UTF-8 и перевод его в UTF-16 для вывода в JSON
+		// 0xxxxxxx - 7 бит 1 байт, 110xxxxx - 10 бит 2 байта, 1110xxxx - 16 бит 3 байта, 11110xxx - 21 бит 4 байта
+		c = (byte)str[i++];
+		if( c > 127  ) {
+			buf[p++] = '\\';
+			buf[p++] = 'u';
+			// utf8 -> utf16
+			if( c >> 5 == 6 ) {
+		        uint16_t cc = ((uint16_t)(str[i-1] & 0x1F) << 6);
+				cc |= (uint16_t)(str[i++] & 0x3F);
+				print_byte(buf, (byte)(cc>>8), p);
+				print_byte(buf, (byte)(cc&0xff), p);
+			} else if( c >> 4 == 14 ) {
+				uint16_t cc = ((uint16_t)(str[i-1] & 0x0F) << 12);
+				cc |= ((uint16_t)(str[i++] & 0x3F) << 6);
+				cc |= (uint16_t)(str[i++] & 0x3F);
+				print_byte(buf, (byte)(cc>>8), p);
+				print_byte(buf, (byte)(cc&0xff), p);
+			} else if( c >> 3 == 30 ) {
+				uint32_t CP = ((uint32_t)(str[i-1] & 0x07) << 18);
+				CP |= ((uint32_t)(str[i++] & 0x3F) << 12);
+				CP |= ((uint32_t)(str[i++] & 0x3F) << 6);
+				CP |= (uint32_t)(str[i++] & 0x3F);
+				CP -= 0x10000;
+				uint16_t cc = 0xD800 + (uint16_t)((CP >> 10) & 0x3FF);
+				print_byte(buf, (byte)(cc>>8), p);
+				print_byte(buf, (byte)(cc&0xff), p);
+				cc = 0xDC00 + (uint16_t)(CP & 0x3FF);
+				print_byte(buf, (byte)(cc>>8), p);
+				print_byte(buf, (byte)(cc&0xff), p);
+			}
+		} else {
+			buf[p++] = c;
+		}
+	}
+
+	buf[p++] = '\0';
+	return buf;
 }
 
 /****** шаблоны простых операций для выделения переменных из web ******/
@@ -307,77 +379,78 @@ void save_settings() {
 	if(is_no_auth()) return;
 	need_save = false;
 
-	set_simple_string(F("str_hello"), str_hello);
-	set_simple_int(F("max_alarm_time"), max_alarm_time, 1, 30);
-	set_simple_int(F("run_allow"), run_allow, 0, 2);
-	set_simple_time(F("run_begin"), run_begin);
-	set_simple_time(F("run_end"), run_end);
-	set_simple_checkbox(F("wide_font"), wide_font);
-	set_simple_checkbox(F("show_move"), show_move);
-	set_simple_int(F("delay_move"), delay_move, 0, 10);
-	set_simple_int(F("max_move"), max_move, delay_move, 255);
+	set_simple_string(F("str_hello"), gs.str_hello);
+	set_simple_int(F("max_alarm_time"), gs.max_alarm_time, 1, 30);
+	set_simple_int(F("run_allow"), gs.run_allow, 0, 2);
+	set_simple_time(F("run_begin"), gs.run_begin);
+	set_simple_time(F("run_end"), gs.run_end);
+	set_simple_checkbox(F("wide_font"), gs.wide_font);
+	set_simple_checkbox(F("show_move"), gs.show_move);
+	set_simple_int(F("delay_move"), gs.delay_move, 0, 10);
+	set_simple_int(F("max_move"), gs.max_move, gs.delay_move, 255);
 	bool sync_time = false;
-	if( set_simple_int(F("tz_shift"), tz_shift, -12, 12) )
+	if( set_simple_int(F("tz_shift"), gs.tz_shift, -12, 12) )
 		sync_time = true;
-	if( set_simple_checkbox(F("tz_dst"), tz_dst) )
+	if( set_simple_checkbox(F("tz_dst"), gs.tz_dst) )
 		sync_time = true;
-	set_simple_int(F("tiny_clock"), tiny_clock, 0, 5);
-	set_simple_int(F("dots_style"), dots_style, 0, 11);
-	set_simple_checkbox(F("date_short"), show_date_short);
-	if( set_simple_int(F("date_period"), show_date_period, 20, 1439) )
-		clockDate.setInterval(1000U * show_date_period);
-	set_simple_int(F("time_color"), show_time_color, 0, 3);
-	set_simple_color(F("time_color0"), show_time_color0);
+	set_simple_checkbox(F("tz_adjust"), gs.tz_adjust);
+	set_simple_int(F("tiny_clock"), gs.tiny_clock, 0, 5);
+	set_simple_int(F("dots_style"), gs.dots_style, 0, 11);
+	set_simple_checkbox(F("date_short"), gs.show_date_short);
+	if( set_simple_int(F("date_period"), gs.show_date_period, 20, 1439) )
+		clockDate.setInterval(1000U * gs.show_date_period);
+	set_simple_int(F("time_color"), gs.show_time_color, 0, 3);
+	set_simple_color(F("time_color0"), gs.show_time_color0);
 	// цвет часов
-	set_simple_color(F("time_color1"), show_time_col[0]);
-	show_time_col[1] = show_time_col[0];
-	// set_simple_color(F("time_color2"), show_time_col[1]);
+	set_simple_color(F("time_color1"), gs.show_time_col[0]);
+	gs.show_time_col[1] = gs.show_time_col[0];
+	// set_simple_color(F("time_color2"), gs.show_time_col[1]);
 	// цвет разделителей
-	set_simple_color(F("time_color3"), show_time_col[2]);
-	show_time_col[5] = show_time_col[2];
+	set_simple_color(F("time_color3"), gs.show_time_col[2]);
+	gs.show_time_col[5] = gs.show_time_col[2];
 	// цвет минут
-	set_simple_color(F("time_color4"), show_time_col[3]);
-	show_time_col[4] = show_time_col[3];
-	// set_simple_color(F("time_color5"), show_time_col[4]);
+	set_simple_color(F("time_color4"), gs.show_time_col[3]);
+	gs.show_time_col[4] = gs.show_time_col[3];
+	// set_simple_color(F("time_color5"), gs.show_time_col[4]);
 	// цвет секунд
-	set_simple_color(F("time_color6"), show_time_col[6]);
-	show_time_col[7] = show_time_col[6];
-	set_simple_int(F("date_color"), show_date_color, 0, 2);
-	set_simple_color(F("date_color0"), show_date_color0);
+	set_simple_color(F("time_color6"), gs.show_time_col[6]);
+	gs.show_time_col[7] = gs.show_time_col[6];
+	set_simple_int(F("date_color"), gs.show_date_color, 0, 2);
+	set_simple_color(F("date_color0"), gs.show_date_color0);
 	bool need_bright = false;
-	if( set_simple_int(F("bright_mode"), bright_mode, 0, 2) )
+	if( set_simple_int(F("bright_mode"), gs.bright_mode, 0, 2) )
 		need_bright = true;
-	if( set_simple_int(F("bright0"), bright0, 1, 255) )
+	if( set_simple_int(F("bright0"), gs.bright0, 1, 255) )
 		need_bright = true;
-	set_simple_int(F("br_boost"), bright_boost, 1, 1000);
-	if( set_simple_int(F("boost_mode"), boost_mode, 0, 5) )
+	set_simple_int(F("br_boost"), gs.bright_boost, 1, 1000);
+	if( set_simple_int(F("boost_mode"), gs.boost_mode, 0, 5) )
 		sync_time = true;
-	if( set_simple_int(F("br_add"), bright_add, 1, 255) )
+	if( set_simple_int(F("br_add"), gs.bright_add, 1, 255) )
 		need_bright = true;
-	if( set_simple_float(F("latitude"), latitude, -180.0f, 180.0f) )
+	if( set_simple_float(F("latitude"), gs.latitude, -180.0f, 180.0f) )
 		sync_time = true;
-	if( set_simple_float(F("longitude"), longitude, -180.0f, 180.0f) )
+	if( set_simple_float(F("longitude"), gs.longitude, -180.0f, 180.0f) )
 		sync_time = true;
-	set_simple_time(F("br_begin"), bright_begin);
-	set_simple_time(F("br_end"), bright_end);
-	if( set_simple_int(F("max_power"), max_power, 200, MAX_POWER) )
-		if(DEFAULT_POWER > 0) FastLED.setMaxPowerInVoltsAndMilliamps(5, max_power);
-	set_simple_int(F("turn_display"), turn_display, 0, 3);
-	set_simple_int(F("volume_start"), volume_start, 1, 30);
-	set_simple_int(F("volume_finish"), volume_finish, 1, 30);
-	volume_finish = constrain(volume_finish, volume_start, 30);
-	if( set_simple_int(F("volume_period"), volume_period, 1, 30) )
-		alarmStepTimer.setInterval(1000U * volume_period);
-	if( set_simple_int(F("timeout_mp3"), timeout_mp3, 1, 255) )
-		timeoutMp3Timer.setInterval(3600000U * timeout_mp3);
-	if( set_simple_int(F("sync_time_period"), sync_time_period, 1, 255) )
-		ntpSyncTimer.setInterval(3600000U * sync_time_period);
-	if( set_simple_int(F("scroll_period"), scroll_period, 20, 1440) )
-		scrollTimer.setInterval(scroll_period);
+	set_simple_time(F("br_begin"), gs.bright_begin);
+	set_simple_time(F("br_end"), gs.bright_end);
+	if( set_simple_int(F("max_power"), gs.max_power, 200, MAX_POWER) )
+		if(DEFAULT_POWER > 0) FastLED.setMaxPowerInVoltsAndMilliamps(5, gs.max_power);
+	set_simple_int(F("turn_display"), gs.turn_display, 0, 3);
+	set_simple_int(F("volume_start"), gs.volume_start, 1, 30);
+	set_simple_int(F("volume_finish"), gs.volume_finish, 1, 30);
+	gs.volume_finish = constrain(gs.volume_finish, gs.volume_start, 30);
+	if( set_simple_int(F("volume_period"), gs.volume_period, 1, 30) )
+		alarmStepTimer.setInterval(1000U * gs.volume_period);
+	if( set_simple_int(F("timeout_mp3"), gs.timeout_mp3, 1, 255) )
+		timeoutMp3Timer.setInterval(3600000U * gs.timeout_mp3);
+	if( set_simple_int(F("sync_time_period"), gs.sync_time_period, 1, 255) )
+		ntpSyncTimer.setInterval(3600000U * gs.sync_time_period);
+	if( set_simple_int(F("scroll_period"), gs.scroll_period, 20, 1440) )
+		scrollTimer.setInterval(gs.scroll_period);
 	bool need_web_restart = false;
-	if( set_simple_string(F("web_login"), web_login) )
+	if( set_simple_string(F("web_login"), gs.web_login) )
 		need_web_restart = true;
-	if( set_simple_string(F("web_password"), web_password) )
+	if( set_simple_string(F("web_password"), gs.web_password) )
 		need_web_restart = true;
 
 	HTTP.sendHeader(F("Location"),"/");
@@ -387,7 +460,7 @@ void save_settings() {
 	initRString(PSTR("Настройки сохранены"));
 	if( sync_time ) syncTime();
 	if( need_bright ) old_bright_boost = !old_bright_boost;
-	if(need_web_restart) httpUpdater.setup(&HTTP, web_login, web_password);
+	if(need_web_restart) httpUpdater.setup(&HTTP, gs.web_login, gs.web_password);
 }
 
 // сохранение настроек telegram (охраны)
@@ -396,27 +469,27 @@ void save_telegram() {
 	need_save = false;
 	bool fl_setTelegram = false;
 
-	set_simple_checkbox(F("use_move"), use_move);
-	set_simple_checkbox(F("use_brightness"), use_brightness);
-	set_simple_string(F("pin_code"), pin_code);
-	if( set_simple_string(F("clock_name"), clock_name) )
+	set_simple_checkbox(F("use_move"), ts.use_move);
+	set_simple_checkbox(F("use_brightness"), ts.use_brightness);
+	set_simple_string(F("pin_code"), ts.pin_code);
+	if( set_simple_string(F("clock_name"), ts.clock_name) )
 		#ifdef ESP32
-		if(fl_mdns)	MDNS.setInstanceName(clock_name.c_str());
+		if(fl_mdns)	MDNS.setInstanceName(ts.clock_name.c_str());
 		#else // ESP8266
-		if(fl_mdns)	MDNS.setHostname(clock_name.c_str());
+		if(fl_mdns)	MDNS.setHostname(ts.clock_name.c_str());
 		#endif
-	set_simple_int(F("sensor_timeout"), sensor_timeout, 1, 16000);
-	set_simple_string(F("tb_name"), tb_name);
-	if( set_simple_string(F("tb_chats"), tb_chats) )
+	set_simple_int(F("sensor_timeout"), ts.sensor_timeout, 1, 16000);
+	set_simple_string(F("tb_name"), ts.tb_name);
+	if( set_simple_string(F("tb_chats"), ts.tb_chats) )
 		fl_setTelegram = true;
-	if( set_simple_string(F("tb_token"), tb_token) )
+	if( set_simple_string(F("tb_token"), ts.tb_token) )
 		fl_setTelegram = true;
-	set_simple_string(F("tb_secret"), tb_secret);
-	if( set_simple_int(F("tb_rate"), tb_rate, 0, 3600) )
-		telegramTimer.setInterval(1000U * tb_rate);
-	set_simple_int(F("tb_accelerated"), tb_accelerated, 1, 600);
-	set_simple_int(F("tb_accelerate"), tb_accelerate, 1, 3600);
-	set_simple_int(F("tb_ban"), tb_ban, 900, 3600);
+	set_simple_string(F("tb_secret"), ts.tb_secret);
+	if( set_simple_int(F("tb_rate"), ts.tb_rate, 0, 3600) )
+		telegramTimer.setInterval(1000U * ts.tb_rate);
+	set_simple_int(F("tb_accelerated"), ts.tb_accelerated, 1, 600);
+	set_simple_int(F("tb_accelerate"), ts.tb_accelerate, 1, 3600);
+	set_simple_int(F("tb_ban"), ts.tb_ban, 900, 3600);
 
 	HTTP.sendHeader(F("Location"),"/security.html");
 	HTTP.send(303);
@@ -439,39 +512,63 @@ void reboot_clock() {
 	ESP.restart();
 }
 
-void maintence() {
-	if(is_no_auth()) return;
-	HTTP.sendHeader(F("Location"),"/");
-	HTTP.send(303); 
-	initRString(PSTR("Сброс"));
-	if( HTTP.hasArg("t") ) {
-		if( HTTP.arg("t") == "t" && LittleFS.exists(F("/texts.json")) ) {
-			LOG(println, PSTR("reset texts"));
-			LittleFS.remove(F("/texts.json"));
-			reboot_clock();
-		}
-		if( HTTP.arg("t") == "a" && LittleFS.exists(F("/alarms.json")) ) {
-			LOG(println, PSTR("reset alarms"));
-			LittleFS.remove(F("/alarms.json"));
-			reboot_clock();
-		}
-		if( HTTP.arg("t") == "c" && LittleFS.exists(F("/config.json")) ) {
+void reset_settings(int t) {
+	switch (t) {
+		case 0: { // главная конфигурация
 			LOG(println, PSTR("reset settings"));
-			LittleFS.remove(F("/config.json"));
-			reboot_clock();
-		}
-		if( HTTP.arg("t") == "l" ) {
+			if(LittleFS.exists(F("/config.json"))) LittleFS.remove(F("/config.json"));
+			} break;
+		case 1: { // настройки будильников
+			LOG(println, PSTR("reset alarms"));
+			if(LittleFS.exists(F("/alarms.json"))) LittleFS.remove(F("/alarms.json"));
+			if(LittleFS.exists(F("/atexts.json"))) LittleFS.remove(F("/atexts.json"));
+			} break;
+		case 2: { // настройки бегущих строк
+			LOG(println, PSTR("reset texts"));
+			if(LittleFS.exists(F("/texts.json"))) LittleFS.remove(F("/texts.json"));
+			} break;
+		case 3: { // настройки цитат
+			LOG(println, PSTR("reset quotes"));
+			if(LittleFS.exists(F("/quote.json"))) LittleFS.remove(F("/quote.json"));
+			} break;
+		case 4: { // настройки сервера погоды
+			LOG(println, PSTR("reset weather"));
+			if(LittleFS.exists(F("/weather.json"))) LittleFS.remove(F("/weather.json"));
+			} break;
+		case 5: { // настройки Telegram/security
+			LOG(println, PSTR("reset se"));
+			if(LittleFS.exists(F("/security.json"))) LittleFS.remove(F("/security.json"));
+			} break;
+		case 6: { // журнал событий
 			LOG(println, PSTR("erase logs"));
 			char fileName[32];
 			for(int8_t i=0; i<SEC_LOG_COUNT; i++) {
 				sprintf_P(fileName, SEC_LOG_FILE, i);
 				if( LittleFS.exists(fileName) ) LittleFS.remove(fileName);
 			}
-			reboot_clock();
+			} break;
+		default: // такого раздела нет, просто перезагрузится
+			break;
+	}
+}
+
+void maintence() {
+	if(is_no_auth()) return;
+	HTTP.sendHeader(F("Location"),"/");
+	HTTP.send(303); 
+	String name = "t";
+	if( HTTP.hasArg(name) ) {
+		int t = constrain(HTTP.arg(name).toInt(), 0, 255);
+		initRString(PSTR("Сброс"));
+		if(t == 96) {
+			// сброс всех настроек (кроме wifi)
+			for(uint8_t i=0; i<=6; i++)
+				reset_settings(i);
+		} else if(t > 0) {
+			// сброс конкретного раздела настроек
+			reset_settings(t-1);
 		}
-		if( HTTP.arg("t") == "r" ) {
-			reboot_clock();
-		}
+		reboot_clock();
 	}
 }
 
@@ -688,7 +785,7 @@ void send() {
 	// if(is_no_auth()) return;
 	String name = F("pin");
 	if( HTTP.hasArg(name) ) {
-		if( pin_code == HTTP.arg(name) ) {
+		if( ts.pin_code == HTTP.arg(name) ) {
 			name = F("msg");
 			if( HTTP.hasArg(name) ) {
 				tb_send_msg(HTTP.arg(name));
@@ -724,7 +821,7 @@ void set_clock() {
 					name = F("sec");
 					if(HTTP.hasArg(name)) {
 						tm.tm_sec = constrain(HTTP.arg(name).toInt()+1, 0, 60);
-						tm.tm_isdst = tz_dst;
+						tm.tm_isdst = gs.tz_dst;
 						time_t t = mktime(&tm);
 						LOG(printf_P,"web time: %llu\n",t);
 						// set the system time
@@ -884,14 +981,15 @@ cur_sensor sensor[MAX_SENSORS];
 void sensors() {
 	if(is_no_auth()) return;
 	bool fl = false;
+	char buf[100];
 	HTTP.client().print(PSTR("HTTP/1.1 200\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n["));
 	for(uint8_t i=0; i<MAX_SENSORS; i++) {
-		if(sensor[i].registered >= getTimeU() - sensor_timeout*60 + 60) {
+		if(sensor[i].registered >= getTimeU() - ts.sensor_timeout*60 + 60) {
 			if(fl) HTTP.client().print(",");
 			HTTP.client().printf_P(PSTR("{\"num\":%i,"), i);
-			HTTP.client().printf_P(PSTR("\"hostname\":\"%s\","), sensor[i].hostname.c_str());
+			HTTP.client().printf_P(PSTR("\"hostname\":\"%s\","), jsonEncode(buf, sensor[i].hostname.c_str(), sizeof(buf)));
 			HTTP.client().printf_P(PSTR("\"ip\":\"%s\","), sensor[i].ip.toString().c_str());
-			HTTP.client().printf_P(PSTR("\"timeout\":%i}"), sensor_timeout*60 + sensor[i].registered - getTimeU());
+			HTTP.client().printf_P(PSTR("\"timeout\":%i}"), ts.sensor_timeout*60 + sensor[i].registered - getTimeU());
 			fl = true;
 		}
 	}
@@ -907,7 +1005,7 @@ void registration() {
 	// должно быть всего два параметра: pin (shared key) и name - имя устройства
 	String name = F("pin");
 	if( HTTP.hasArg(name) ) {
-		if( pin_code == HTTP.arg(name) ) {
+		if( ts.pin_code == HTTP.arg(name) ) {
 			// pin подошел
 			name = F("name");
 			if( HTTP.hasArg(name) ) {
@@ -928,7 +1026,7 @@ void registration() {
 				if(!fl_found) {
 					// новый сенсор, поиск свободной ячейки
 					for(uint8_t i=0; i<MAX_SENSORS; i++) {
-						if(sensor[i].registered < getTimeU() - sensor_timeout*60 - 60) {
+						if(sensor[i].registered < getTimeU() - ts.sensor_timeout*60 - 60) {
 							// найдена свободная ячейка
 							sensor[i].hostname = HTTP.arg(name);
 							sensor[i].ip = sensor_ip;
@@ -948,4 +1046,139 @@ void registration() {
 	}
 	// любая ошибка, в том числе закончились свободные ячейки
 	text_send(F("0"));
+}
+
+// сохранение настроек цитат
+void save_quote() {
+	if(is_no_auth()) return;
+	need_save = false;
+
+	if( set_simple_checkbox(F("enabled"), qs.enabled) ) {
+		// если цитаты отключили, то сбросить текущую цитату 
+		if( qs.enabled == 0 ) messages[MESSAGE_QUOTE].count = 0;
+	}
+	if( set_simple_int(F("period"), qs.period, 120, 3600) )
+		messages[MESSAGE_QUOTE].timer.setInterval(1000U * qs.period);
+	if( set_simple_int(F("update"), qs.update, 0, 3) )
+		quoteUpdateTimer.setInterval(900000U * (qs.update+1));
+	set_simple_int(F("server"), qs.server, 0, 2);
+	set_simple_int(F("lang"), qs.lang, 0, 3);
+	set_simple_string(F("url"), qs.url);
+	set_simple_string(F("params"), qs.params);
+	set_simple_int(F("method"), qs.method, 0, 1);
+	set_simple_int(F("type"), qs.type, 0, 2);
+	set_simple_string(F("quote_field"), qs.quote_field);
+	set_simple_string(F("author_field"), qs.author_field);
+
+	HTTP.sendHeader(F("Location"),"/");
+	HTTP.send(303);
+	delay(1);
+	if( need_save ) {
+		save_config_quote();
+		quote.fl_init = false;
+	}
+	initRString(PSTR("Настройки сохранены"));
+}
+
+void show_quote() {
+	if(is_no_auth()) return;
+	text_send(messages[MESSAGE_QUOTE].text);
+}
+
+const char help[] PROGMEM = R"""(
+(h)elp - this help
+(m)sg="text" - show this "text" on the matrix
+(c)nt=5 - show 5 times (2 by default, max 100)
+(i)nt=60 - show with interval 60 seconds (30 by default, max 600)
+)""";
+
+void show() {
+	bool fl_web = false;
+	bool fl_msg = false;
+	bool fl_cnt = false;
+	bool fl_int = false;
+	bool cond = false;
+	int num_args = HTTP.args();
+	if(num_args==0) {
+		HTTP.send_P(200, PSTR("text/plain"), help);
+		LOG(println, F("show: send help"));
+		return;
+	}
+	for(int i=0; i<num_args; i++) {
+		String arg_name = HTTP.argName(i);
+		if(arg_name.startsWith("h")) {
+			HTTP.send_P(200, PSTR("text/plain"), help);
+			LOG(println, F("show: send help"));
+		}
+		if(arg_name.startsWith("m")) {
+			messages[MESSAGE_WEB].text = HTTP.arg(i);
+			if(messages[MESSAGE_WEB].text.length() > 1) fl_msg = true;
+		}
+		if(arg_name.startsWith("c")) {
+			messages[MESSAGE_WEB].count = constrain(HTTP.arg(i).toInt(), 1, 100);
+			fl_cnt = true;
+		}
+		if(arg_name.startsWith("i")) {
+			messages[MESSAGE_WEB].timer.setInterval(constrain(HTTP.arg(i).toInt()*1000, 15000, 600000));
+			fl_int = true;
+		}
+		if(arg_name.startsWith("w")) {
+			fl_web = true;
+		}
+	}
+	if( fl_msg ) {
+		if( ! fl_cnt ) messages[MESSAGE_WEB].count = 2;
+		if( ! fl_int ) messages[MESSAGE_WEB].timer.setInterval(30000);
+		cond = true;
+	} else
+		messages[MESSAGE_WEB].count = 0;
+	if( fl_web ) {
+		HTTP.sendHeader(F("Location"),"/maintenance.html");
+		HTTP.send(303);
+		delay(1);
+	} else
+		text_send(cond?F("1"):F("0"));
+}
+
+void save_weather() {
+	if(is_no_auth()) return;
+	need_save = false;
+	bool need_weather = false;
+
+	need_weather = set_simple_checkbox(F("weather"), ws.weather);
+	if( set_simple_int(F("sync_weather_period"), ws.sync_weather_period, 15, 1439) )
+		syncWeatherTimer.setInterval(60000U * ws.sync_weather_period);
+	if( set_simple_int(F("show_weather_period"), ws.show_weather_period, 30, 3600) )
+		messages[MESSAGE_WEATHER].timer.setInterval(1000U * ws.show_weather_period);
+	set_simple_checkbox(F("weather_code"), ws.weather_code);
+	set_simple_checkbox(F("temperature"), ws.temperature);
+	set_simple_checkbox(F("a_temperature"), ws.a_temperature);
+	set_simple_checkbox(F("humidity"), ws.humidity);
+	set_simple_checkbox(F("cloud"), ws.cloud);
+	set_simple_checkbox(F("pressure"), ws.pressure);
+	set_simple_checkbox(F("wind_speed"), ws.wind_speed);
+	set_simple_checkbox(F("wind_direction"), ws.wind_direction);
+	set_simple_checkbox(F("wind_direction2"), ws.wind_direction2);
+	set_simple_checkbox(F("wind_gusts"), ws.wind_gusts);
+	set_simple_checkbox(F("pressure_dir"), ws.pressure_dir);
+	set_simple_checkbox(F("forecast"), ws.forecast);
+
+	HTTP.sendHeader(F("Location"),"/");
+	HTTP.send(303);
+	delay(1);
+	if( need_save ) {
+		save_config_weather();
+		if( need_weather && ws.weather ) syncWeatherTimer.setReady();
+		if( ws.weather ) {
+			char txt[512];
+			messages[MESSAGE_WEATHER].text = String(generate_weather_string(txt));
+		}
+	}
+	initRString(PSTR("Настройки сохранены"));
+}
+
+void show_weather() {
+	if(is_no_auth()) return;
+	char txt[512];
+	text_send(String(generate_weather_string(txt)));
 }

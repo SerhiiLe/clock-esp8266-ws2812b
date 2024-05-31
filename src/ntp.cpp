@@ -7,37 +7,57 @@
 #include "defines.h"
 #include "settings.h"
 
+#define REQUEST_TIMEOUT 10000 // таймаут запроса к NTP серверу.
+
 time_t start_time = 0;
 bool fl_needStartTime = true;
 bool fl_timeNotSync = true;
+bool fl_ntpRequestIsSend = false;
+unsigned long request_time = 0;
+
 void DuskTillDawn();
 
-void syncTime() {
-	int tz           = tz_shift;
-	int dst          = tz_dst;
-	time_t now       = time(nullptr);
-	unsigned timeout = 1000; // try for timeout
-	unsigned start   = millis();
+void syncTimeRequest() {
+	int tz           = gs.tz_shift;
+	int dst          = gs.tz_dst;
 	configTime(tz * 3600, dst * 3600, "pool.ntp.org", "time.nist.gov");
-	LOG(print, PSTR("Waiting for NTP time sync: "));
-	while (now < 86400 ) { // Сутки от 1го января 1970. Ждать пока время не установится. При повторной синхронизации не ждать.
-		delay(20); // запрос происходит в асинхронном режиме и ждать первого обновления не обязательно, но для упрощения логики желательно
-		LOG(print, ".");
-		now = time(nullptr);
-		if((millis() - start) > timeout) {
+	LOG(println, PSTR("Request for NTP time sync is send"));
+	fl_ntpRequestIsSend = true;
+	request_time = millis();
+}
+
+bool syncTime() {
+	time_t now = time(nullptr);
+	if( ! fl_ntpRequestIsSend ) {
+		syncTimeRequest();
+		return false;
+	}
+	// Сутки от 1го января 1970. Если системное время больше, значит или прошли сутки, или как-то время установилось, например вручную.
+	if( now < 86400 ) {
+		if((millis() - request_time) > REQUEST_TIMEOUT) {
+			// увы, ответ на запрос таки не пришел и время не установилось. Повезёт в следующий раз. 
 			LOG(println, PSTR("\n[ERROR] Failed to get NTP time."));
-			return;
+			fl_ntpRequestIsSend = false;
+			return false;
 		}
+		return false;
 	}
-	if(fl_needStartTime) {
-		start_time = now - millis()/1000;
-		fl_needStartTime = false;
-		if(sec_enable) save_log_file(SEC_TEXT_BOOT);
-		last_telegram = now;
+	// время установлено, но мы не знаем оно установленно вручную или как ответ за посланный запрос, по этому для уверенности ждём время таймаута.
+	// что в итоге будет, то и считать правильным временем.
+	if((millis() - request_time) > REQUEST_TIMEOUT) {
+		if(fl_needStartTime) {
+			start_time = now - millis()/1000;
+			fl_needStartTime = false;
+			if(sec_enable) save_log_file(SEC_TEXT_BOOT);
+			last_telegram = now;
+		}
+		DuskTillDawn();
+		fl_timeNotSync = false;
+		fl_ntpRequestIsSend = false;
+		LOG(println, PSTR("time probably is synced"));
+		return true;
 	}
-	fl_timeNotSync = false;
-	LOG(println, now);
-	DuskTillDawn();
+	return false;
 }
 
 // Function that gets current epoch time
@@ -97,7 +117,7 @@ void sunCalculate(const tm &now, const bool isRise, uint8_t &hour, uint8_t &minu
 	const float RAD = DEG_TO_RAD; // PI/180;
 
 	float zenith = 90.8f;
-	switch (boost_mode)	{
+	switch (gs.boost_mode)	{
 		case 2:
 			zenith = 96.0f;
 			break;
@@ -108,7 +128,7 @@ void sunCalculate(const tm &now, const bool isRise, uint8_t &hour, uint8_t &minu
 			zenith = 108.0f;
 		break;
 	}
-	int8_t localOffset = tz_shift + tz_dst;
+	int8_t localOffset = gs.tz_shift + gs.tz_dst;
 
 	uint16_t year = now.tm_year + 1900;
 	uint16_t month = now.tm_mon + 1;
@@ -118,7 +138,7 @@ void sunCalculate(const tm &now, const bool isRise, uint8_t &hour, uint8_t &minu
 	uint16_t N = floor(275 * month / 9) - (floor((month + 9) / 12) * (1 + floor((year - 4 * floor(year / 4) + 2) / 3))) + day - 30;
 
   	// 2. convert the longitude to hour value and calculate an approximate time
-  	float lngHour = longitude / 15;
+  	float lngHour = gs.longitude / 15;
 
 	// if rising time is desired:
 	// t = N + ((6 - lngHour) / 24);
@@ -156,7 +176,7 @@ void sunCalculate(const tm &now, const bool isRise, uint8_t &hour, uint8_t &minu
 	float cosDec = cosf(asinf(sinDec));
 
 	// 7a. calculate the Sun's local hour angle
-	float cosH = (cos(zenith * RAD) - (sinDec * sin(latitude * RAD))) / (cosDec * cos(latitude * RAD));
+	float cosH = (cos(zenith * RAD) - (sinDec * sin(gs.latitude * RAD))) / (cosDec * cos(gs.latitude * RAD));
 	if (cosH >  1) {
 		LOG(println, PSTR("the sun never rises on this location (on the specified date)"));
 		// полярная ночь, солнца не будет. Чтобы не ломать логику солнце "всходит" в 0:00 и "заходит" в 0:01
@@ -203,7 +223,7 @@ void DuskTillDawn() {
 
 	sunCalculate(t, true, hour, minute);
 	sunrise = hour * 60 + minute;
-	LOG(printf_P, PSTR("tz=%i, dst=%i\nSunrise: %i:%i\n"), tz_shift, tz_dst, hour, minute);
+	LOG(printf_P, PSTR("tz=%i, dst=%i\nSunrise: %i:%i\n"), gs.tz_shift, gs.tz_dst, hour, minute);
 
 	sunCalculate(t, false, hour, minute);
 	sunset = hour * 60 + minute;

@@ -161,14 +161,14 @@ int16_t drawMedium(const char c, int16_t x, CRGB color, uint8_t font_style) {
 // отрисовка циферблата нестандартными шрифтами
 int16_t printMedium(const char* txt, uint8_t font, int16_t pos, uint8_t limit, uint8_t start_char) {
 	int16_t i = start_char;
-	if( txt[0]==' ' && tiny_clock != FONT_TINY ) pos += tiny_clock == FONT_WIDE ? -1: 1;
-	if( txt[0]=='1' && tiny_clock == FONT_TINY ) pos -= 1;
+	if( txt[0]==' ' && gs.tiny_clock != FONT_TINY ) pos += gs.tiny_clock == FONT_WIDE ? -1: 1;
+	if( txt[0]=='1' && gs.tiny_clock == FONT_TINY ) pos -= 1;
 	while (txt[i] != '\0' && i<limit) {
 		CRGB letterColor;
-		if(show_time_color == 1) letterColor = CHSV(byte(pos << 3), 255, 255); // цвет в CHSV (прозрачность, оттенок, насыщенность, яркость) (0,0,255 - белый)
-		else if(show_time_color == 2) letterColor = CHSV(byte(i << 5), 255, 255);
-		else if(show_time_color == 3) letterColor = show_time_col[i % 8];
-		else letterColor = show_time_color0;
+		if(gs.show_time_color == 1) letterColor = CHSV(byte(pos << 3), 255, 255); // цвет в CHSV (прозрачность, оттенок, насыщенность, яркость) (0,0,255 - белый)
+		else if(gs.show_time_color == 2) letterColor = CHSV(byte(i << 5), 255, 255);
+		else if(gs.show_time_color == 3) letterColor = gs.show_time_col[i % 8];
+		else letterColor = gs.show_time_color0;
 		pos += drawMedium(txt[i++], pos, letterColor, font) + 1;
 	}
 	screenIsFree = false;
@@ -180,7 +180,7 @@ int16_t printMedium(const char* txt, uint8_t font, int16_t pos, uint8_t limit, u
 // изменение символа ":" между часами и минутами на другой стиль
 const char* changeDots(char* txt) {
 	static uint8_t stage = 1;
-	switch (dots_style) {
+	switch (gs.dots_style) {
 		case 1: // Обычный 1
 			txt[2] = stage & 2 ? ':': ' ';
 			break;

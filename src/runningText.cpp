@@ -36,7 +36,7 @@ uint8_t getFont(uint32_t letter, uint8_t col) {
 		return pgm_read_byte(&fontSemicolon[cn][col]);
 	}
 
-	if(col == LET_WIDTH && wide_font ) return (LET_HEIGHT << 4) | LET_WIDTH;
+	if(col == LET_WIDTH && gs.wide_font ) return (LET_HEIGHT << 4) | LET_WIDTH;
 	if( letter < 0x7f ) // для английских букв и символов
 		cn = letter-32;
 	else if( letter >= 0xd090 && letter <= 0xd0bf ) // А-Яа-п (utf-8 символы идут не по порядку, надо собирать из кусков)
@@ -65,7 +65,7 @@ uint8_t getFont(uint32_t letter, uint8_t col) {
 		cn = 172;
 	else 
 		cn = 162; // символ не найден, вывести пустой прямоугольник
-	if( wide_font )	return pgm_read_byte(&(fontFix[cn][col]));
+	if( gs.wide_font )	return pgm_read_byte(&(fontFix[cn][col]));
 	return pgm_read_byte(&(fontVar[cn][col]));
 }
 
@@ -84,7 +84,7 @@ int16_t drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t colo
  	CRGB letterColor;
 	if(color == 1) letterColor = CHSV(byte(offset << 3), 255, 255); // цвет в CHSV (прозрачность, оттенок, насыщенность, яркость) (0,0,255 - белый)
 	else if(color == 2) letterColor = CHSV(byte(index << 5), 255, 255);
-	else if(color == 3) letterColor = show_time_col[index % 5];
+	else if(color == 3) letterColor = gs.show_time_col[index % 5];
 	else letterColor = color;
 
 	if( offset < -LW || offset > WIDTH ) return LW; // буква за пределами видимости, пропустить
@@ -144,8 +144,8 @@ void initRunning(uint32_t color, int16_t posX) {
 	_currentColor = color > 3 ? maximizeBrightness(color): color;
 	runningMode = posX >= 0 && posX <= WIDTH;
 	currentOffset = runningMode ? posX: WIDTH;
-	if(_runningText[0]==32) currentOffset -= wide_font ? (LET_WIDTH + SPACE) >> 1: LET_WIDTH >> 1;
-	if(_runningText[0]==49 && wide_font) currentOffset--;
+	if(_runningText[0]==32) currentOffset -= gs.wide_font ? (LET_WIDTH + SPACE) >> 1: LET_WIDTH >> 1;
+	if(_runningText[0]==49 && gs.wide_font) currentOffset--;
 	screenIsFree = false;
 }
 // Инициализация строки, которая будет отображаться на экране

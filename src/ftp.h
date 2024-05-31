@@ -19,7 +19,7 @@ void ftp_process () {
     }
     else {
         if(ftp_isAllow) {
-            ftpSrv.begin(web_login,web_password);
+            ftpSrv.begin(gs.web_login, gs.web_password);
             ftp_isStarted = true;
         }
     }
