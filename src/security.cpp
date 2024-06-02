@@ -70,7 +70,7 @@ void tb_send_msg(String s) {
 	#ifdef DEBUG
 	LOG(printf_P, PSTR("Send to telegram: %i\n"), tb.sendMessage(s,ts.tb_chats));
 	#else
-	tb.sendMessage(s,tb_chats);
+	tb.sendMessage(s,ts.tb_chats);
 	#endif
 }
 

@@ -46,7 +46,21 @@
 					</div>
 					<div class="row">
 						<div>Периодичность вывода погоды на экран (30-3600):</div>
-						<div class="nb"><input type="number" name="show_weather_period" value="90"> секунд</div>
+						<div class="nb"><input type="number" name="show_weather_period" value="120"> секунд</div>
+					</div>
+					<div class="row">
+						<div>Режим цвета</div>
+						<div>
+							<select name="color_mode" onchange="show_color_block()">
+								<option value="0">Один</option>
+								<option value="1">Радуга</option>
+								<option value="2">Разные</option>
+							</select>
+						</div>
+					</div>
+					<div class="row color0">
+						<div>Цвет цифр (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="color"></div>
+						<div class="fix"><input name="color" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
 					</div>
 					<fieldset>
 						<legend>Отображать:</legend>
@@ -113,6 +127,8 @@ function start() {
 	if (typeof ajaxRequest !== "undefined") {
 		fill_settings("weather.json", "settings", ()=> {
 			show_weather_block();
+			init_color_demo();
+			show_color_block();
 			$g("shadow").style.display = "none";
 		});
 		ajaxRequest("show_weather", "GET", null, function(ajaxResp) {

@@ -107,8 +107,10 @@ struct cur_alarm {
 	uint16_t settings = 0;	// настройки (побитовое поле)
 	uint8_t hour = 0;	// часы
 	uint8_t minute = 0;	// минуты
-	uint16_t melody = 0;	// номер мелодии
-	int8_t text = -1;	// номер текста, который выводится при срабатывании
+	uint16_t melody = 1;	// номер мелодии
+	String text = "";	// текст который надо отобразить во время работы будильника
+	uint8_t color_mode = 0; // режим цвета, как везде (0 )
+	uint32_t color = 0xFFFFFF; // по умолчанию - белый
 };
 extern cur_alarm alarms[];
 
@@ -132,6 +134,8 @@ struct Weather_Settings {
 	uint8_t weather = 0;
 	uint8_t sync_weather_period = 30;
 	uint8_t show_weather_period = 120;
+	uint8_t color_mode = 0; // режим цвета, как везде (0 )
+	uint32_t color = 0xFFFFFF; // по умолчанию - белый
 	uint8_t weather_code = 1;
 	uint8_t temperature = 1;
 	uint8_t a_temperature = 1;
@@ -149,7 +153,9 @@ extern Weather_Settings ws;
 
 struct Quote_Settings {
 	uint8_t enabled = 0;
-	uint8_t period = 2;
+	uint8_t period = 120;
+	uint8_t color_mode = 0; // режим цвета, как везде (0 )
+	uint32_t color = 0xFFFFFF; // по умолчанию - белый
 	uint8_t update = 1;
 	uint8_t server = 0;
 	uint8_t lang = 2;
@@ -177,6 +183,7 @@ struct temp_text {
 	String text = "";	// текст который надо будет выводить
 	timerMinim timer;	// таймер с отсчётом интервалов показа
 	int16_t count = 0;	// число повторов
+	uint32_t color = 0xFFFFFF; // по умолчанию - белый
 };
 extern temp_text messages[];
 

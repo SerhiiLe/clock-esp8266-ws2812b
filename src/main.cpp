@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief Clock
- * @version 2.0.2
- * @date 2024-05-26
+ * @version 2.1.0
+ * @date 2024-06-02
  * 
  * @copyright Copyright (c) 2021,2022,2023,2024
  */
@@ -270,10 +270,12 @@ void network_pool() {
 			sprintf_P(timeString, PSTR("FTP для загрузки файлов включён IP: %s"), wifi_currentIP().c_str());
 			initRString(timeString);
 		}
-		// обновление цитат с сервера
-		if(qs.enabled && (quoteUpdateTimer.isReady() || messages[MESSAGE_QUOTE].count == 0) ) quoteUpdate();
-		// обновление погоды с сервера
-		if(ws.weather && (syncWeatherTimer.isReady() || messages[MESSAGE_WEATHER].count == 0)) weatherUpdate();
+		if(fl_run_allow) {
+			// обновление цитат с сервера
+			if(qs.enabled && (quoteUpdateTimer.isReady() || messages[MESSAGE_QUOTE].count == 0) ) quoteUpdate();
+			// обновление погоды с сервера
+			if(ws.weather && (syncWeatherTimer.isReady() || messages[MESSAGE_WEATHER].count == 0)) weatherUpdate();
+		}
 		// если был отправлен запрос на NTP сервер, то подождать и выполнить операции, как будто он выполнился
 		if( fl_ntpRequestIsSend )
 			if( syncTime() )
@@ -343,10 +345,9 @@ void alarms_pool() {
 	}
 	// плавное увеличение громкости и ограничение на время работы будильника
 	if(alarmStartTime && alarmStepTimer.isReady()) {
-		i = alarms[active_alarm].text;
-		if(screenIsFree && i >= 0) {
+		if(screenIsFree && alarms[active_alarm].text.length() > 0) {
 			// вывод текста только на время работы будильника
-			initRString(texts[i].text, texts[i].color_mode > 0 ? texts[i].color_mode: texts[i].color);
+			initRString(alarms[active_alarm].text, alarms[i].color_mode > 0 ? alarms[i].color_mode: alarms[i].color);
 		}
 		if(!mp3_isPlay()) {
 			// мелодия не запустилась, повторить весь цикл сначала. Редко, но случается :(
@@ -593,7 +594,7 @@ void loop() {
 		for(i=0; i<MAX_TMP_MESSAGES; i++) {
 			if(screenIsFree)
 				if( messages[i].count > 0 && messages[i].timer.isReady() ) {
-					initRString(messages[i].text);
+					initRString(messages[i].text, messages[i].color);
 					messages[i].count--;
 				}
 		}

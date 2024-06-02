@@ -94,16 +94,16 @@ const char* generate_weather_string(char* a) {
 			wc = PSTR(" Туман");
 			break;
 		case 48:
-			wc = PSTR(" Иней");
-			break;
-		case 51:
 			wc = PSTR(" Оседающий туман");
 			break;
-		case 53:
+		case 51:
 			wc = PSTR(" Мряка");
 			break;
+		case 53:
+			wc = PSTR(" Лёгкая морось");
+			break;
 		case 55:
-			wc = PSTR(" Плотная мряка");
+			wc = PSTR(" Морось");
 			break;
 		case 56:
 			wc = PSTR(" Оседающий иней");
@@ -174,7 +174,7 @@ const char* generate_weather_string(char* a) {
 	if( ws.humidity ) pos += sprintf_P(pos, PSTR(" влажность %u%%"), wd.humidity);
 	if( ws.cloud ) pos += sprintf_P(pos, PSTR(" облачность %u%%"), wd.cloud_cover);
 	if( ws.pressure ) pos += sprintf_P(pos, PSTR(" давление %1.0f hPa"), wd.pressure);
-	if( ws.wind_speed && wd.wind_speed < 3 ) pos += sprintf_P(pos, PSTR(" штиль"));
+	if( ws.wind_speed && wd.wind_speed < 3 ) pos += sprintf_P(pos, PSTR(" Штиль"));
 	else {
 		if( ws.wind_speed && ws.wind_gusts ) pos += sprintf_P(pos, PSTR(" ветер %1.0f\xe2\x80\xa6%1.0fм/сек."), wd.wind_speed, wd.wind_gusts);
 		else if( ws.wind_speed ) pos += sprintf_P(pos, PSTR(" ветер %1.0fм/сек."), wd.wind_speed);
@@ -223,6 +223,7 @@ uint8_t parseWeather(const char* json) {
 	char txt[512];
 	messages[MESSAGE_WEATHER].text = String(generate_weather_string(txt));
 	messages[MESSAGE_WEATHER].count = ws.weather ? 100: 0;
+	messages[MESSAGE_WEATHER].color = ws.color_mode > 0 ? ws.color_mode: ws.color;
 
 	// Синхронизация часового пояса или летнего времени
 	if(gs.tz_adjust && wd.utc_offset_seconds != (gs.tz_shift+gs.tz_dst)*3600) {
@@ -394,15 +395,20 @@ void parseQuote(String txt, bool type=true) {
 	if( s.length() > 1 ) {
 		myTrim(s);
 		messages[MESSAGE_QUOTE].text += ( s[0] == '-' || s[1] == ' ' ) ? " " + s: " (" + s + ")"; // perl я программист старый просто
+		messages[MESSAGE_QUOTE].color = qs.color_mode > 0 ? qs.color_mode: qs.color;
 	}
+	#ifdef DEBUG
 	if( messages[MESSAGE_QUOTE].text.length() == 0 )
 		LOG(printf_P, PSTR("Error parse JSON/XML.\nSource:\n%s\n"), txt.c_str());
 	else
 		LOG(printf_P, PSTR("Quote: %s\n"), messages[MESSAGE_QUOTE].text.c_str());
+	#endif
 }
 
 void quoteGet() {
+	#ifdef DEBUG
 	unsigned long start_time = millis();
+	#endif
 	if (fl_https_notInit) https_Init();
 	bool fl_isSecure = quote.url.indexOf("https://") >= 0;
 

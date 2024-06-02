@@ -59,7 +59,7 @@
 							<div>Мелодия будильника <button onclick="test_ring();return false;" id="ss">проверить</button></div>
 							<div>
 								<input type="number" name="melody" value="1" id="track" onkeypress="sendTr(event)" onfocus="fl_allowUpdate=false;" onfocusout="fl_allowUpdate=true;">
-								из <span id="col">0</span>
+								<span class="show_tracks" style="display: none;"> из <span id="col">0</span></span>
 								<input type="hidden" id="cur" name="cur" value="1">
 							</div>
 						</div>
@@ -70,11 +70,22 @@
 							<input type="range" min="1" max="30" step="1" value="15" class="long" id="vol" oninput="sendVol()">
 						</div>
 						<div class="row">
-							<div>текст:</div>
-							<div><select name="txt" id="txt"></select></div>
+							<div>Текст</div>
+							<div><input type="text" name="text" value="" class="long"></div>
 						</div>
-						<div class="one small">
-							Текст берётся из "бегущих строк". Оттуда же и оформление. Чтобы строка была только в будильнике надо выбрать режим "по дням" и не выбирать дни.
+						<div class="row">
+							<div>Режим цвета</div>
+							<div>
+								<select name="color_mode" onchange="show_color_block()">
+									<option value="0">Один</option>
+									<option value="1">Радуга</option>
+									<option value="2">Разные</option>
+								</select>
+							</div>
+						</div>
+						<div class="row color0">
+							<div>Цвет цифр (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="color"></div>
+							<div class="fix"><input name="color" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
 						</div>
 					</div>
 					<button>Сохранить</button>
@@ -106,6 +117,7 @@ function update_info() {
 			if( a[3] == 0 && is_play ) test_ring();
 			if(fl_allowUpdate) show(a);
 			if( a[1] == 0 && ! is_play ) setTimeout(update_info, 2000);
+			else toggle_by_class("show_tracks", true);
 	}, dummy);
 	if(is_play) setTimeout(update_info, 2000);
 }
@@ -142,7 +154,11 @@ function show_edit(i) {
 		bit = bit << 1;
 	}
 	f.elements["melody"].value = doc[i].me;
-	f.elements["txt"].selectedIndex = doc[i].t+1;
+	f.elements["text"].value = doc[i].t;
+	f.elements["color_mode"].value = doc[i].cm;
+	f.elements["color"].value = doc[i].c;
+	init_color_demo();
+	show_color_block();
 	$g("return").setAttribute("onclick","ret();return false;");
 	$g("list").style.display = "none";
 	$g("edit").style.display = "block";
@@ -156,39 +172,33 @@ var texts = [];
 var doc = [];
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
-		ajaxRequest("texts.json","GET",null, function(ajaxResp) {
+		ajaxRequest("alarms.json", "GET", null, function(ajaxResp) {
 			doc = JSON.parse(ajaxResp.responseText);
-			$g("txt").appendChild($ee("option","_нет_",{value:-1}));
-			for(var i=0; i<doc.length; i++)
-				$g("txt").appendChild($ee("option", doc[i].t.length>30 ? doc[i].t.substring(0,17)+"..."+doc[i].t.substring(doc[i].t.length-10): doc[i].t, {value:i}));
-			ajaxRequest("alarms.json","GET",null, function(ajaxResp) {
-				doc = JSON.parse(ajaxResp.responseText);
-				var li = $g("list_items");
-				for(var i=0; i<doc.length; i++) {
-					var sp1 = $ee("span",print_time(i),{class:"big"});
-					var sp2 = $e("span",{class:"small"});
-					if(doc[i].s & 128) {
-						sp2.innerHTML = " Каждый день";
-					} else if(doc[i].s & 256) {
-						var days = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
-						var bit = 2;
-						for(var t=1; t<7; t++) {
-							if(doc[i].s & bit) sp2.innerHTML += " "+days[t];
-							bit = bit << 1;
-						}
-						if(doc[i].s & 1) sp2.innerHTML += " "+days[0];
-					} else {
-						sp2.innerHTML = " Один раз";
+			var li = $g("list_items");
+			for(var i=0; i<doc.length; i++) {
+				var sp1 = $ee("span",print_time(i),{class:"big"});
+				var sp2 = $e("span",{class:"small"});
+				var sp3 = doc[i].t.length ? $ee("div",doc[i].t,{class:"small top_line"}): "";
+				if(doc[i].s & 128) {
+					sp2.innerHTML = " Каждый день";
+				} else if(doc[i].s & 256) {
+					var days = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+					var bit = 2;
+					for(var t=1; t<7; t++) {
+						if(doc[i].s & bit) sp2.innerHTML += " "+days[t];
+						bit = bit << 1;
 					}
-					var fl = doc[i].s & 512;
-					var td1 = $em("td",[sp1,sp2],{class:(fl?"on":"off"),id:"t"+i,onclick:"show_edit("+i+")"});
-					var input = $e("input",{type:"checkbox",id:"e"+i,onchange:"toggle_edit("+i+",0)"});
-					if(fl) input.checked = true;
-					li.appendChild($em("tr",[td1,$ee("td",input)]));
+					if(doc[i].s & 1) sp2.innerHTML += " "+days[0];
+				} else {
+					sp2.innerHTML = " Один раз";
 				}
-				update_info();
-				$g("shadow").style.display = "none";
-			}, dummy);
+				var fl = doc[i].s & 512;
+				var td1 = $em("td",[sp1,sp2,sp3],{class:(fl?"on":"off"),id:"t"+i,onclick:"show_edit("+i+")"});
+				var input = $e("input",{type:"checkbox",id:"e"+i,onchange:"toggle_edit("+i+",0)"});
+				if(fl) input.checked = true;
+				li.appendChild($em("tr",[td1,$ee("td",input)]));
+			}
+			$g("shadow").style.display = "none";
 		}, dummy);
 	} else setTimeout(start, 100);
 }

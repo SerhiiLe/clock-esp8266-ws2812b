@@ -62,6 +62,8 @@ bool fileSend(String path);
 bool need_save = false;
 bool fl_mdns = false;
 
+bool fl_playStarted = false;
+
 // отключение веб сервера для активации режима настройки wifi
 void web_disable() {
 	HTTP.stop();
@@ -521,7 +523,6 @@ void reset_settings(int t) {
 		case 1: { // настройки будильников
 			LOG(println, PSTR("reset alarms"));
 			if(LittleFS.exists(F("/alarms.json"))) LittleFS.remove(F("/alarms.json"));
-			if(LittleFS.exists(F("/atexts.json"))) LittleFS.remove(F("/atexts.json"));
 			} break;
 		case 2: { // настройки бегущих строк
 			LOG(println, PSTR("reset texts"));
@@ -607,13 +608,18 @@ void save_alarm() {
 			need_save = true;
 		}
 		set_simple_int(F("melody"), alarms[target].melody, 1, mp3_all);
-		set_simple_int(F("txt"), alarms[target].text, -1, MAX_RUNNING-1);
+		set_simple_string(F("text"), alarms[target].text);
+		set_simple_int(F("color_mode"), alarms[target].color_mode, 0, 2);
+		set_simple_color(F("color"), alarms[target].color);
 	}
 	HTTP.sendHeader(F("Location"),F("/alarms.html"));
 	HTTP.send(303);
 	delay(1);
 	if( need_save ) save_config_alarms();
-	mp3_stop();
+	if(fl_playStarted) {
+		mp3_stop();
+		fl_playStarted = false;
+	}
 	initRString(PSTR("Будильник установлен"));
 }
 
@@ -646,7 +652,7 @@ void save_text() {
 		set_simple_string(F("text"), texts[target].text);
 		if( set_simple_int(F("period"), texts[target].period, 30, 3600) )
 			textTimer[target].setInterval(texts[target].period*1000U);
-		set_simple_int(F("color_mode"), texts[target].color_mode, 0, 3);
+		set_simple_int(F("color_mode"), texts[target].color_mode, 0, 2);
 		set_simple_color(F("color"), texts[target].color);
 		name = F("rmode");
 		if( HTTP.hasArg(name) ) settings |= constrain(HTTP.arg(name).toInt(), 0, 3) << 7;
@@ -734,16 +740,19 @@ void play() {
 			t = mp3_current - 1;
 			if(t<1) t=mp3_all;
 			mp3_play(t);
+			fl_playStarted = true;
 			break;
 		case 2: // следующий трек
 			t = mp3_current + 1;
 			if(t>mp3_all) t=1;
 			mp3_play(t);
+			fl_playStarted = true;
 			break;
 		case 3: // играть
 			repeat_mode(r);
 			delay(10);
 			mp3_play(c);
+			fl_playStarted = true;
 			break;
 		case 4: // пауза
 			mp3_pause();
@@ -753,6 +762,7 @@ void play() {
 			break;
 		case 6: // остановить
 			mp3_stop();
+			fl_playStarted = false;
 			break;
 		case 7: // тише
 			t = cur_Volume - 1;
@@ -776,7 +786,7 @@ void play() {
 			break;
 	}
 	char buff[20];
-	sprintf_P(buff,PSTR("%i:%i:%i:%i"),mp3_current,mp3_all,cur_Volume,mp3_isPlay());
+	sprintf_P(buff, PSTR("%i:%i:%i:%i"), mp3_current, mp3_all, cur_Volume, mp3_isPlay());
 	text_send(buff);
 }
 
@@ -1052,15 +1062,20 @@ void registration() {
 void save_quote() {
 	if(is_no_auth()) return;
 	need_save = false;
+	bool fl_change_color = false;
 
-	if( set_simple_checkbox(F("enabled"), qs.enabled) ) {
+	if(set_simple_checkbox(F("enabled"), qs.enabled)) {
 		// если цитаты отключили, то сбросить текущую цитату 
 		if( qs.enabled == 0 ) messages[MESSAGE_QUOTE].count = 0;
 	}
-	if( set_simple_int(F("period"), qs.period, 120, 3600) )
+	if(set_simple_int(F("period"), qs.period, 120, 3600))
 		messages[MESSAGE_QUOTE].timer.setInterval(1000U * qs.period);
-	if( set_simple_int(F("update"), qs.update, 0, 3) )
+	if(set_simple_int(F("update"), qs.update, 0, 3))
 		quoteUpdateTimer.setInterval(900000U * (qs.update+1));
+	if(set_simple_int(F("color_mode"), qs.color_mode, 0, 2))
+		fl_change_color = true;
+	if(set_simple_color(F("color"), qs.color))
+		fl_change_color = true;
 	set_simple_int(F("server"), qs.server, 0, 2);
 	set_simple_int(F("lang"), qs.lang, 0, 3);
 	set_simple_string(F("url"), qs.url);
@@ -1069,6 +1084,8 @@ void save_quote() {
 	set_simple_int(F("type"), qs.type, 0, 2);
 	set_simple_string(F("quote_field"), qs.quote_field);
 	set_simple_string(F("author_field"), qs.author_field);
+
+	if(fl_change_color) messages[MESSAGE_QUOTE].color = qs.color_mode > 0 ? qs.color_mode: qs.color;
 
 	HTTP.sendHeader(F("Location"),"/");
 	HTTP.send(303);
@@ -1087,9 +1104,10 @@ void show_quote() {
 
 const char help[] PROGMEM = R"""(
 (h)elp - this help
-(m)sg="text" - show this "text" on the matrix
+(m)sg="text" or (t)ext="text" - show this "text" on the matrix
 (c)nt=5 - show 5 times (2 by default, max 100)
 (i)nt=60 - show with interval 60 seconds (30 by default, max 600)
+(d)ue=1 - color mode (1-rainbow or 2-different) or color in hex (FFFFFF or FFF)
 )""";
 
 void show() {
@@ -1097,6 +1115,7 @@ void show() {
 	bool fl_msg = false;
 	bool fl_cnt = false;
 	bool fl_int = false;
+	bool fl_due = false;
 	bool cond = false;
 	int num_args = HTTP.args();
 	if(num_args==0) {
@@ -1110,7 +1129,7 @@ void show() {
 			HTTP.send_P(200, PSTR("text/plain"), help);
 			LOG(println, F("show: send help"));
 		}
-		if(arg_name.startsWith("m")) {
+		if(arg_name.startsWith("m") || arg_name.startsWith("t")) {
 			messages[MESSAGE_WEB].text = HTTP.arg(i);
 			if(messages[MESSAGE_WEB].text.length() > 1) fl_msg = true;
 		}
@@ -1122,6 +1141,15 @@ void show() {
 			messages[MESSAGE_WEB].timer.setInterval(constrain(HTTP.arg(i).toInt()*1000, 15000, 600000));
 			fl_int = true;
 		}
+		if(arg_name.startsWith("d")) {
+			int color = HTTP.arg(i).toInt();
+			if( color == 1 || color == 2 ) {
+				messages[MESSAGE_WEB].color = color;
+			} else {
+				messages[MESSAGE_WEB].color = text_to_color(HTTP.arg(i).c_str());
+			}
+			fl_due = true;
+		}
 		if(arg_name.startsWith("w")) {
 			fl_web = true;
 		}
@@ -1129,6 +1157,7 @@ void show() {
 	if( fl_msg ) {
 		if( ! fl_cnt ) messages[MESSAGE_WEB].count = 2;
 		if( ! fl_int ) messages[MESSAGE_WEB].timer.setInterval(30000);
+		if( ! fl_due ) messages[MESSAGE_WEB].color = 1;
 		cond = true;
 	} else
 		messages[MESSAGE_WEB].count = 0;
@@ -1144,12 +1173,17 @@ void save_weather() {
 	if(is_no_auth()) return;
 	need_save = false;
 	bool need_weather = false;
+	bool fl_change_color = false;
 
 	need_weather = set_simple_checkbox(F("weather"), ws.weather);
-	if( set_simple_int(F("sync_weather_period"), ws.sync_weather_period, 15, 1439) )
+	if(set_simple_int(F("sync_weather_period"), ws.sync_weather_period, 15, 1439))
 		syncWeatherTimer.setInterval(60000U * ws.sync_weather_period);
-	if( set_simple_int(F("show_weather_period"), ws.show_weather_period, 30, 3600) )
+	if(set_simple_int(F("show_weather_period"), ws.show_weather_period, 30, 3600))
 		messages[MESSAGE_WEATHER].timer.setInterval(1000U * ws.show_weather_period);
+	if(set_simple_int(F("color_mode"), ws.color_mode, 0, 2))
+		fl_change_color = true;
+	if(set_simple_color(F("color"), ws.color))
+		fl_change_color = true;
 	set_simple_checkbox(F("weather_code"), ws.weather_code);
 	set_simple_checkbox(F("temperature"), ws.temperature);
 	set_simple_checkbox(F("a_temperature"), ws.a_temperature);
@@ -1162,6 +1196,8 @@ void save_weather() {
 	set_simple_checkbox(F("wind_gusts"), ws.wind_gusts);
 	set_simple_checkbox(F("pressure_dir"), ws.pressure_dir);
 	set_simple_checkbox(F("forecast"), ws.forecast);
+
+	if(fl_change_color) messages[MESSAGE_WEATHER].color = ws.color_mode > 0 ? ws.color_mode: ws.color;
 
 	HTTP.sendHeader(F("Location"),"/");
 	HTTP.send(303);
@@ -1182,3 +1218,4 @@ void show_weather() {
 	char txt[512];
 	text_send(String(generate_weather_string(txt)));
 }
+

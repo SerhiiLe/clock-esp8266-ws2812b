@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<header>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Instant text</title>
+	<style>
+		div#shadow {background-color:rgba(0,0,0,0.8); z-index:2000; width:100%; height:100%; position:absolute; left:0; top:0;}
+		div#shadow div {position: absolute; top: 50%; transform: translate(-50%, -50%); left: 50%; margin-right: -50%; font-size: x-large; color: yellow;}
+	</style>
+	<link rel="stylesheet" href="styles.css">
+	<link rel="icon" href="favicon.ico">
+	<link rel="shortcut icon" sizes="192x192" href="android-icon.png">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<script src="functions.js" type="text/javascript" encoding="UTF-8"></script>
+</header>
+<html>
+	<body>
+		<div class="head">
+			Управление часами.
+			<div>разовый текст</div>
+		</div>
+		<div class="content">
+			<form action="show" autocomplete="off" method="post" name="settings" onsubmit="calc_color()">
+				<input type="hidden" name="web" value="1">
+				<input type="hidden" name="due" value="1">
+				<div class="holder narrow">
+					<div class="one">
+						<div>Текст:</div>
+						<input type="text" name="msg" class="long">
+					</div>
+					<div class="row">
+						<div>Режим цвета</div>
+						<div>
+							<select name="color_mode" onchange="show_color_block()">
+								<option value="0">Один</option>
+								<option value="1" selected>Радуга</option>
+								<option value="2">Разные</option>
+							</select>
+						</div>
+					</div>
+					<div class="row color0">
+						<div>Цвет цифр (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="color"></div>
+						<div class="fix"><input name="color" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
+					</div>
+					<div class="row">
+						<div>Количество повторов</div>
+						<div><input type="number" value="2" name="cnt"></div>
+					</div>
+					<div class="row">
+						<div>Интервал повторов</div>
+						<div>
+							<select name="int">
+								<option value="15">15 сек.</option>
+								<option value="30" selected>30 сек.</option>
+								<option value="60">1 мин.</option>
+								<option value="120">2 мин.</option>
+								<option value="300">5 мин.</option>
+								<option value="600">10 мин.</option>
+							</select>
+						</div>
+					</div>
+				</div>
+				<button>Запустить</button>
+			</form>
+		</div>
+		<div class="footer">
+			<a href="maintenance.html" id="return">Вернуться</a>
+		</div>
+		<div id="debug"><div>
+		<div id="shadow"><div>Загрузка...</div></div>
+	</body>
+<script type="text/javascript" encoding="UTF-8">
+function calc_color() {
+	const f = document.forms["settings"];
+	if(f.elements["color_mode"].value > 0)
+		f.elements["due"].value = f.elements["color_mode"].value;
+	else
+		f.elements["due"].value = f.elements["color"].value;
+}
+function start() {
+	if (typeof ajaxRequest !== "undefined") {
+		init_color_demo();
+		show_color_block();
+		$g("shadow").style.display = "none";
+	} else setTimeout(start, 100);
+}
+start();
+</script>
+</html>

@@ -308,7 +308,9 @@ bool load_config_alarms() {
 		alarms[i].hour = doc[i]["h"];
 		alarms[i].minute = doc[i]["m"];
 		alarms[i].melody = doc[i]["me"];
-		alarms[i].text = doc[i]["t"];
+		alarms[i].text = doc[i]["t"].as<String>();
+		alarms[i].color_mode = doc[i]["cm"];
+		alarms[i].color = text_to_color(doc[i]["c"]);
 	}
 
 	LOG(println, PSTR("Alarms config loaded."));
@@ -325,6 +327,8 @@ void save_config_alarms() {
 		doc[i]["m"] = alarms[i].minute;
 		doc[i]["me"] = alarms[i].melody;
 		doc[i]["t"] = alarms[i].text;
+		doc[i]["cm"] = alarms[i].color_mode;
+		doc[i]["c"] = color_to_text(alarms[i].color);
 	}
 
 	File configFile = LittleFS.open(F("/alarms.json"), "w"); // открытие файла на запись
@@ -563,6 +567,8 @@ bool load_config_quote() {
 	qs.enabled = doc[F("enabled")];
 	qs.period = doc[F("period")];
 	qs.update = doc[F("update")];
+	qs.color_mode = doc[F("color_mode")];
+	qs.color = text_to_color(doc[F("color")]);
 	qs.server = doc[F("server")];
 	qs.lang = doc[F("lang")];
 	qs.url = doc[F("url")].as<String>();
@@ -585,6 +591,8 @@ void save_config_quote() {
 	doc[F("enabled")] = qs.enabled;
 	doc[F("period")] = qs.period;
 	doc[F("update")] = qs.update;
+	doc[F("color_mode")] = qs.color_mode;
+	doc[F("color")] = color_to_text(qs.color);
 	doc[F("server")] = qs.server;
 	doc[F("lang")] = qs.lang;
 	doc[F("url")] = qs.url;
@@ -629,6 +637,8 @@ bool load_config_weather() {
 	ws.weather = doc[F("weather")];
 	ws.sync_weather_period = doc[F("sync_weather_period")];
 	ws.show_weather_period = doc[F("show_weather_period")];
+	ws.color_mode = doc[F("color_mode")];
+	ws.color = text_to_color(doc[F("color")]);
 	ws.weather_code = doc[F("weather_code")];
 	ws.temperature = doc[F("temperature")];
 	ws.a_temperature = doc[F("a_temperature")];
@@ -655,6 +665,8 @@ void save_config_weather() {
 	doc[F("weather")] = ws.weather;
 	doc[F("sync_weather_period")] = ws.sync_weather_period;
 	doc[F("show_weather_period")] = ws.show_weather_period;
+	doc[F("color_mode")] = ws.color_mode;
+	doc[F("color")] = color_to_text(ws.color);
 	doc[F("weather_code")] = ws.weather_code;
 	doc[F("temperature")] = ws.temperature;
 	doc[F("a_temperature")] = ws.a_temperature;

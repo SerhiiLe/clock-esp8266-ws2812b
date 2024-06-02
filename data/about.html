@@ -56,9 +56,12 @@
 					<li>http://hostname/show?msg=MESSAGE_TO_SEND - для разового показа сообщения.</li>
 					<li>http://hostname/show?msg=MESSAGE_TO_SEND&cnt=XX - для показа сообщений XX раз каждые 30 секунд.</li>
 					<li>http://hostname/show?msg=MESSAGE_TO_SEND&cnt=XX&int=YY - для показа сообщений XX раз c интервалом YY секунд.</li>
+					<li>http://hostname/show?msg=MESSAGE_TO_SEND&cnt=XX&int=YY&due=FFF - для показа сообщений XX раз c интервалом YY секунд цветом FFF.</li>
+					<li>http://hostname/show?help - подсказка по параметрам.</li>
 					<li>http://hostname/who - отвечает названием часов.</li>
 				</ul>
-				Можно сокращать msg, cnt, int до m, c, i.
+				Можно сокращать msg, cnt, int, due до m, c, i, d.<br>
+				Обязательным является только msg (можно писать text), остальные параметры получат значения по умолчанию: 2 повтора, через 30 секунд, цвет "радуга".
 			</p>
 			<p>
 				Управление часами только через Web, так как бессмысленно управлять кучей опций парой кнопок. Однако есть одна кнопка и датчик движения. Датчик движения

@@ -42,22 +42,19 @@ bool syncTime() {
 		}
 		return false;
 	}
-	// время установлено, но мы не знаем оно установленно вручную или как ответ за посланный запрос, по этому для уверенности ждём время таймаута.
-	// что в итоге будет, то и считать правильным временем.
-	if((millis() - request_time) > REQUEST_TIMEOUT) {
-		if(fl_needStartTime) {
-			start_time = now - millis()/1000;
-			fl_needStartTime = false;
-			if(sec_enable) save_log_file(SEC_TEXT_BOOT);
-			last_telegram = now;
-		}
-		DuskTillDawn();
-		fl_timeNotSync = false;
-		fl_ntpRequestIsSend = false;
-		LOG(println, PSTR("time probably is synced"));
-		return true;
+	// время установлено
+	if(fl_needStartTime) {
+		// это первое обновление времени после включения, вычисление времени запуска с учётом времени на получение времени и запись в лог
+		start_time = now - millis()/1000;
+		fl_needStartTime = false;
+		if(sec_enable) save_log_file(SEC_TEXT_BOOT);
+		last_telegram = now;
 	}
-	return false;
+	DuskTillDawn();
+	fl_timeNotSync = false;
+	fl_ntpRequestIsSend = false;
+	LOG(println, PSTR("time is synced"));
+	return true;
 }
 
 // Function that gets current epoch time

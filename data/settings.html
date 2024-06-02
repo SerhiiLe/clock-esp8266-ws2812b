@@ -36,22 +36,22 @@
 						<div><input name="max_alarm_time" type="number" value="5"></div>
 					</div>
 					<div class="row">
-						<div>Время работы бегущей строки</div>
+						<div>Ночной режим <span class="small">(отключается отображение всего, кроме времени)</div>
 						<div>
 							<select name="run_allow" onchange="show_run_block()">
-								<option value="0">Всегда</option>
+								<option value="0">Отключен</option>
 								<option value="1">от и до</option>
-								<option value="2">Откл.</option>
+								<option value="2">Всегда</option>
 							</select>
 						</div>
 					</div>
 					<div class="row timerun">
-						<div>Время с которого отображать</div>
-						<div><input type="time" name="run_begin" value="00:00"></div>
+						<div>Время начала ночного режима</div>
+						<div><input type="time" name="run_end" value="00:00"></div>
 					</div>
 					<div class="row timerun">
-						<div>Время до которого отображать</div>
-						<div><input type="time" name="run_end" value="00:00"></div>
+						<div>Время окончания ночного режима</div>
+						<div><input type="time" name="run_begin" value="00:00"></div>
 					</div>
 					<div class="row">
 						<div>Использовать широкий шрифт</div>
@@ -130,7 +130,7 @@
 					<div class="row">
 						<div>Режим цвета времени</div>
 						<div>
-							<select name="time_color" onchange="show_color_block()">
+							<select name="time_color" onchange="show_color_block1()">
 								<option value="0">Один</option>
 								<option value="1">Радуга</option>
 								<option value="2">Разные</option>
@@ -161,7 +161,7 @@
 					<div class="row">
 						<div>Режим цвета даты</div>
 						<div>
-							<select name="date_color" onchange="show_color_block2()">
+							<select name="date_color" onchange="show_color_block('color00','date_color')">
 								<option value="0">Один</option>
 								<option value="1">Радуга</option>
 								<option value="2">Разные</option>
@@ -290,7 +290,7 @@ function show_run_block() {
 			toggle_by_class("timerun",true);
 	}
 }
-function show_color_block() {
+function show_color_block1() {
 	switch(document.forms["settings"].elements["time_color"].value) {
 		case "0":
 			toggle_by_class("color0",true);
@@ -320,16 +320,7 @@ function show_dots_block() {
 		default:
 			toggle_by_class("dots",false);
 	}
-	show_color_block();
-}
-function show_color_block2() {
-	switch(document.forms["settings"].elements["date_color"].value) {
-		case "0":
-			toggle_by_class("color00",true);
-			break;
-		default:
-			toggle_by_class("color00",false);
-	}
+	show_color_block1();
 }
 function updateBr() {
 	$g("brV").innerHTML = $g("brC").value;
@@ -376,8 +367,8 @@ function start() {
 	if (typeof ajaxRequest !== "undefined") {
 		fill_settings("config.json","settings", () => {
 			show_run_block();
-			show_color_block();
-			show_color_block2();
+			show_color_block('color00','date_color');
+			show_color_block1();
 			show_dots_block();
 			show_bright_block();
 			init_color_demo();

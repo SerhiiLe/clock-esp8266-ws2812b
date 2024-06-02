@@ -55,6 +55,12 @@ function init_color_demo() {
 		color_text(t[i].parentNode, $gn(t[i].id)[0].value);
 	}
 };
+function show_color_block(cl="color0", el="color_mode", frm="settings") {
+	if(document.forms[frm].elements[el].value == 0)
+		toggle_by_class(cl,true);
+	else
+		toggle_by_class(cl,false);
+};
 function ret() {
 	$g("return").removeAttribute("onclick");
 	$g("list").style.display = "table";
