@@ -12,7 +12,7 @@
 #define LET_HEIGHT 8      // высота буквы шрифта
 #define SPACE 1           // пробел
 
-#define MAX_LENGTH 256
+#define MAX_LENGTH 1024
 // --------------------- ДЛЯ РАЗРАБОТЧИКОВ ----------------------
 
 int16_t currentOffset = WIDTH;

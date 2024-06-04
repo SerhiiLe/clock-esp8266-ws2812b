@@ -378,7 +378,7 @@ String digJSON(String& str, const char* search, bool json=true) {
 	return String("");
 }
 
-// обрезание лишних 
+// обрезание лишних
 void myTrim(String& str) {
 	str.replace("\n", "");
 	str.replace("\r", "");
@@ -398,10 +398,10 @@ void parseQuote(String txt, bool type=true) {
 		messages[MESSAGE_QUOTE].color = qs.color_mode > 0 ? qs.color_mode: qs.color;
 	}
 	#ifdef DEBUG
-	if( messages[MESSAGE_QUOTE].text.length() == 0 )
-		LOG(printf_P, PSTR("Error parse JSON/XML.\nSource:\n%s\n"), txt.c_str());
-	else
+	if( messages[MESSAGE_QUOTE].text.length() > 15 ) // 15 - длина префикса "Цитата: "
 		LOG(printf_P, PSTR("Quote: %s\n"), messages[MESSAGE_QUOTE].text.c_str());
+	else
+		LOG(printf_P, PSTR("Error parse JSON/XML.\nSource:\n%s\n"), txt.c_str());
 	#endif
 }
 

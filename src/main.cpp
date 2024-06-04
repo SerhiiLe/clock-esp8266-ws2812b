@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief Clock
- * @version 2.1.0
- * @date 2024-06-02
+ * @version 2.1.1
+ * @date 2024-06-04
  * 
  * @copyright Copyright (c) 2021,2022,2023,2024
  */
@@ -272,9 +272,10 @@ void network_pool() {
 		}
 		if(fl_run_allow) {
 			// обновление цитат с сервера
-			if(qs.enabled && (quoteUpdateTimer.isReady() || messages[MESSAGE_QUOTE].count == 0) ) quoteUpdate();
+			if(qs.enabled && quoteUpdateTimer.isReady()) quoteUpdate();
 			// обновление погоды с сервера
-			if(ws.weather && (syncWeatherTimer.isReady() || messages[MESSAGE_WEATHER].count == 0)) weatherUpdate();
+			if(ws.weather && syncWeatherTimer.isReady()) weatherUpdate();
+			// при сбоях сети повтор будет не раньше, чем новое время синхронизации, а до тех пор выводится старая информация
 		}
 		// если был отправлен запрос на NTP сервер, то подождать и выполнить операции, как будто он выполнился
 		if( fl_ntpRequestIsSend )
@@ -472,7 +473,7 @@ void loop() {
 		last_move = millis(); // как включение, так и выключение датчика сбрасывает таймер
 		fl_action_move = cur_motion;
 		if(!fl_5v) {
-			// если питания нет, а датчик движения сработал, то питать матрицу от аккумулятора
+			// если питания нет, а датчик движения сработал, то питать матрицу от аккумулятора, но не раньше, чем пройдёт задержка max_move/2
 			if(cur_motion && millis()-last_screen_no5V>(gs.max_move)*500L) {
 				fl_allowLEDS = cur_motion;
 				digitalWrite(PIN_RELAY, RELAY_OP(cur_motion));

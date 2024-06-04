@@ -20,27 +20,13 @@
 			<div>разовый текст</div>
 		</div>
 		<div class="content">
-			<form action="show" autocomplete="off" method="post" name="settings" onsubmit="calc_color()">
+			<form action="show" autocomplete="off" method="post" name="text" onsubmit="calc_color()">
 				<input type="hidden" name="web" value="1">
 				<input type="hidden" name="due" value="1">
 				<div class="holder narrow">
 					<div class="one">
 						<div>Текст:</div>
 						<input type="text" name="msg" class="long">
-					</div>
-					<div class="row">
-						<div>Режим цвета</div>
-						<div>
-							<select name="color_mode" onchange="show_color_block()">
-								<option value="0">Один</option>
-								<option value="1" selected>Радуга</option>
-								<option value="2">Разные</option>
-							</select>
-						</div>
-					</div>
-					<div class="row color0">
-						<div>Цвет цифр (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="color"></div>
-						<div class="fix"><input name="color" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
 					</div>
 					<div class="row">
 						<div>Количество повторов</div>
@@ -59,8 +45,22 @@
 							</select>
 						</div>
 					</div>
+					<div class="row">
+						<div>Режим цвета</div>
+						<div>
+							<select name="xx" onchange="show_color_block('color0','xx','text')">
+								<option value="0">Один</option>
+								<option value="1" selected>Радуга</option>
+								<option value="2">Разные</option>
+							</select>
+						</div>
+					</div>
+					<div class="row color0">
+						<div>Цвет цифр (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="xxx"></div>
+						<div class="fix"><input name="xxx" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
+					</div>
 				</div>
-				<button>Запустить</button>
+				<button onclick="calc_color()">Запустить</button>
 			</form>
 		</div>
 		<div class="footer">
@@ -71,16 +71,16 @@
 	</body>
 <script type="text/javascript" encoding="UTF-8">
 function calc_color() {
-	const f = document.forms["settings"];
-	if(f.elements["color_mode"].value > 0)
-		f.elements["due"].value = f.elements["color_mode"].value;
+	const f = document.forms["text"];
+	if(f.elements["xx"].value > 0)
+		f.elements["due"].value = f.elements["xx"].value;
 	else
-		f.elements["due"].value = f.elements["color"].value;
+		f.elements["due"].value = f.elements["xxx"].value;
 }
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
 		init_color_demo();
-		show_color_block();
+		show_color_block('color0','xx','text');
 		$g("shadow").style.display = "none";
 	} else setTimeout(start, 100);
 }
