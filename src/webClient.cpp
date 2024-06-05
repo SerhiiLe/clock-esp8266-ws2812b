@@ -395,7 +395,6 @@ void parseQuote(String txt, bool type=true) {
 	if( s.length() > 1 ) {
 		myTrim(s);
 		messages[MESSAGE_QUOTE].text += ( s[0] == '-' || s[1] == ' ' ) ? " " + s: " (" + s + ")"; // perl я программист старый просто
-		messages[MESSAGE_QUOTE].color = qs.color_mode > 0 ? qs.color_mode: qs.color;
 	}
 	#ifdef DEBUG
 	if( messages[MESSAGE_QUOTE].text.length() > 15 ) // 15 - длина префикса "Цитата: "
@@ -451,6 +450,7 @@ void quoteGet() {
 			}
 			messages[MESSAGE_QUOTE].count = 100;
 			messages[MESSAGE_QUOTE].timer.setInterval(1000U * (qs.period+1));
+			messages[MESSAGE_QUOTE].color = qs.color_mode > 0 ? qs.color_mode: qs.color;
 		}
 		httpReq.end();
 	}

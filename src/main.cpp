@@ -198,11 +198,15 @@ bool boot_check() {
 				initRString(PSTR("Создан новый файл настроек погоды."));
 			}
 			break;
-		case 9:
+		case 9: // Подключение к WiFi или запуск режима AP и портала подключения
 			wifi_setup();
 			break;
-		case 10:
+		case 10: // Инициализация телеграм-бота
 			init_telegram();
+			break;
+		case 11: // Сброс таймеров обновления погоды и цитат, для быстрого первого запроса
+			syncWeatherTimer.setReady();
+			quoteUpdateTimer.setReady();
 			break;
 
 		default:

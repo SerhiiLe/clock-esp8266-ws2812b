@@ -15,11 +15,12 @@ class timerMinim
 		void setInterval(uint32_t interval) {
 			_interval = interval;
 		}
-		// возвращает true, когда пришло время. Сбрасывается в false сам (AUTO) или вручную (MANUAL)
+		// возвращает true, когда пришло время.
 		boolean isReady() {
-			if (millis() - _timer >= _interval) {
-			_timer = millis();
-			return true;
+			if(millis() - _timer >= _interval || is_ready) {
+				_timer = millis();
+				is_ready = false;
+				return true;
 			} else {
 				return false;
 			}
@@ -30,12 +31,13 @@ class timerMinim
 		}
 		// ручное взведение таймера на сработку
 		void setReady() {
-			_timer = 0;
+			is_ready = true;
 		}
 
 	private:
 		unsigned long _timer = 0;
 		uint32_t _interval = 0;
+		bool is_ready = false;
 };
 
 #endif
