@@ -174,7 +174,7 @@ const char* generate_weather_string(char* a) {
 	if( ws.humidity ) pos += sprintf_P(pos, PSTR(" влажность %u%%"), wd.humidity);
 	if( ws.cloud ) pos += sprintf_P(pos, PSTR(" облачность %u%%"), wd.cloud_cover);
 	if( ws.pressure ) pos += sprintf_P(pos, PSTR(" давление %1.0f hPa"), wd.pressure);
-	if( ws.wind_speed && wd.wind_speed < 3 ) pos += sprintf_P(pos, PSTR(" Штиль"));
+	if( ws.wind_speed && wd.wind_speed < 2 ) pos += sprintf_P(pos, PSTR(" Штиль"));
 	else {
 		if( ws.wind_speed && ws.wind_gusts ) pos += sprintf_P(pos, PSTR(" ветер %1.0f\xe2\x80\xa6%1.0fм/сек."), wd.wind_speed, wd.wind_gusts);
 		else if( ws.wind_speed ) pos += sprintf_P(pos, PSTR(" ветер %1.0fм/сек."), wd.wind_speed);
@@ -209,6 +209,7 @@ uint8_t parseWeather(const char* json) {
 	const char current[] = "current";
 	wd.utc_offset_seconds = doc[F("utc_offset_seconds")];
 	time_t cur_time = doc[current][F("time")];
+	int16_t interval = doc[current][F("interval")];
 	wd.temperature = doc[current][F("temperature_2m")];
 	wd.apparent_temperature = doc[current][F("apparent_temperature")];
 	wd.humidity = doc[current][F("relative_humidity_2m")];
@@ -244,7 +245,7 @@ uint8_t parseWeather(const char* json) {
 		delay(1);
 		syncTime();
 	} else
-	if( abs(cur_time - getTimeU()) > 300 ) {
+	if( abs(cur_time - getTimeU()) > (interval + 100) ) {
 		LOG(printf_P,PSTR("To big time drift (%+li sec.), request time sync."), cur_time - getTimeU());
 		syncTime();
 	}
@@ -397,9 +398,7 @@ void parseQuote(String txt, bool type=true) {
 		messages[MESSAGE_QUOTE].text += ( s[0] == '-' || s[1] == ' ' ) ? " " + s: " (" + s + ")"; // perl я программист старый просто
 	}
 	#ifdef DEBUG
-	if( messages[MESSAGE_QUOTE].text.length() > 15 ) // 15 - длина префикса "Цитата: "
-		LOG(printf_P, PSTR("Quote: %s\n"), messages[MESSAGE_QUOTE].text.c_str());
-	else
+	if( messages[MESSAGE_QUOTE].text.length() <= 15 ) // 15 - длина префикса "Цитата: "
 		LOG(printf_P, PSTR("Error parse JSON/XML.\nSource:\n%s\n"), txt.c_str());
 	#endif
 }
@@ -451,6 +450,7 @@ void quoteGet() {
 			messages[MESSAGE_QUOTE].count = 100;
 			messages[MESSAGE_QUOTE].timer.setInterval(1000U * (qs.period+1));
 			messages[MESSAGE_QUOTE].color = qs.color_mode > 0 ? qs.color_mode: qs.color;
+			LOG(printf_P, PSTR("Quote: %s\n"), messages[MESSAGE_QUOTE].text.c_str());
 		}
 		httpReq.end();
 	}

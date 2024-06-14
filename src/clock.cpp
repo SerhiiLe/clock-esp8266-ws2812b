@@ -9,25 +9,41 @@
 
 extern bool fl_timeNotSync;
 
-const char* clockCurrentText(char *a) {
+const char* clockCurrentText(char *a, bool fl_12) {
+	char c = millis() & 512 ?':':' ';
 	if( fl_timeNotSync ) {
-		sprintf_P(a, PSTR("--%c--"), millis() & 512 ?':':' ');
+		sprintf_P(a, PSTR("--%c--"), c);
 	} else {
 		tm t = getTime();
-		sprintf_P(a, PSTR("%02u%c%02u"), t.tm_hour, millis() & 512 ?':':' ', t.tm_min);
+		uint8_t hour = t.tm_hour;
+		if(fl_12) {
+			if(hour > 12) hour -= 12;
+			if(hour == 0) hour = 12;
+		}
+		sprintf_P(a, PSTR("%02u%c%02u"), hour, c, t.tm_min);
 		if(a[0] == '0') a[0] = ' ';
 	}
 	return a;
 }
 
 // вывод в строку текущего времени для крошечного шрифта
-const char* clockTinyText(char *a) {
+const char* clockTinyText(char *a, bool fl_12) {
+	char c = millis() & 512 ?':': 0x7f;
 	if( fl_timeNotSync ) {
-		char c = millis() & 512 ?':':' ';
-		sprintf_P(a, PSTR("00%c  %c  "), c, c);
+		sprintf_P(a, PSTR("--%c--%c--"), c, c);
 	} else {
 		tm t = getTime();
-		sprintf_P(a, PSTR("%02u:%02u:%02u"), t.tm_hour, t.tm_min, t.tm_sec);
+		if(fl_12) {
+			uint8_t hour = t.tm_hour;
+			char AmPm[] = "am";
+			if(hour>12) {
+				hour-=12;
+				strcpy(AmPm,"pm");
+			}
+			if(hour == 0) hour = 12;
+			sprintf_P(a, PSTR("%02u%c%02u\x7f%s"), hour, c, t.tm_min, AmPm);
+		} else 
+			sprintf_P(a, PSTR("%02u%c%02u%c%02u"), t.tm_hour, c, t.tm_min, c, t.tm_sec);
 		if(a[0] == '0') a[0] = ' ';
 	}
 	return a;

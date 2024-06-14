@@ -171,7 +171,7 @@ bool is_no_auth() {
 	// String authFailResponse = "Authentication Failed";
 	if(gs.web_login.length() > 0 && gs.web_password.length() > 0 )
 		if(!HTTP.authenticate(gs.web_login.c_str(), gs.web_password.c_str())) {
-		    //Basic Auth Method with Custom realm and Failure Response
+			//Basic Auth Method with Custom realm and Failure Response
 			//return server.requestAuthentication(BASIC_AUTH, www_realm, authFailResponse);
 			//Digest Auth Method with realm="Login Required" and empty Failure Response
 			//return server.requestAuthentication(DIGEST_AUTH);
@@ -266,7 +266,7 @@ const char* jsonEncode(char* buf, const char *str, size_t max_length) {
 			buf[p++] = 'u';
 			// utf8 -> utf16
 			if( c >> 5 == 6 ) {
-		        uint16_t cc = ((uint16_t)(str[i-1] & 0x1F) << 6);
+				uint16_t cc = ((uint16_t)(str[i-1] & 0x1F) << 6);
 				cc |= (uint16_t)(str[i++] & 0x3F);
 				print_byte(buf, (byte)(cc>>8), p);
 				print_byte(buf, (byte)(cc&0xff), p);
@@ -396,8 +396,9 @@ void save_settings() {
 	if( set_simple_checkbox(F("tz_dst"), gs.tz_dst) )
 		sync_time = true;
 	set_simple_checkbox(F("tz_adjust"), gs.tz_adjust);
-	set_simple_int(F("tiny_clock"), gs.tiny_clock, 0, 5);
+	set_simple_int(F("tiny_clock"), gs.tiny_clock, 0, 8);
 	set_simple_int(F("dots_style"), gs.dots_style, 0, 11);
+	set_simple_checkbox(F("t12h"), gs.t12h);
 	set_simple_checkbox(F("date_short"), gs.show_date_short);
 	if( set_simple_int(F("date_period"), gs.show_date_period, 20, 1439) )
 		clockDate.setInterval(1000U * gs.show_date_period);

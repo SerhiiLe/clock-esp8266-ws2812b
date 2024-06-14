@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief Clock
- * @version 2.1.1
- * @date 2024-06-04
+ * @version 2.1.2
+ * @date 2024-06-14
  * 
  * @copyright Copyright (c) 2021,2022,2023,2024
  */
@@ -615,22 +615,29 @@ void loop() {
 	// если всё уже показано, то вывести время
 	if(!fl_demo && screenIsFree && clockTimer.isReady()) {
 		switch (gs.tiny_clock) {
-			case FONT_WIDE: // широкий шрифт
-				clockCurrentText(timeString);
+			case FONT_BOLD: // толстый шрифт
+			case FONT_WIDE: // широкий
+				clockCurrentText(timeString, gs.t12h);
 				changeDots(timeString);
-				printMedium(timeString, FONT_WIDE, 0);
+				printMedium(timeString, gs.tiny_clock, 0);
 				break;
-			case FONT_NARROW: // узкий
+			case FONT_HIGHT:
+				clockCurrentText(timeString, gs.t12h);
+				changeDots(timeString);
+				printMedium(timeString, gs.tiny_clock, CLOCK_SHIFT);
+				break;
+			case FONT_NARROW: // узкий высокий
+			case FONT_NARROW2: // узкий короткий
 			case FONT_DIGIT: // цифровой
-			case FONT_DIGIT2: // цифровой2
-				clockTinyText(timeString);
+			case FONT_DIGIT2: // цифровой толстый
+				clockTinyText(timeString, gs.t12h);
 				printMedium(timeString, FONT_TINY, printMedium(timeString, gs.tiny_clock, 0) + 1, 8, 6);
 				break;
 			case FONT_TINY: // крошечный
-				printMedium(clockTinyText(timeString), FONT_TINY, 3, 8);
+				printMedium(clockTinyText(timeString, gs.t12h), FONT_TINY, 3, 8);
 				break;
 			default:
-				clockCurrentText(timeString);
+				clockCurrentText(timeString, gs.t12h);
 				changeDots(timeString);
 				initRString(timeString, gs.show_time_color > 0 ? gs.show_time_color: gs.show_time_color0, CLOCK_SHIFT);
 				break;

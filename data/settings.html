@@ -92,11 +92,14 @@
 						<div>
 							<select name="tiny_clock" onchange="show_dots_block()">
 								<option value="0">Обычный</option>
-								<option value="1">Широкий</option>
-								<option value="2">Узкий</option>
-								<option value="3">Цифровой</option>
-								<option value="4">Цифровой2</option>
-								<option value="5">Крошечный</option>
+								<option value="1">Высокий</option>
+								<option value="2">Толстый</option>
+								<option value="3">Широкий</option>
+								<option value="4">Узкий</option>
+								<option value="5">Узкий2</option>
+								<option value="6">Цифровой</option>
+								<option value="7">Цифровой2</option>
+								<option value="8">Крошечный</option>
 							</select>
 						</div>
 					</div>
@@ -118,6 +121,10 @@
 								<option value="11">Статичный</option>
 							</select>
 						</div>
+					</div>
+					<div class="row">
+						<div>Формат 12h am/pm вместо 24h</div>
+						<div><input name="t12h" type="checkbox" value="1"></div>
 					</div>
 					<div class="row">
 						<div>Сокращенный формат даты</div>
@@ -300,7 +307,7 @@ function show_color_block1() {
 		case "3":
 			toggle_by_class("color0",false);
 			toggle_by_class("color3",true);
-			if(document.forms["settings"].elements["tiny_clock"].value > 1 )
+			if(document.forms["settings"].elements["tiny_clock"].value > 3 )
 				toggle_by_class("color4",true);
 			else
 				toggle_by_class("color4",false);
@@ -315,6 +322,8 @@ function show_dots_block() {
 	switch(document.forms["settings"].elements["tiny_clock"].value) {
 		case "0":
 		case "1":
+		case "2":
+		case "3":
 			toggle_by_class("dots",true);
 			break;
 		default:
