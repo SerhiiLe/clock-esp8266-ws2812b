@@ -36,8 +36,8 @@ const char* clockTinyText(char *a, bool fl_12) {
 		if(fl_12) {
 			uint8_t hour = t.tm_hour;
 			char AmPm[] = "am";
-			if(hour>12) {
-				hour-=12;
+			if(hour >= 12) {
+				hour -= 12;
 				strcpy(AmPm,"pm");
 			}
 			if(hour == 0) hour = 12;
