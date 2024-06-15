@@ -63,7 +63,11 @@ uint8_t getFont(uint32_t letter, uint8_t col) {
 		cn = 13;
 	else if( letter == 0xe280a6 ) // ...
 		cn = 172;
-	else 
+	else if( letter == 0xc2a0 ) // "NO-BREAK SPACE"
+		cn = 0;
+	else if( letter == 0xe28496 ) // №
+		cn = 3; // 3 - # или 46 - N
+	else
 		cn = 162; // символ не найден, вывести пустой прямоугольник
 	if( gs.wide_font )	return pgm_read_byte(&(fontFix[cn][col]));
 	return pgm_read_byte(&(fontVar[cn][col]));
