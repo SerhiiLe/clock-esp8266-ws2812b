@@ -418,7 +418,7 @@ void save_settings() {
 	// цвет секунд
 	set_simple_color(F("time_color6"), gs.show_time_col[6]);
 	gs.show_time_col[7] = gs.show_time_col[6];
-	set_simple_int(F("date_color"), gs.show_date_color, 0, 2);
+	set_simple_int(F("date_color"), gs.show_date_color, 0, 5);
 	set_simple_color(F("date_color0"), gs.show_date_color0);
 	bool need_bright = false;
 	if( set_simple_int(F("bright_mode"), gs.bright_mode, 0, 2) )
@@ -610,7 +610,7 @@ void save_alarm() {
 		}
 		set_simple_int(F("melody"), alarms[target].melody, 1, mp3_all);
 		set_simple_string(F("text"), alarms[target].text);
-		set_simple_int(F("color_mode"), alarms[target].color_mode, 0, 2);
+		set_simple_int(F("color_mode"), alarms[target].color_mode, 0, 5);
 		set_simple_color(F("color"), alarms[target].color);
 	}
 	HTTP.sendHeader(F("Location"),F("/alarms.html"));
@@ -653,7 +653,7 @@ void save_text() {
 		set_simple_string(F("text"), texts[target].text);
 		if( set_simple_int(F("period"), texts[target].period, 30, 3600) )
 			textTimer[target].setInterval(texts[target].period*1000U);
-		set_simple_int(F("color_mode"), texts[target].color_mode, 0, 2);
+		set_simple_int(F("color_mode"), texts[target].color_mode, 0, 5);
 		set_simple_color(F("color"), texts[target].color);
 		name = F("rmode");
 		if( HTTP.hasArg(name) ) settings |= constrain(HTTP.arg(name).toInt(), 0, 3) << 7;
@@ -1073,7 +1073,7 @@ void save_quote() {
 		messages[MESSAGE_QUOTE].timer.setInterval(1000U * qs.period);
 	if(set_simple_int(F("update"), qs.update, 0, 3))
 		quoteUpdateTimer.setInterval(900000U * (qs.update+1));
-	if(set_simple_int(F("color_mode"), qs.color_mode, 0, 2))
+	if(set_simple_int(F("color_mode"), qs.color_mode, 0, 5))
 		fl_change_color = true;
 	if(set_simple_color(F("color"), qs.color))
 		fl_change_color = true;
@@ -1144,7 +1144,7 @@ void show() {
 		}
 		if(arg_name.startsWith("d")) {
 			int color = HTTP.arg(i).toInt();
-			if( color == 1 || color == 2 ) {
+			if( color > 0 && color < 6 ) {
 				messages[MESSAGE_WEB].color = color;
 			} else {
 				messages[MESSAGE_WEB].color = text_to_color(HTTP.arg(i).c_str());
@@ -1181,7 +1181,7 @@ void save_weather() {
 		syncWeatherTimer.setInterval(60000U * ws.sync_weather_period);
 	if(set_simple_int(F("show_weather_period"), ws.show_weather_period, 30, 3600))
 		messages[MESSAGE_WEATHER].timer.setInterval(1000U * ws.show_weather_period);
-	if(set_simple_int(F("color_mode"), ws.color_mode, 0, 2))
+	if(set_simple_int(F("color_mode"), ws.color_mode, 0, 5))
 		fl_change_color = true;
 	if(set_simple_color(F("color"), ws.color))
 		fl_change_color = true;

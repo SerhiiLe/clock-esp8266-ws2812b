@@ -30,10 +30,14 @@ bool screenIsFree = true; // экран свободен (текст полно�
 uint8_t getFont(uint32_t letter, uint8_t col) {
 	uint16_t cn = 0;
 
-	if(letter >= 1 && letter <= 9) {
+	if(letter >= 1 && letter <= 9) { // заменители двоеточия
 		if(col == LET_WIDTH) return 0x84;
 		cn = letter - 1;
 		return pgm_read_byte(&fontSemicolon[cn][col]);
+	}
+	else if( letter == 0x7f ) { // заменитель пробела
+		if(col == LET_WIDTH) return 0x84;
+		letter = 32;
 	}
 
 	if(col == LET_WIDTH && gs.wide_font ) return (LET_HEIGHT << 4) | LET_WIDTH;
@@ -97,6 +101,8 @@ int16_t drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t colo
 
 	for (int8_t x = start_pos; x < finish_pos; x++) {
 		// отрисовка столбца (x - горизонтальная позиция, y - вертикальная)
+		if(color == 4) letterColor = CHSV(byte((offset + x) << 3), 255, 255);
+		if(color == 5) letterColor = CHSV(byte((index * LW + x) << 2), 255, 255);
 		uint8_t fontColumn = getFont(letter, x);
 		for (int8_t y = 0; y < LH; y++)
 			if(fontColumn & (1 << (LH - 1 - y))) 
@@ -145,7 +151,7 @@ void drawString() {
 }
 
 void initRunning(uint32_t color, int16_t posX) {
-	_currentColor = color > 3 ? maximizeBrightness(color): color;
+	_currentColor = color > 5 ? maximizeBrightness(color): color;
 	runningMode = posX >= 0 && posX <= WIDTH;
 	currentOffset = runningMode ? posX: WIDTH;
 	if(_runningText[0]==32) currentOffset -= gs.wide_font ? (LET_WIDTH + SPACE) >> 1: LET_WIDTH >> 1;

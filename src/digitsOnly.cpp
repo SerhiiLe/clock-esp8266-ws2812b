@@ -260,7 +260,7 @@ const char* changeDots(char* txt) {
 			txt[2] = stage + 4;
 			break;
 		case 9: // Четверть
-			txt[2] = txt[2] == ':' ? getTime().tm_sec/15 + 5: ' ';
+			txt[2] = txt[2] == ':' ? getTime().tm_sec/15 + 5: 0x7f;
 			break;
 		case 10: // Мозаика
 			txt[2] = stage == 1 ? 9:
