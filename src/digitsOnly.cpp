@@ -136,7 +136,7 @@ const byte fontTinyDigit[][3] PROGMEM = {
 };
 
 // отрисовка одной буквы нестандартным шрифтом
-int16_t drawMedium(const char c, int16_t x, CRGB color, uint8_t font_style) {
+int16_t drawMedium(const char c, int16_t x, uint8_t font_style, uint8_t index) {
 	byte dots;
 	uint8_t cn = 0, cw = 4;
 	uint8_t fontWidth = 4;
@@ -199,13 +199,22 @@ int16_t drawMedium(const char c, int16_t x, CRGB color, uint8_t font_style) {
 		}
 	}
 
+	CRGB letterColor;
+	uint8_t hs = gs.hue_shift ? hue_shift: 0;
+	if(gs.show_time_color == 1) letterColor = CHSV(byte((x << 3) + hs), 255, 255); // цвет в CHSV (прозрачность, оттенок, насыщенность, яркость) (0,0,255 - белый)
+	else if(gs.show_time_color == 3) letterColor = CHSV(byte((index << 5) + hs), 255, 255);
+	else if(gs.show_time_color == 5) letterColor = gs.show_time_col[index % 8];
+	else letterColor = gs.show_time_color0;
+
 	for(uint8_t col = 0; col < cw; col++) {
 		if(col + x > WIDTH) return cw;
 		dots = pgm_read_byte(font + cn * fontWidth + col);
+		if(gs.show_time_color == 2) letterColor = CHSV(byte(((x + col) << 3) + hs), 255, 255);
+		if(gs.show_time_color == 4) letterColor = CHSV(byte(((index * cw + col) << 3) + hs), 255, 255);
 		for(uint8_t row = 0; row < LET_HEIGHT; row++) {
 			if(row + string_offset >= 0 && row + string_offset < HEIGHT)
 				if( dots & (1 << (LET_HEIGHT - 1 - row)) ) // в этой матрице отрисовка снизу вверх, шрифты записаны сверху вниз
-				drawPixelXY(x + col, TEXT_BASELINE + string_offset + row, led_brightness > 1 && fl_5v ? color: CRGB::Red);
+				drawPixelXY(x + col, TEXT_BASELINE + string_offset + row, led_brightness > 1 && fl_5v ? letterColor: CRGB::Red);
 		}
 	}
 	return cw;
@@ -218,12 +227,8 @@ int16_t printMedium(const char* txt, uint8_t font, int16_t pos, uint8_t limit, u
 		gs.tiny_clock==FONT_HIGHT ? -2: 1;
 	if( txt[0]=='1' && gs.tiny_clock == FONT_TINY ) pos -= 1;
 	while (txt[i] != '\0' && i<limit) {
-		CRGB letterColor;
-		if(gs.show_time_color == 1) letterColor = CHSV(byte(pos << 3), 255, 255); // цвет в CHSV (прозрачность, оттенок, насыщенность, яркость) (0,0,255 - белый)
-		else if(gs.show_time_color == 2) letterColor = CHSV(byte(i << 5), 255, 255);
-		else if(gs.show_time_color == 3) letterColor = gs.show_time_col[i % 8];
-		else letterColor = gs.show_time_color0;
-		pos += drawMedium(txt[i++], pos, letterColor, font) + 1;
+		pos += drawMedium(txt[i], pos, font, i) + 1;
+		i++;
 	}
 	screenIsFree = false;
 	fl_tiny_clock = true;

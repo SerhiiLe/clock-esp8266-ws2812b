@@ -402,7 +402,7 @@ void save_settings() {
 	set_simple_checkbox(F("date_short"), gs.show_date_short);
 	if( set_simple_int(F("date_period"), gs.show_date_period, 20, 1439) )
 		clockDate.setInterval(1000U * gs.show_date_period);
-	set_simple_int(F("time_color"), gs.show_time_color, 0, 3);
+	set_simple_int(F("time_color"), gs.show_time_color, 0, 5);
 	set_simple_color(F("time_color0"), gs.show_time_color0);
 	// цвет часов
 	set_simple_color(F("time_color1"), gs.show_time_col[0]);
@@ -418,8 +418,9 @@ void save_settings() {
 	// цвет секунд
 	set_simple_color(F("time_color6"), gs.show_time_col[6]);
 	gs.show_time_col[7] = gs.show_time_col[6];
-	set_simple_int(F("date_color"), gs.show_date_color, 0, 5);
+	set_simple_int(F("date_color"), gs.show_date_color, 0, 4);
 	set_simple_color(F("date_color0"), gs.show_date_color0);
+	set_simple_int(F("hue_shift"), gs.hue_shift, 0, 4);
 	bool need_bright = false;
 	if( set_simple_int(F("bright_mode"), gs.bright_mode, 0, 2) )
 		need_bright = true;
@@ -448,8 +449,8 @@ void save_settings() {
 		timeoutMp3Timer.setInterval(3600000U * gs.timeout_mp3);
 	if( set_simple_int(F("sync_time_period"), gs.sync_time_period, 1, 255) )
 		ntpSyncTimer.setInterval(3600000U * gs.sync_time_period);
-	if( set_simple_int(F("scroll_period"), gs.scroll_period, 20, 1440) )
-		scrollTimer.setInterval(gs.scroll_period);
+	if( set_simple_int(F("scroll_period"), gs.scroll_period, 0, 40) )
+		scrollTimer.setInterval(60 - gs.scroll_period);
 	bool need_web_restart = false;
 	if( set_simple_string(F("web_login"), gs.web_login) )
 		need_web_restart = true;
@@ -610,7 +611,7 @@ void save_alarm() {
 		}
 		set_simple_int(F("melody"), alarms[target].melody, 1, mp3_all);
 		set_simple_string(F("text"), alarms[target].text);
-		set_simple_int(F("color_mode"), alarms[target].color_mode, 0, 5);
+		set_simple_int(F("color_mode"), alarms[target].color_mode, 0, 4);
 		set_simple_color(F("color"), alarms[target].color);
 	}
 	HTTP.sendHeader(F("Location"),F("/alarms.html"));
@@ -1073,7 +1074,7 @@ void save_quote() {
 		messages[MESSAGE_QUOTE].timer.setInterval(1000U * qs.period);
 	if(set_simple_int(F("update"), qs.update, 0, 3))
 		quoteUpdateTimer.setInterval(900000U * (qs.update+1));
-	if(set_simple_int(F("color_mode"), qs.color_mode, 0, 5))
+	if(set_simple_int(F("color_mode"), qs.color_mode, 0, 4))
 		fl_change_color = true;
 	if(set_simple_color(F("color"), qs.color))
 		fl_change_color = true;
@@ -1181,7 +1182,7 @@ void save_weather() {
 		syncWeatherTimer.setInterval(60000U * ws.sync_weather_period);
 	if(set_simple_int(F("show_weather_period"), ws.show_weather_period, 30, 3600))
 		messages[MESSAGE_WEATHER].timer.setInterval(1000U * ws.show_weather_period);
-	if(set_simple_int(F("color_mode"), ws.color_mode, 0, 5))
+	if(set_simple_int(F("color_mode"), ws.color_mode, 0, 4))
 		fl_change_color = true;
 	if(set_simple_color(F("color"), ws.color))
 		fl_change_color = true;
@@ -1205,10 +1206,12 @@ void save_weather() {
 	delay(1);
 	if( need_save ) {
 		save_config_weather();
-		if( need_weather && ws.weather ) syncWeatherTimer.setReady();
 		if( ws.weather ) {
+			if( need_weather ) syncWeatherTimer.setReady();
 			char txt[512];
 			messages[MESSAGE_WEATHER].text = String(generate_weather_string(txt));
+		} else {
+			messages[MESSAGE_WEATHER].count = 0;
 		}
 	}
 	initRString(PSTR("Настройки сохранены"));

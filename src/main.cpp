@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief Clock
- * @version 2.1.2
- * @date 2024-06-14
+ * @version 2.1.3
+ * @date 2024-06-24
  * 
  * @copyright Copyright (c) 2021,2022,2023,2024
  */
@@ -39,7 +39,7 @@ GButton btn(PIN_BUTTON); // комбинация для обычной кноп�
 
 timerMinim autoBrightnessTimer(500);	// Таймер отслеживания показаний датчика света при включенном авторегулировании яркости матрицы
 timerMinim clockTimer(512);				// Таймер, чтобы разделитель часов и минут мигал примерно каждую секунду
-timerMinim scrollTimer(gs.scroll_period);	// Таймер обновления бегущей строки
+timerMinim scrollTimer(60 - gs.scroll_period);	// Таймер обновления бегущей строки
 timerMinim ntpSyncTimer(3600000U * gs.sync_time_period);  // Таймер синхронизации времени с NTP-сервером 3600000U
 timerMinim clockDate(1000U * gs.show_date_period); // периодичность вывода даты в секундах
 timerMinim textTimer[MAX_RUNNING];		// таймеры бегущих строк
@@ -305,6 +305,8 @@ void alarms_pool() {
 		fl_bright_boost = gs.boost_mode != 0 && 
 			((gs.boost_mode > 0 && gs.boost_mode < 5 && i >= sunrise && i <= sunset) ||
 			(gs.boost_mode == 5 && i >= gs.bright_begin && i <= gs.bright_end));
+		// сдвиг гаммы от времени суток.
+		hue_shift = uint8_t(240 - i/5 - (gs.hue_shift-1)*64);
 		// перебор всех будильников, чтобы найти активный
 		for(i=0; i<MAX_ALARMS; i++)
 			if(alarms[i].settings & 512) {

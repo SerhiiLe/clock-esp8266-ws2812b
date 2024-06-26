@@ -447,7 +447,7 @@ void quoteGet() {
 				messages[MESSAGE_QUOTE].text = F("Цитата: ");
 				messages[MESSAGE_QUOTE].text += httpReq.getString();
 			}
-			messages[MESSAGE_QUOTE].count = 100;
+			messages[MESSAGE_QUOTE].count = qs.enabled ? 100: 0;
 			messages[MESSAGE_QUOTE].timer.setInterval(1000U * (qs.period+1));
 			messages[MESSAGE_QUOTE].color = qs.color_mode > 0 ? qs.color_mode: qs.color;
 			LOG(printf_P, PSTR("Quote: %s\n"), messages[MESSAGE_QUOTE].text.c_str());

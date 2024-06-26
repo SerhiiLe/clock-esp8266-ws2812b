@@ -64,6 +64,7 @@ struct Global_Settings {
 	uint32_t show_time_col[8] = {0xF6D32D,0xF6D32D,0x4444FF,0x57E389,0x57E389,0x4444FF,0xF6D32D,0xF6D32D}; // отдельно для каждой цифры
 	uint8_t show_date_color = 0; // режим выбора цветов даты
 	uint32_t show_date_color0 = 0xFFFFFF; // цвет даты
+	uint8_t hue_shift = 0; // сдвигать гамму в зависимости от времени
 	uint8_t bright_mode = 1; // режим яркости матрицы (авто или ручной)
 	uint8_t bright0 = 50; // яркость матрицы средняя (1-255)
 	uint16_t bright_boost = 100; // усиление показателей датчика яркости в процентах (1-250)
@@ -80,7 +81,7 @@ struct Global_Settings {
 	uint8_t volume_period = 5; // период в сек увеличения громкости на единицу
 	uint8_t timeout_mp3 = 36; // таймаут до принудительного сброса модуля mp3, в часах
 	uint8_t sync_time_period = 8; // периодичность синхронизации ntp, в часах
-	uint16_t scroll_period = 40; // задержка между обновлениями бегущей строки, определяет скорость движения
+	uint8_t scroll_period = 25; // 60 - задержка между обновлениями бегущей строки, определяет скорость движения
 	String web_login = "admin"; // логин для вэб
 	String web_password = ""; // пароль для вэб
 };
@@ -211,6 +212,7 @@ extern cur_sensor sensor[];
 extern const byte fontSemicolon[][4] PROGMEM;
 extern bool fl_tiny_clock;
 extern bool screenIsFree;
+extern uint8_t hue_shift;
 
 #ifdef ESP32
 #define SPIFFS LittleFS

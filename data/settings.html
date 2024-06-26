@@ -140,8 +140,10 @@
 							<select name="time_color" onchange="show_color_block1()">
 								<option value="0">Один</option>
 								<option value="1">Радуга</option>
-								<option value="2">Разные</option>
-								<option value="3">Свой</option>
+								<option value="2">Радуга2</option>
+								<!-- option value="3">Разные</option>
+								<option value="4">Разные2</option -->
+								<option value="5">Свой</option>
 							</select>
 						</div>
 					</div>
@@ -171,15 +173,27 @@
 							<select name="date_color" onchange="show_color_block('color00','date_color')">
 								<option value="0">Один</option>
 								<option value="1">Радуга</option>
-								<option value="2">Разные</option>
-								<option value="4">Радуга2</option>
-								<option value="5">Разные2</option>
+								<option value="2">Радуга2</option>
+								<option value="3">Разные</option>
+								<option value="4">Разные2</option>
 							</select>
 						</div>
 					</div>
 					<div class="row color00">
 						<div>Цвет букв (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="date_color0"></div>
 						<div class="fix"><input name="date_color0" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
+					</div>
+					<div class="row">
+						<div>Сдвигать гамму в зависимости от времени</div>
+						<div>
+							<select name="hue_shift">
+								<option value="0">нет</option>
+								<option value="1">+0&deg;</option>
+								<option value="2">+45&deg;</option>
+								<option value="3">+90&deg;</option>
+								<option value="4">+135&deg;</option>
+							</select>
+						</div>
 					</div>
 					<div class="one i b center">Настройки экрана</div>
 					<div class="row">
@@ -249,11 +263,11 @@
 							</select>
 						</div>
 					</div>
-					<div class="row">
-						<div>Задержка между обновлениями бегущей строки в миллисекундах, определяет скорость движения (&gt;20)</div>
-						<div><input name="scroll_period" type="number" value="40"></div>
+					<div class="one">
+						<div>Скорость движения бегущей строки</div>
+						<div><input type="range" min="0" max="40" step="1" value="25" class="long" name="scroll_period"></div>
 					</div>
-					<div class="one i b">Будильник</div>
+					<div class="one i b center">Будильник</div>
 					<div class="row">
 						<div>Начальная громкость будильника (от 1 до 30)</div>
 						<div><input name="volume_start" type="number" value="5"></div>
@@ -306,7 +320,7 @@ function show_color_block1() {
 			toggle_by_class("color3",false);
 			toggle_by_class("color4",false);
 			break;
-		case "3":
+		case "5":
 			toggle_by_class("color0",false);
 			toggle_by_class("color3",true);
 			if(document.forms["settings"].elements["tiny_clock"].value > 3 )

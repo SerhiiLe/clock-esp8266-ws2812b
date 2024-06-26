@@ -125,6 +125,7 @@ bool load_config_main() {
 	gs.show_time_col[7] = gs.show_time_col[6];
 	gs.show_date_color = doc[F("date_color")];
 	gs.show_date_color0 = text_to_color(doc[F("date_color0")]);
+	gs.hue_shift = doc[F("hue_shift")];
 	gs.bright_mode = doc[F("bright_mode")];
 	gs.bright0 = doc[F("bright0")];
 	gs.bright_boost = doc[F("br_boost")];
@@ -143,7 +144,7 @@ bool load_config_main() {
 	gs.volume_period = doc[F("volume_period")]; alarmStepTimer.setInterval(1000U * gs.volume_period);
 	gs.timeout_mp3 = doc[F("timeout_mp3")]; timeoutMp3Timer.setInterval(3600000U * gs.sync_time_period);
 	gs.sync_time_period = doc[F("sync_time_period")]; ntpSyncTimer.setInterval(3600000U * gs.sync_time_period);
-	gs.scroll_period = doc[F("scroll_period")]; scrollTimer.setInterval(gs.scroll_period);
+	gs.scroll_period = doc[F("scroll_period")]; scrollTimer.setInterval(60 - gs.scroll_period);
 	gs.web_login = doc[F("web_login")].as<String>();
 	gs.web_password = doc[F("web_password")].as<String>();
 
@@ -182,6 +183,7 @@ void save_config_main() {
 	doc[F("time_color6")] = color_to_text(gs.show_time_col[6]);
 	doc[F("date_color")] = gs.show_date_color;
 	doc[F("date_color0")] = color_to_text(gs.show_date_color0);
+	doc[F("hue_shift")] = gs.hue_shift;
 	doc[F("bright_mode")] = gs.bright_mode;
 	doc[F("bright0")] = gs.bright0;
 	doc[F("br_boost")] = gs.bright_boost;
@@ -359,7 +361,7 @@ bool load_config_texts() {
 
 	DeserializationError error = deserializeJson(doc, configFile);
 	configFile.close();
-	
+
 	// Test if parsing succeeds.
 	if (error) {
 		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());
@@ -418,7 +420,7 @@ bool load_config_security() {
 
 	DeserializationError error = deserializeJson(doc, configFile);
 	configFile.close();
-	
+
 	// Test if parsing succeeds.
 	if (error) {
 		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());

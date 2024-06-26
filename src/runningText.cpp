@@ -17,6 +17,7 @@
 
 int16_t currentOffset = WIDTH;
 uint32_t _currentColor = 1;
+uint8_t hue_shift = 0;
 
 char _runningText[MAX_LENGTH]; // текст, который будет крутиться
 bool runningMode; // режим: true - по кругу, false - без прокрутки
@@ -90,9 +91,10 @@ int16_t drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t colo
 	if (LH > HEIGHT) LH = HEIGHT;
 
  	CRGB letterColor;
-	if(color == 1) letterColor = CHSV(byte(offset << 3), 255, 255); // цвет в CHSV (прозрачность, оттенок, насыщенность, яркость) (0,0,255 - белый)
-	else if(color == 2) letterColor = CHSV(byte(index << 5), 255, 255);
-	else if(color == 3) letterColor = gs.show_time_col[index % 5];
+	uint8_t hs = gs.hue_shift ? hue_shift: 0;
+	if(color == 1) letterColor = CHSV(byte((offset << 3) + hs), 255, 255); // цвет в CHSV (прозрачность, оттенок, насыщенность, яркость) (0,0,255 - белый)
+	else if(color == 3) letterColor = CHSV(byte((index << 5) + hs), 255, 255);
+	else if(color == 5) letterColor = gs.show_time_col[index % 5];
 	else letterColor = color;
 
 	if( offset < -LW || offset > WIDTH ) return LW; // буква за пределами видимости, пропустить
@@ -101,8 +103,8 @@ int16_t drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t colo
 
 	for (int8_t x = start_pos; x < finish_pos; x++) {
 		// отрисовка столбца (x - горизонтальная позиция, y - вертикальная)
-		if(color == 4) letterColor = CHSV(byte((offset + x) << 3), 255, 255);
-		if(color == 5) letterColor = CHSV(byte((index * LW + x) << 2), 255, 255);
+		if(color == 2) letterColor = CHSV(byte(((offset + x) << 3) + hs), 255, 255);
+		if(color == 4) letterColor = CHSV(byte(((index * LW + x) << 2) + hs), 255, 255);
 		uint8_t fontColumn = getFont(letter, x);
 		for (int8_t y = 0; y < LH; y++)
 			if(fontColumn & (1 << (LH - 1 - y))) 
