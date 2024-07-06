@@ -20,7 +20,7 @@ uint32_t _currentColor = 1;
 uint8_t hue_shift = 0;
 
 char _runningText[MAX_LENGTH]; // текст, который будет крутиться
-bool runningMode; // режим: true - по кругу, false - без прокрутки
+bool runningMode; // режим: true - разовый вывод, false - прокрутить строку
 bool screenIsFree = true; // экран свободен (текст полностью прокручен)
 
 // ------------- СЛУЖЕБНЫЕ ФУНКЦИИ --------------
@@ -142,20 +142,20 @@ void drawString() {
 
 	if(runningMode) {
 		screenIsFree = true;
+		_runningText[0] = 0;
 	} else {
 		currentOffset--;
-		if(currentOffset < -delta) { // строка убежала
-			if(runningMode==0)
-				currentOffset = WIDTH + LET_WIDTH;
+		if(currentOffset < -delta) { // строка полностью пробежала
 			screenIsFree = true;
+			_runningText[0] = 0;
 		}
 	}
 }
 
 void initRunning(uint32_t color, int16_t posX) {
 	_currentColor = color > 5 ? maximizeBrightness(color): color;
-	runningMode = posX >= 0 && posX <= WIDTH;
-	currentOffset = runningMode ? posX: WIDTH;
+	runningMode = posX >= 0 && posX <= WIDTH; // если указана позиция и она в рамках экрана - текст не прокручивать
+	currentOffset = runningMode ? posX: WIDTH; // установить начальную позицию в указанную или по правому краю матрицы
 	if(_runningText[0]==32) currentOffset -= gs.wide_font ? (LET_WIDTH + SPACE) >> 1: LET_WIDTH >> 1;
 	if(_runningText[0]==49 && gs.wide_font) currentOffset--;
 	screenIsFree = false;
