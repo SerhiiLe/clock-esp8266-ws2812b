@@ -45,6 +45,7 @@ void setup_telegram() {
 void init_telegram() {
 	setup_telegram();
 	tb.setLimit(MAX_MESSAGES);
+	tb.setTextMode(FB_TEXT);
 	// tb.setPeriod(1000U * tb_rate);
 	tb.attach(inMsg);
 }
@@ -181,14 +182,14 @@ void inMsg(FB_msg& msg) {
 			return;
 		} else
 		if(msg.text == F("status")) {
-			sprintf_P(buf,PSTR("Датчик: %s.%%0AПитание: %s.%%0AОсвещение: %d -> %d."),
+			sprintf_P(buf,PSTR("Датчик: %s.\nПитание: %s.\nОсвещение: %d -> %d."),
 				sec_enable?F("включён"):F("отключён"),
 				fl_5v?F("сеть"):F("аккумулятор"),
 				analogRead(PIN_PHOTO_SENSOR), led_brightness);
 			String sensors = buf;
 			for(uint8_t i=0; i<MAX_SENSORS; i++) {
 				if(sensor[i].registered >= getTimeU() - ts.sensor_timeout*60) {
-					sensors += "%0A" + String(i) + " " + sensor[i].hostname;
+					sensors += "\n" + String(i) + " " + sensor[i].hostname;
 				}
 			}
 			tb.sendMessage(sensors, msg.chatID);
@@ -255,7 +256,7 @@ void inMsg(FB_msg& msg) {
 			return;
 		}
 	}
-	if(fl_start || msg.text == F("start")) {
+	if(fl_start || msg.text == F("start") || msg.text == F("menu")) {
 		// показать юзер меню (\t - горизонтальное разделение кнопок, \n - вертикальное
 		// bot.showMenu("Menu1 \t Menu2 \t Menu3 \n Menu4");
 		// отправить инлайн меню (\t - горизонтальное разделение кнопок, \n - вертикальное
@@ -279,16 +280,16 @@ void inMsg(FB_msg& msg) {
 	} else
 	if(msg.text == F("help")) {
 		tb.sendMessage(F(
-			"Start - показать меню."
-			"%0AStop - спрятать меню."
-			"%0AOn%2FOff - включить%2Fвыключить режим охраны."
-			"%0AStatus - состояние и список доступных внешних датчиков."
-			"%0AShow ID - id это чата."
-			"%0ALogin%2FLogout - авторизация."
-			"%0AUptime - время работы."
-			"%0ALast - последние записи журнала. (1-45 - число записей)"
-			"%0A0-9 команда или 0-9 команда=значение - управление внешним датчиком"
-			"%0A0-9 help - запросить список команд у внешнего датчика по номеру"
+			"Start - показать меню.\n"
+			"Stop - спрятать меню.\n"
+			"On/Off - включить/выключить режим охраны.\n"
+			"Status - состояние и список доступных внешних датчиков.\n"
+			"Show ID - id это чата.\n"
+			"Login/Logout - авторизация.\n"
+			"Uptime - время работы.\n"
+			"Last - последние записи журнала. (1-45 - число записей)\n"
+			"0-9 команда или 0-9 команда=значение - управление внешним датчиком\n"
+			"0-9 help - запросить список команд у внешнего датчика по номеру"
 			), msg.chatID);
 		return;
 	}

@@ -493,7 +493,7 @@ String read_log_file(int16_t cnt) {
 	for(int16_t i = min(aCnt,cnt); i > 0; i--) {
 		cur = cur > 0 ? cur-1: cnt-1;
 		ptr = aStr[cur] + strlen(aStr[cur]) - 1;
-		strcpy(ptr, "%0A"); // замена последнего символа на url-код склейки строк
+		strcpy(ptr, "\n"); // замена последнего символа на url-код склейки строк (%0A)
 		str += aStr[cur];
 	}
 	return str;
