@@ -540,10 +540,10 @@ void loop() {
 					set_brightness(constrain((val >> 4) + 1 + add_val, 1, 255));
 					break;
 				case 1: // автоматический с ограничителем
-					set_brightness(constrain((( val * bright0 ) >> 12) + 1 + add_val, 1,255));
+					set_brightness(constrain((( val * gs.bright0 ) >> 12) + 1 + add_val, 1,255));
 					break;
 				default: // ручной
-					set_brightness(constrain((uint16_t)bright0 + (uint16_t)add_val, 1, 255));
+					set_brightness(constrain((uint16_t)gs.bright0 + (uint16_t)add_val, 1, 255));
 				#else
 				case 0: // полный автомат от 1 до 255
 					set_brightness(constrain((val >> 2) + 1 + add_val, 1, 255));

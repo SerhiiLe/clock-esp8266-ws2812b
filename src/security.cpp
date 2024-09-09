@@ -221,7 +221,8 @@ void inMsg(FB_msg& msg) {
 				html.begin(client, url.c_str());
 				int httpResponseCode = html.GET();
 				if (httpResponseCode == 200) {
-					tb.sendMessage(urlEncode(html.getString()), msg.chatID);
+					// ответ от датчика запихивается сразу в telegram, обработку делает FastBot
+					tb.sendMessage(html.getString(), msg.chatID);
 				} else {
 					tb.sendMessage("error: "+String(httpResponseCode), msg.chatID);
 				}
