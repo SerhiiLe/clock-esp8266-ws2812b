@@ -98,19 +98,21 @@
 					</div>
 					<div class="row own">
 						<div>Результат возвращается в:</div>
-						<select name="type">
+						<select name="type" onchange="show_fields_block()">
 							<option value="0">Text</option>
 							<option value="1">JSON</option>
 							<option value="2">XML</option>
 						</select>
 					</div>
-					<div class="one own">
-						<div>Название поля с цитатой:</div>
-						<input class="long" type="text" name="quote_field" placeholder="quote">
-					</div>
-					<div class="one own">
-						<div>Название поля с автором <span class="small">(или пусто, если не надо)</span>:</span></div>
-						<input class="long" type="text" name="author_field" placeholder="quoteAuthor">
+					<div class="fields">
+						<div class="one own">
+							<div>Название поля с цитатой:</div>
+							<input class="long" type="text" name="quote_field" placeholder="quote">
+						</div>
+						<div class="one own">
+							<div>Название поля с автором <span class="small">(или пусто, если не надо)</span>:</span></div>
+							<input class="long" type="text" name="author_field" placeholder="quoteAuthor">
+						</div>
 					</div>
 				</div>
 				<button>Сохранить</button>
@@ -138,6 +140,12 @@ function show_own_block() {
 			toggle_by_class("own",false);
 	}
 }
+function show_fields_block() {
+	if(document.forms["settings"].elements["type"].value == 0)
+		toggle_by_class("fields",false);
+	else
+		toggle_by_class("fields",true);
+}
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
 		ajaxRequest("show_quote", "GET", null, function(ajaxResp) {
@@ -147,6 +155,7 @@ function start() {
 				show_all_block();
 				init_color_demo();
 				show_color_block();
+				show_fields_block();
 				$g("shadow").style.display = "none";
 			});
 		}, dummy);
