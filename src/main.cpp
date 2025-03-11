@@ -2,10 +2,10 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief Clock
- * @version 2.1.3
- * @date 2024-06-24
+ * @version 2.1.4
+ * @date 2025-03-11
  * 
- * @copyright Copyright (c) 2021,2022,2023,2024
+ * @copyright Copyright (c) 2021,2022,2023,2024,2025
  */
 
 /*
@@ -606,7 +606,7 @@ void loop() {
 				}
 		}
 		// затем дата
-		if(screenIsFree && clockDate.isReady())
+		if(!fl_timeNotSync && screenIsFree && clockDate.isReady())
 			initRString(gs.show_date_short ? dateCurrentTextShort(timeString): dateCurrentTextLong(timeString),
 				gs.show_date_color > 0 ? gs.show_date_color: gs.show_date_color0);
 	}

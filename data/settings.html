@@ -208,7 +208,7 @@
 					</div>
 					<div class="one bright0">
 						<div><span id="brN">Яркость</span>: <span id="brV">0</span></div>
-						<div><input type="range" min="1" max="255" step="1" value="30" class="long" name="bright0" id="brC" oninput="updateBr()"></div>
+						<div><input type="range" min="1" max="255" step="1" value="30" class="long" name="bright0" id="brC" oninput="updateRange('br')"></div>
 					</div>
 					<div class="row bright1">
 						<div>Усиление датчика освещённости в процентах (от 1 до 1000)</div>
@@ -234,11 +234,11 @@
 					</div>
 					<div class="row bright3">
 						<div>Широта (LAT.itude)</div>
-						<div><input name="latitude" type="text" value="0.0" class="m"></div>
+						<div><input name="latitude" type="text" value="0.0" inputmode="decimal" pattern="[\-+]?[0-9]*[.,]?[0-9]+" class="m"></div>
 					</div>
 					<div class="row bright3">
 						<div>Долгота (LON.gitude)</div>
-						<div><input name="longitude" type="text" value="0.0" class="m"></div>
+						<div><input name="longitude" type="text" value="0.0" inputmode="decimal" pattern="[\-+]?[0-9]*[.,]?[0-9]+" class="m"></div>
 					</div>
 					<div class="row br_time">
 						<div>Время начала увеличения яркости</div>
@@ -264,17 +264,17 @@
 						</div>
 					</div>
 					<div class="one">
-						<div>Скорость движения бегущей строки</div>
-						<div><input type="range" min="0" max="40" step="1" value="25" class="long" name="scroll_period"></div>
+						<div>Скорость движения бегущей строки: <span id="spV">0</span></div>
+						<div><input type="range" min="0" max="50" step="1" value="25" class="long" name="scroll_period" id="spC" oninput="updateRange('sp')"></div>
 					</div>
 					<div class="one i b center">Будильник</div>
-					<div class="row">
-						<div>Начальная громкость будильника (от 1 до 30)</div>
-						<div><input name="volume_start" type="number" value="5"></div>
+					<div class="one">
+						<div>Начальная громкость будильника<br>от 1 до 30: <span id="vsV">0</span></div>
+						<div><input type="range" min="1" max="30" step="1" value="5" class="long" name="volume_start" id="vsC" oninput="updateRange('vs')"></div>
 					</div>
-					<div class="row">
-						<div>Максимальная громкость будильника (от 1 до 30 но не меньше начальной)</div>
-						<div><input name="volume_finish" type="number" value="30"></div>
+					<div class="one">
+						<div>Максимальная громкость будильника<br>от 1 до 30 но не меньше начальной: <span id="vfV">0</span></div>
+						<div><input type="range" min="1" max="30" step="1" value="25" class="long" name="volume_finish" id="vfC" oninput="updateRange('vf')"></div>
 					</div>
 					<div class="row">
 						<div>Период увеличения громкости (от 1 до 30 сек.)</div>
@@ -347,8 +347,10 @@ function show_dots_block() {
 	}
 	show_color_block1();
 }
-function updateBr() {
-	$g("brV").innerHTML = $g("brC").value;
+function updateRange(label) {
+	var val = $g(label+"V");
+	var cnt = $g(label+"C");
+	if(val && cnt) val.innerHTML = cnt.value;
 }
 function show_bright_block() {
 	switch(document.forms["settings"].elements["bright_mode"].value) {
@@ -397,7 +399,10 @@ function start() {
 			show_dots_block();
 			show_bright_block();
 			init_color_demo();
-			updateBr();
+			updateRange('br');
+			updateRange('sp');
+			updateRange('vs');
+			updateRange('vf');
 			show_bright_add_block();
 			$g("shadow").style.display = "none";
 		});

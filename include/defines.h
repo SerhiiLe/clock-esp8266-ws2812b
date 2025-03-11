@@ -5,7 +5,21 @@
 
 /*** описание констант, которые описывают конкретное "железо" ***/
 
-#if ESP32 == 1 // ESP32
+#if ESP32C3 == 1 // ESP32-c3
+#define PIN_LED 6 // LED матрица
+#define PIN_PHOTO_SENSOR A0 // фоторезистор
+#define PIN_BUTTON 1 // кнопка управления
+#define PIN_MOTION 10 // детектор движения
+#define PIN_5V 3 // детектор наличия питания (5 Вольт). Закомментировать, если не подключен
+#define PIN_RELAY 7 // реле выключатель питания матрицы
+#define RELAY_TYPE 1 // тип реле, срабатывает по: 0 - низкому, 1 - высокому уровню. 
+#define LED_MOTION 5 // светодиод индикатор движения. Закомментировать для вывода на матрицу.
+#define SRX 20 // hardware serial RX DFPlayer. Закомментировать, если не подключен
+#define STX 21 // hardware serial TX DFPlayer
+// #define SDA 8 // I2C SDA
+// #define SCL 9 // I2C SCL
+// #define BAT 4 // напряжение аккумулятора
+#elif ESP32 == 1 // ESP32
 #define PIN_LED 22 // LED матрица
 #define PIN_PHOTO_SENSOR 36 // фоторезистор
 #define PIN_BUTTON 19 // кнопка управления

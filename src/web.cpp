@@ -27,6 +27,8 @@
 #include "wifi_init.h"
 #include "webClient.h"
 
+#define HPP(txt, ...) HTTP.client().printf_P(PSTR(txt), __VA_ARGS__)
+
 #ifdef ESP32
 WebServer HTTP(80);
 HTTPUpdateServer httpUpdater;
@@ -449,7 +451,7 @@ void save_settings() {
 		timeoutMp3Timer.setInterval(3600000U * gs.timeout_mp3);
 	if( set_simple_int(F("sync_time_period"), gs.sync_time_period, 1, 255) )
 		ntpSyncTimer.setInterval(3600000U * gs.sync_time_period);
-	if( set_simple_int(F("scroll_period"), gs.scroll_period, 0, 40) )
+	if( set_simple_int(F("scroll_period"), gs.scroll_period, 0, 50) )
 		scrollTimer.setInterval(60 - gs.scroll_period);
 	bool need_web_restart = false;
 	if( set_simple_string(F("web_login"), gs.web_login) )
@@ -959,29 +961,30 @@ void sysinfo() {
 	if(is_no_auth()) return;
 	char buf[100];
 	HTTP.client().print(PSTR("HTTP/1.1 200\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n{"));
-	HTTP.client().printf_P(PSTR("\"Uptime\":\"%s\","), getUptime(buf));
-	HTTP.client().printf_P(PSTR("\"Time\":\"%s\","), clockCurrentText(buf));
-	HTTP.client().printf_P(PSTR("\"Date\":\"%s\","), dateCurrentTextLong(buf));
-	HTTP.client().printf_P(PSTR("\"Sunrise\":\"%u:%02u\","), sunrise / 60, sunrise % 60);
-	HTTP.client().printf_P(PSTR("\"Sunset\":\"%u:%02u\","), sunset / 60, sunset % 60);
-	HTTP.client().printf_P(PSTR("\"Illumination\":%i,"), analogRead(PIN_PHOTO_SENSOR));
-	HTTP.client().printf_P(PSTR("\"LedBrightness\":%i,"), led_brightness);
-	HTTP.client().printf_P(PSTR("\"fl_5v\":%i,"), fl_5v);
-	HTTP.client().printf_P(PSTR("\"Rssi\":%i,"), wifi_rssi());
-	HTTP.client().printf_P(PSTR("\"FreeHeap\":%i,"), ESP.getFreeHeap());
+	HPP("\"Uptime\":\"%s\",", getUptime(buf));
+	HPP("\"Time\":\"%s\",", clockCurrentText(buf));
+	HPP("\"Date\":\"%s\",", dateCurrentTextLong(buf));
+	HPP("\"Sunrise\":\"%u:%02u\",", sunrise / 60, sunrise % 60);
+	HPP("\"Sunset\":\"%u:%02u\",", sunset / 60, sunset % 60);
+	HPP("\"Illumination\":%i,", analogRead(PIN_PHOTO_SENSOR));
+	HPP("\"LedBrightness\":%i,", led_brightness);
+	HPP("\"fl_5v\":%i,", fl_5v);
+	HPP("\"Rssi\":%i,", wifi_rssi());
+	HPP("\"IP\":\"%s\",", wifi_currentIP().c_str());
+	HPP("\"FreeHeap\":%i,", ESP.getFreeHeap());
 	#ifdef ESP32
-	HTTP.client().printf("\"MaxFreeBlockSize\":%i,", ESP.getMaxAllocHeap());
-	HTTP.client().printf("\"HeapFragmentation\":%i,", 100-ESP.getMaxAllocHeap()*100/ESP.getFreeHeap());
-	HTTP.client().printf("\"ResetReason\":\"%s\",", print_reset_reason(buf));
-	HTTP.client().printf("\"FullVersion\":\"%s\",", print_full_platform_info(buf));
+	HPP("\"MaxFreeBlockSize\":%i,", ESP.getMaxAllocHeap());
+	HPP("\"HeapFragmentation\":%i,", 100-ESP.getMaxAllocHeap()*100/ESP.getFreeHeap());
+	HPP("\"ResetReason\":\"%s\",", print_reset_reason(buf));
+	HPP("\"FullVersion\":\"%s\",", print_full_platform_info(buf));
 	#else // ESP8266
-	HTTP.client().printf_P(PSTR("\"MaxFreeBlockSize\":%i,"), ESP.getMaxFreeBlockSize());
-	HTTP.client().printf_P(PSTR("\"HeapFragmentation\":%i,"), ESP.getHeapFragmentation());
-	HTTP.client().printf_P(PSTR("\"ResetReason\":\"%s\","), ESP.getResetReason().c_str());
-	HTTP.client().printf_P(PSTR("\"FullVersion\":\"%s\","), ESP.getFullVersion().c_str());
+	HPP("\"MaxFreeBlockSize\":%i,", ESP.getMaxFreeBlockSize());
+	HPP("\"HeapFragmentation\":%i,", ESP.getHeapFragmentation());
+	HPP("\"ResetReason\":\"%s\",", ESP.getResetReason().c_str());
+	HPP("\"FullVersion\":\"%s\",", ESP.getFullVersion().c_str());
 	#endif
-	HTTP.client().printf_P(PSTR("\"CpuFreqMHz\":%i,"), ESP.getCpuFreqMHz());
-	HTTP.client().printf_P(PSTR("\"BuildTime\":\"%s %s\"}"), F(__DATE__), F(__TIME__));
+	HPP("\"CpuFreqMHz\":%i,", ESP.getCpuFreqMHz());
+	HPP("\"BuildTime\":\"%s %s\"}", F(__DATE__), F(__TIME__));
 	#ifdef ESP8266
 	HTTP.client().stop();
 	#endif

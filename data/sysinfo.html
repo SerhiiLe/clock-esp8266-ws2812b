@@ -59,6 +59,10 @@
 						<div id="Rssi"></div>
 					</div>
 					<div class="row">
+						<div>IP</div>
+						<div id="IP"></div>
+					</div>
+					<div class="row">
 						<div>Free Heap</div>
 						<div><span id="FreeHeap"></span>&nbsp;bytes</div>
 					</div>
@@ -82,8 +86,11 @@
 						<div>Platform Version</div>
 						<div id="FullVersion"></div>
 					</div>
+					<div class="one i center">
+						<label for="update">автоматически обновлять</label> <input type="checkbox" name="update" id="update" onchange="auto_update()">
+					</div>
 				</div>
-	
+
 			<button onclick="getInfo()">Обновить</button>
 		</div>
 		<div class="footer">
@@ -105,11 +112,22 @@ function parseInfo(doc) {
 		}
 	}
 }
+var fl_update = false;
 function getInfo(cbfunc=null) {
 	ajaxRequest("sysinfo","GET",null, function(ajaxResp) {
 		parseInfo(JSON.parse(ajaxResp.responseText));
 		if(cbfunc !== null) cbfunc();
 	}, dummy);
+}
+function new_info() {
+	if( fl_update ) setTimeout(getInfo, 1000, new_info);
+}
+function auto_update() {
+	if($g("update").checked) {
+		fl_update = true;
+		getInfo( new_info );
+	} else
+		fl_update = false; 
 }
 function start() {
 	if (typeof ajaxRequest !== "undefined") {

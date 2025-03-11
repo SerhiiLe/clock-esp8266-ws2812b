@@ -14,11 +14,15 @@
 #include "defines.h"
 #include "dfplayer.h"
 #ifdef SRX
-#include <SoftwareSerial.h>
-#include <DFRobotDFPlayerMini.h>
-
-EspSoftwareSerial::UART mp3Serial;
-DFRobotDFPlayerMini dfPlayer;
+	#if ESP32C3 == 1
+		#include <HardwareSerial.h>
+		HardwareSerial mp3Serial(0);
+	#else
+		#include <SoftwareSerial.h>
+		EspSoftwareSerial::UART mp3Serial;
+	#endif
+	#include <DFRobotDFPlayerMini.h>
+	DFRobotDFPlayerMini dfPlayer;
 #endif
 
 int mp3_all = 0;
@@ -62,7 +66,11 @@ void mp3_init() {
 		mp3Serial.flush();
 		dfPlayer.reset();
 	} else {
-		mp3Serial.begin(9600, SWSERIAL_8N1, SRX, STX, false);
+		#if ESP32C3 == 1
+			mp3Serial.begin(115200, SERIAL_8N1, SRX, STX);
+		#else
+			mp3Serial.begin(9600, SWSERIAL_8N1, SRX, STX, false);
+		#endif
 		dfPlayer.setTimeOut(1000);
 		mp3_isReady = dfPlayer.begin(mp3Serial);
 		if(mp3_isReady) {

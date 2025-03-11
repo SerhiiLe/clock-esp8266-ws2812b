@@ -43,7 +43,7 @@ const char* clockTinyText(char *a, bool fl_12) {
 			if(hour == 0) hour = 12;
 			sprintf_P(a, PSTR("%02u%c%02u\x7f%s"), hour, c, t.tm_min, AmPm);
 		} else 
-			sprintf_P(a, PSTR("%02u%c%02u%c%02u"), t.tm_hour, c, t.tm_min, c, t.tm_sec);
+			sprintf_P(a, PSTR("%02u%c%02u:%02u"), t.tm_hour, c, t.tm_min, t.tm_sec);
 		if(a[0] == '0') a[0] = ' ';
 	}
 	return a;
