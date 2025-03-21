@@ -79,6 +79,22 @@
 						<div><span id="CpuFreqMHz"></span>&nbsp;MHz</div>
 					</div>
 					<div class="row">
+						<div>Barometer</div>
+						<div id="Barometer"></div>
+					</div>
+					<div class="row">
+						<div>Chip RTC</div>
+						<div id="RTC"></div>
+					</div>
+					<div class="row">
+						<div>TimeDrift</div>
+						<div><span id="TimeDrift"></span>&nbsp;sec</div>
+					</div>
+					<div class="row">
+						<div>NVRAM</div>
+						<div id="NVRAM"></div>
+					</div>
+					<div class="row">
 						<div>Reset Reason</div>
 						<div id="ResetReason"></div>
 					</div>
@@ -107,6 +123,14 @@ function parseInfo(doc) {
 			case "Uptime": t.innerHTML = doc[key].replace(/,/g, "<br>"); break;
 			case "Time": t.innerHTML = doc[key].replace(/(\d+)\D(\d+)/g, "$1:$2"); break;
 			case "fl_5v": t.innerHTML = doc[key] ? "Main": "Reserve"; break;
+			case "NVRAM":
+				t.innerHTML = doc[key] ? "Present 0x"+doc[key].toString(16): "Absent"; break;
+			case "Barometer":
+				var type = doc[key] & 1 ? "BMP180": doc[key] & 2 ? "BMP280": doc[key] & 4 ? "BME280": "";
+				if( doc[key] & 8 ) type += (type != "" ? "+":"") + "AHTX0";
+				t.innerHTML = type == "" ? "Absent": type; break;
+			case "RTC":
+				t.innerHTML = doc[key] == 1 ? "DS1307": doc[key] == 2 ? "DS3231": "Absent"; break;
 			case "FullVersion": t.innerHTML = doc[key].replace(/\//g, "<br>"); break;
 			default: t.innerHTML = doc[key];
 		}

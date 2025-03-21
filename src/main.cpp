@@ -2,8 +2,8 @@
  * @file main.cpp
  * @author Serhii Lebedenko (slebedenko@gmail.com)
  * @brief Clock
- * @version 2.1.4
- * @date 2025-03-11
+ * @version 2.2.0
+ * @date 2025-03-21
  * 
  * @copyright Copyright (c) 2021,2022,2023,2024,2025
  */
@@ -17,7 +17,9 @@
 #include "defines.h"
 #include <GyverButton.h>
 #include <LittleFS.h>
-
+#if USE_I2C == 1
+	#include <Wire.h>
+#endif
 #include "settings.h"
 #include "ftp.h"
 #include "clock.h"
@@ -28,13 +30,17 @@
 #include "dfplayer.h"
 #include "demo.h"
 #include "security.h"
+#include "textTiny.h"
 #include "digitsOnly.h"
 #include "webClient.h"
+#include "rtc.h"
+#include "barometer.h"
+#include "nvram.h"
 
 #if SENSOR_BUTTON == 1
-GButton btn(PIN_BUTTON, LOW_PULL, NORM_OPEN); // комбинация для сенсорной кнопки
+	GButton btn(PIN_BUTTON, LOW_PULL, NORM_OPEN); // комбинация для сенсорной кнопки
 #else
-GButton btn(PIN_BUTTON); // комбинация для обычной кнопки
+	GButton btn(PIN_BUTTON); // комбинация для обычной кнопки
 #endif
 
 timerMinim autoBrightnessTimer(500);	// Таймер отслеживания показаний датчика света при включенном авторегулировании яркости матрицы
@@ -50,6 +56,8 @@ timerMinim telegramTimer(1000U * ts.tb_accelerated);	// период опрос�
 timerMinim timeoutMp3Timer(3600000U * gs.timeout_mp3); // таймер принудительного сброса mp3
 timerMinim syncWeatherTimer(60000U * ws.sync_weather_period); // таймер обновления информации о погоде из интернета
 timerMinim quoteUpdateTimer(900000U * (qs.update+1));	// периодичность обновления цитат
+timerMinim showTermTimer(1000U * ws.term_period);	// таймер для показа информации о температуре
+timerMinim forecasterTimer(1800000U); // время обновления данных для предсказателя погоды, всегда 30 минут
 
 // файловая система подключена
 bool fs_isStarted = false;
@@ -89,39 +97,75 @@ bool old_bright_boost = true;
 uint8_t boot_stage = 1;
 // строки для моментального временного отображения
 temp_text messages[MAX_TMP_MESSAGES];
+// время последнего включения циферблата
+unsigned long last_time_display = 0;
+// сдвиг гаммы
+uint8_t hue_shift = 0;
 
 
 #ifdef ESP32
-TaskHandle_t TaskWeb;
-TaskHandle_t TaskAlarm;
-void TaskWebCode( void * pvParameters );
-void TaskAlarmCode( void * pvParameters );
-esp_chip_info_t chip_info;
+	TaskHandle_t TaskWeb;
+	TaskHandle_t TaskAlarm;
+	void TaskWebCode( void * pvParameters );
+	void TaskAlarmCode( void * pvParameters );
+	esp_chip_info_t chip_info;
 #endif
 
 void setup() {
 	Serial.begin(115200);
 	Serial.println(PSTR("Starting..."));
 	#ifdef LED_MOTION
-	pinMode(LED_MOTION, OUTPUT);
+		pinMode(LED_MOTION, OUTPUT);
 	#endif
 	#ifdef PIN_MOTION
-	pinMode(PIN_MOTION, INPUT);
+		pinMode(PIN_MOTION, INPUT);
 	#endif
 	#ifdef PIN_5V
-	pinMode(PIN_5V, INPUT);
+		pinMode(PIN_5V, INPUT);
 	#endif
 	pinMode(PIN_RELAY, OUTPUT);
 	digitalWrite(PIN_RELAY, RELAY_OFF);
 	delay(RELAY_OP_TIME); // задержка на время срабатывания (выключения) рэле. А вообще должно было стоять рэле LOW и тогда после старта оно бы сразу было выключено.
 	display_setup();
 	randomSeed(analogRead(PIN_PHOTO_SENSOR)+analogRead(PIN_PHOTO_SENSOR));
-	screenIsFree = true;
+	// screenIsFree = true;
 	// initRString(PSTR("..."),1,8);
 	initRString(PSTR("boot"),1,7); //5
-	display_tick();
+	display_tick(false);
 	#ifdef ESP32
-	esp_chip_info(&chip_info); // get the ESP32 chip information
+		esp_chip_info(&chip_info); // get the ESP32 chip information
+	#endif
+	#if USE_I2C == 1
+		// поиск всех устройств i2c
+		Wire.begin();
+		for( uint8_t i=0; i<127; i++ ) {
+			Wire.beginTransmission(i);
+			if( Wire.endTransmission() == 0 ) {
+				LOG(printf_P, PSTR("I2C device found at address 0x%02X: "), i);
+				if( i == 0x38 ) {
+					LOG(print, PSTR("Humidity sensor AHT10/AHT20"));
+				} else
+				if( i >= 0x50 && i <= 0x57 ) {
+					LOG(print, PSTR("EEPROM AT24Cxx"));
+					eeprom_chip = i; // - 0x50;
+				} else
+				if( i == 0x68 ) {
+					LOG(print, PSTR("RTC DS1307/DS3231"));
+					if( eeprom_chip == 0x50 ) rtc_chip = 1;
+				} else
+				if( i == 0x76 ) {
+					LOG(print, PSTR("alternate BMP280"));
+					address_bme280 = i;
+				} else
+				if( i == 0x77 ) {
+					LOG(print, PSTR("Pressure sensor BMP085/BMP180/BMP280/BME280"));
+					address_bme280 = i;
+				} else {
+					LOG(print, PSTR("Unknown device"));
+				}
+				LOG(println, PSTR(" found"));
+			}
+		}
 	#endif
 }
 
@@ -149,7 +193,15 @@ bool boot_check() {
 				initRString(PSTR("Ошибка подключения встроенного диска!!!"));
 			}
 			break;
-		case 2: // Загрузка или создание файла конфигурации
+		case 2: // проверка наличия NVRAM
+			#if USE_I2C == 1 && USE_NVRAM == 1
+			if( ! nvram_init()) {
+				LOG(println, PSTR("Couldn't find NVRAM"));
+				initRString(PSTR("NVRAM не найден."));
+			}
+			#endif
+			break;
+		case 3: // Загрузка или создание файла конфигурации
 			if(!load_config_main()) {
 				LOG(println, PSTR("Create new config file"));
 				//  Создаем файл запив в него данные по умолчанию, при любой ошибке чтения
@@ -157,56 +209,83 @@ bool boot_check() {
 				initRString(PSTR("Создан новый файл конфигурации."));
 			}
 			break;
-		case 3: // Загрузка или создание файла со списком будильников
+		case 4: // Загрузка или создание файла со списком будильников
 			if(!load_config_alarms()) {
 				LOG(println, PSTR("Create new alarms file"));
 				save_config_alarms(); // Создаем файл
 				initRString(PSTR("Создан новый файл списка будильников."));
 			}
 			break;
-		case 4: // Загрузка или создание файла со списком бегущих строк
+		case 5: // Загрузка или создание файла со списком бегущих строк
 			if(!load_config_texts()) {
 				LOG(println, PSTR("Create new texts file"));
 				save_config_texts(); // Создаем файл
 				initRString(PSTR("Создан новый файл списка строк."));
 			}
 			break;
-		case 5: // Файл хранящий текущий статус "охраны" на случай перезагрузки
+		case 6: // Файл хранящий текущий статус "охраны" на случай перезагрузки
 			if(!load_config_security()) {
 				LOG(println, PSTR("Create new security file"));
 				save_config_security();	// Создаем файл
 			}
 			break;
-		case 6: // Загрузка или создание файла с настройками телеграм клиента
+		case 7: // Загрузка или создание файла с настройками телеграм клиента
 			if(!load_config_telegram()) {
 				LOG(println, PSTR("Create new telegram file"));
 				save_config_telegram();	// Создаем файл
 				initRString(PSTR("Создан новый файл настроек telegram."));
 			}
 			break;
-		case 7: // Загрузка или создание файла с настройками цитат
+		case 8: // Загрузка или создание файла с настройками цитат
 			if( ! load_config_quote()) {
 				LOG(println, PSTR("Create new quote file"));
 				save_config_quote(); // Создаем файл
 				initRString(PSTR("Создан новый файл настроек цитат."));
 			}
 			break;
-		case 8: // Загрузка или создание файла с настройками погоды
+		case 9: // Загрузка или создание файла с настройками погоды
 			if( ! load_config_weather()) {
 				LOG(println, PSTR("Create new weather file"));
 				save_config_weather(); // Создаем файл
 				initRString(PSTR("Создан новый файл настроек погоды."));
 			}
 			break;
-		case 9: // Подключение к WiFi или запуск режима AP и портала подключения
+		case 10: // Подключение к модулю RTC и первичная установка времени
+			#if USE_I2C == 1 && USE_RTC == 1
+			switch(rtc_init()) {
+				case 0:
+					LOG(println, PSTR("Couldn't find RTC"));
+					initRString(PSTR("Модуль часов не работает :("));
+					break;
+				case 2:
+					LOG(println, PSTR("RTC init"));
+					initRString(PSTR("Модуль часов инициализирован."));
+					break;
+				default:
+					fl_timeNotSync = false;
+					LOG(printf_P, PSTR("current RTC time: %s "), clockCurrentText(timeString));
+					LOG(println, dateCurrentTextShort(timeString));
+					break;
+			}
+			#endif
+			break;
+		case 11: // Проверка наличия барометра
+			#if USE_I2C == 1 && USE_BMP == 1
+			if( ! barometer_init()) {
+				LOG(println, PSTR("Couldn't find BMP module"));
+				initRString(PSTR("Барометр не подключился :("));
+			}
+			#endif
+			break;
+		case 12: // Подключение к WiFi или запуск режима AP и портала подключения
 			wifi_setup();
 			break;
-		case 10: // Инициализация телеграм-бота
+		case 13: // Инициализация телеграм-бота
 			init_telegram();
 			break;
-		case 11: // Сброс таймеров обновления погоды и цитат, для быстрого первого запроса
-			syncWeatherTimer.setReady();
-			quoteUpdateTimer.setReady();
+		case 14: // Сброс таймеров обновления погоды и цитат, для быстрого первого запроса
+			syncWeatherTimer.setNext(5000);
+			quoteUpdateTimer.setNext(9000);
 			break;
 
 		default:
@@ -259,7 +338,7 @@ void network_pool() {
 	wifi_process();
 	if( wifi_isConnected ) {
 		// установка времени по ntp.
-		if( fl_timeNotSync )
+		if( fl_timeNotSync || fl_needStartTime )
 			// первичная установка времени. Если по каким-то причинам опрос не удался, повторять не чаще, чем раз в секунду.
 			if( alarmStepTimer.isReady() ) syncTime();
 		if(ntpSyncTimer.isReady()) // это плановая синхронизация, не критично, если опрос не прошел
@@ -437,8 +516,12 @@ void loop() {
 		case 4:
 			LOG(println, PSTR("Quadruple"));
 			if(fl_5v) {
-				char buf[20];
-				sprintf_P(buf,PSTR("%i -> %i -> %i"),analogRead(PIN_PHOTO_SENSOR), old_brightness*gs.bright_boost/100, led_brightness);
+				char buf[50];
+				#if USE_I2C == 1 && USE_BMP == 1
+					currentPressureTemp(buf);
+				#else
+					sprintf_P(buf,PSTR("%i -> %i -> %i"),analogRead(PIN_PHOTO_SENSOR), old_brightness*gs.bright_boost/100, led_brightness);
+				#endif
 				initRString(buf);
 			}
 			break;
@@ -566,7 +649,7 @@ void loop() {
 
 	// если экран освободился, то выбор, что сейчас надо выводить.
 	// проверка разрешения выводить бегущую строку
-	if(fl_run_allow && alarmStartTime == 0) {
+	if(fl_run_allow && alarmStartTime == 0) { // && (millis()-last_time_display > 1000UL*gs.minim_show))  {
 		fl_save = false;
 		// в приоритете бегущая строка
 		for(i=0; i<MAX_RUNNING; i++)
@@ -605,14 +688,24 @@ void loop() {
 					messages[i].count--;
 				}
 		}
+		// затем температура и давление
+		if(fl_barometerIsInit && screenIsFree && showTermTimer.isReady()) {
+			if(ws.tiny_term)
+				printTinyText(currentPressureTemp(timeString, true),
+					gs.show_date_color > 0 ? gs.show_date_color: gs.show_date_color0, 1);
+			else
+				initRString(currentPressureTemp(timeString, false),
+					gs.show_date_color > 0 ? gs.show_date_color: gs.show_date_color0);
+		}
 		// затем дата
-		if(!fl_timeNotSync && screenIsFree && clockDate.isReady())
-			initRString(gs.show_date_short ? dateCurrentTextShort(timeString): dateCurrentTextLong(timeString),
-				gs.show_date_color > 0 ? gs.show_date_color: gs.show_date_color0);
+		if(!fl_timeNotSync && screenIsFree && clockDate.isReady()) {
+			uint32_t date_color = gs.show_date_color > 0 ? gs.show_date_color: gs.show_date_color0;
+			if(gs.tiny_date) {
+				if(gs.show_date_short) printTinyText(dateCurrentTextShort(timeString, true), date_color);
+				else  printTinyText(dateCurrentTextTinyFull(timeString), date_color, 1);
+			} else initRString(gs.show_date_short ? dateCurrentTextShort(timeString): dateCurrentTextLong(timeString), date_color);
+		}
 	}
-	// // если всё уже показано, то вывести время
-	// if(!fl_demo && screenIsFree && clockTimer.isReady())
-	// 	initRString(clockCurrentText(timeString), show_time_color > 0 ? show_time_color: show_time_color0, CLOCK_SHIFT);
 
 	// если всё уже показано, то вывести время
 	if(!fl_demo && screenIsFree && clockTimer.isReady()) {
@@ -636,7 +729,7 @@ void loop() {
 				printMedium(timeString, FONT_TINY, printMedium(timeString, gs.tiny_clock, 0) + 1, 8, 6);
 				break;
 			case FONT_TINY: // крошечный
-				printMedium(clockTinyText(timeString, gs.t12h), FONT_TINY, 3, 8);
+				printMedium(clockTinyText(timeString, gs.t12h), FONT_TINY, 3, 8, 0, -2);
 				break;
 			default:
 				clockCurrentText(timeString, gs.t12h);

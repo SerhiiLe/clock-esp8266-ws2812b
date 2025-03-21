@@ -110,6 +110,7 @@ bool load_config_main() {
 	gs.dots_style = doc[F("dots_style")];
 	gs.t12h = doc[F("t12h")];
 	gs.show_date_short = doc[F("date_short")];
+	gs.tiny_date = doc[F("tiny_date")];
 	gs.show_date_period = doc[F("date_period")]; clockDate.setInterval(1000U * gs.show_date_period);
 	gs.show_time_color = doc[F("time_color")];
 	gs.show_time_color0 = text_to_color(doc[F("time_color0")]);
@@ -145,6 +146,8 @@ bool load_config_main() {
 	gs.timeout_mp3 = doc[F("timeout_mp3")]; timeoutMp3Timer.setInterval(3600000U * gs.sync_time_period);
 	gs.sync_time_period = doc[F("sync_time_period")]; ntpSyncTimer.setInterval(3600000U * gs.sync_time_period);
 	gs.scroll_period = doc[F("scroll_period")]; scrollTimer.setInterval(60 - gs.scroll_period);
+	gs.slide_show = doc[F("slide_show")];
+	gs.minim_show = doc[F("minim_show")];
 	gs.web_login = doc[F("web_login")].as<String>();
 	gs.web_password = doc[F("web_password")].as<String>();
 
@@ -172,6 +175,7 @@ void save_config_main() {
 	doc[F("dots_style")] = gs.dots_style;
 	doc[F("t12h")] = gs.t12h;
 	doc[F("date_short")] = gs.show_date_short;
+	doc[F("tiny_date")] = gs.tiny_date;
 	doc[F("date_period")] = gs.show_date_period;
 	doc[F("time_color")] = gs.show_time_color;
 	doc[F("time_color0")] = color_to_text(gs.show_time_color0);
@@ -201,6 +205,8 @@ void save_config_main() {
 	doc[F("timeout_mp3")] = gs.timeout_mp3;
 	doc[F("sync_time_period")] = gs.sync_time_period;
 	doc[F("scroll_period")] = gs.scroll_period;
+	doc[F("slide_show")] = gs.slide_show;
+	doc[F("minim_show")] = gs.minim_show;
 	doc[F("web_login")] = gs.web_login;
 	doc[F("web_password")] = gs.web_password;
 
@@ -638,6 +644,14 @@ bool load_config_weather() {
 		return false;
 	}
 
+	ws.sensors = doc[F("sensors")];
+	ws.term_period = doc[F("term_period")];
+	ws.term_color_mode = doc[F("term_color_mode")];
+	ws.term_color = text_to_color(doc[F("term_color")]);
+	ws.tiny_term = doc[F("tiny_term")];
+	ws.term_cor = doc[F("term_cor")];
+	ws.bar_cor = doc[F("bar_cor")];
+	ws.term_pool = doc[F("term_pool")];
 	ws.weather = doc[F("weather")];
 	ws.sync_weather_period = doc[F("sync_weather_period")];
 	ws.show_weather_period = doc[F("show_weather_period")];
@@ -666,6 +680,14 @@ void save_config_weather() {
 
 	JsonDocument doc; // временный буфер под объект json
 
+	doc[F("sensors")] = ws.sensors;
+	doc[F("term_period")] = ws.term_period;
+	doc[F("term_color_mode")] = ws.term_color_mode;
+	doc[F("term_color")] = color_to_text(ws.term_color);
+	doc[F("tiny_term")] = ws.tiny_term;
+	doc[F("term_cor")] = ws.term_cor;
+	doc[F("bar_cor")] = ws.bar_cor;
+	doc[F("term_pool")] = ws.term_pool;
 	doc[F("weather")] = ws.weather;
 	doc[F("sync_weather_period")] = ws.sync_weather_period;
 	doc[F("show_weather_period")] = ws.show_weather_period;

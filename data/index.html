@@ -17,6 +17,7 @@
 	<body>
 		<div class="head">
 			Управление часами.
+			<div id="hostname"></div>
 		</div>
 		<div class="menu">
 			<a href="running.html">Бегущая строка</a>
@@ -24,18 +25,26 @@
 			<a href="weather.html">Погода</a>
 			<a href="quotes.html">Цитаты</a>
 			<a href="settings.html">Настройки</a>
-			<a href="sounds.html">Мелодии</a>
+			<a href="sounds.html" id="sounds">Мелодии</a>
 			<a href="security.html">Охрана</a>
 			<a href="maintenance.html">Дополнительно</a>
 			<a href="about.html">О часах</a>
-			<a href="logout">Выход</a>
+			<a href="logout" id="logout">Выход</a>
 		</div>
 		<div id="shadow"><div>Загрузка...</div></div>
 	</body>
 <script type="text/javascript" encoding="UTF-8">
+function applyInfo(info) {
+	$g("hostname").innerHTML = info.hostname + ".local";
+	if(!info.is_auth) $g("logout").style.display = 'none';
+	if(!info.use_mp3) $g("sounds").style.display = 'none';
+}
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
-		$g("shadow").style.display = "none";
+		ajaxRequest("status","GET",null, function(ajaxResp) {
+			applyInfo(JSON.parse(ajaxResp.responseText));
+			$g("shadow").style.display = "none";
+		}, dummy);
 	} else setTimeout(start, 100);
 }
 start();

@@ -131,6 +131,10 @@
 						<div><input name="date_short" type="checkbox" value="1"></div>
 					</div>
 					<div class="row">
+						<div>Отображать дату крошечными цифрами</div>
+						<div><input name="tiny_date" type="checkbox" value="1"></div>
+					</div>
+					<div class="row">
 						<div>Периодичность вывода даты в секундах (&gt;20 сек.)</div>
 						<div><input name="date_period" type="number" value="0"></div>
 					</div>
@@ -266,6 +270,14 @@
 					<div class="one">
 						<div>Скорость движения бегущей строки: <span id="spV">0</span></div>
 						<div><input type="range" min="0" max="50" step="1" value="25" class="long" name="scroll_period" id="spC" oninput="updateRange('sp')"></div>
+					</div>
+					<div class="row">
+						<div>Время показа слайда в режиме крошечных цифр (от 1 до 10 сек)</div>
+						<div><input name="slide_show" type="number" value="2"></div>
+					</div>
+					<div class="row">
+						<div>Минимальное время показа циферблата (от 0 до 20 сек)</div>
+						<div><input name="minim_show" type="number" value="2"></div>
 					</div>
 					<div class="one i b center">Будильник</div>
 					<div class="one">

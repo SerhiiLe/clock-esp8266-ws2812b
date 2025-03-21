@@ -17,31 +17,31 @@
 
 int16_t currentOffset = WIDTH;
 uint32_t _currentColor = 1;
-uint8_t hue_shift = 0;
 
 char _runningText[MAX_LENGTH]; // текст, который будет крутиться
 bool runningMode; // режим: true - разовый вывод, false - прокрутить строку
-bool screenIsFree = true; // экран свободен (текст полностью прокручен)
 
 // ------------- СЛУЖЕБНЫЕ ФУНКЦИИ --------------
 
 // интерпретатор кода символа в массиве fontHEX (для Arduino IDE 1.8.* и выше)
 // Символы записаны не по строкам, а по колонкам, для удобства отображения
-// letter - utf8 код символа, col - колонка, которую надо отобразить
-uint8_t getFont(uint32_t letter, uint8_t col) {
+// letter - utf8 код символа
+// &metric - адрес переменной, в которую будет записана метрика символа
+// возвращает указатель на массив байт, описывающих символ
+const uint8_t* getFont(uint32_t letter, uint8_t &metric) {
 	uint16_t cn = 0;
 
+	// костыль для отрисовки нестандартными шрифтами
 	if(letter >= 1 && letter <= 9) { // заменители двоеточия
-		if(col == LET_WIDTH) return 0x84;
+		metric = 0x84;
 		cn = letter - 1;
-		return pgm_read_byte(&fontSemicolon[cn][col]);
+		return fontSemicolon[cn];
 	}
 	else if( letter == 0x7f ) { // заменитель пробела
-		if(col == LET_WIDTH) return 0x84;
-		letter = 32;
+		metric = 0x84;
+		return fontVar[cn]; // пробел это первый символ в массиве
 	}
 
-	if(col == LET_WIDTH && gs.wide_font ) return (LET_HEIGHT << 4) | LET_WIDTH;
 	if( letter < 0x7f ) // для английских букв и символов
 		cn = letter-32;
 	else if( letter >= 0xd090 && letter <= 0xd0bf ) // А-Яа-п (utf-8 символы идут не по порядку, надо собирать из кусков)
@@ -74,42 +74,30 @@ uint8_t getFont(uint32_t letter, uint8_t col) {
 		cn = 3; // 3 - # или 46 - N
 	else
 		cn = 162; // символ не найден, вывести пустой прямоугольник
-	if( gs.wide_font )	return pgm_read_byte(&(fontFix[cn][col]));
-	return pgm_read_byte(&(fontVar[cn][col]));
+
+	// с номером буквы в массиве шрифта определились, возвращаем указатель на неё и метрику
+	metric = gs.wide_font ? (LET_HEIGHT << 4) | LET_WIDTH : pgm_read_byte(&(fontVar[cn][LET_WIDTH]));
+	if( gs.wide_font ) return fontFix[cn];
+	return fontVar[cn];
 }
 
 // Отрисовка буквы с учётом выхода за край экрана
-// index - порядковый номер буквы в тексте, нужно для подсвечивания разными цветами
 // letter - буква, которую надо отобразить
 // offset - позиция на экране. Может быть отрицательной, если буква уже уехала или больше ширины, если ещё не доехала
 // color - режим цвета (1 - радуга: текст "переливается", 2 - по букве, 3 - режим циферблата: 2+1+2) или цвет в CRGB (прозрачность, красный, зелёный, синий)
-int16_t drawLetter(uint8_t index, uint32_t letter, int16_t offset, uint32_t color) {
-	uint8_t t = getFont(letter, LET_WIDTH);
-	int8_t LW = t & 0xF; // ширина буквы
-	int8_t start_pos = 0, finish_pos = LW;
-	int8_t LH = t >> 4; // высота буквы
+// index - порядковый номер буквы в тексте, нужно для подсвечивания разными цветами
+int16_t drawLetter(uint32_t letter, int16_t offset, uint32_t color, uint16_t index) {
+	// получить указатель на букву
+	uint8_t t;
+	const uint8_t* pointer = getFont(letter, t);
+
+	uint8_t LW = t & 0xF; // ширина буквы
+	uint8_t LH = t >> 4; // высота буквы
 	if (LH > HEIGHT) LH = HEIGHT;
 
- 	CRGB letterColor;
-	uint8_t hs = gs.hue_shift ? hue_shift: 0;
-	if(color == 1) letterColor = CHSV(byte((offset << 3) + hs), 255, 255); // цвет в CHSV (прозрачность, оттенок, насыщенность, яркость) (0,0,255 - белый)
-	else if(color == 3) letterColor = CHSV(byte((index << 5) + hs), 255, 255);
-	else if(color == 5) letterColor = gs.show_time_col[index % 5];
-	else letterColor = color;
+	// отрисовка буквы
+	drawChar(pointer, offset, TEXT_BASELINE, LH, LW, color, index);
 
-	if( offset < -LW || offset > WIDTH ) return LW; // буква за пределами видимости, пропустить
-	if( offset < 0 ) start_pos = -offset;
-	if( offset > WIDTH - LW ) finish_pos = WIDTH - offset;
-
-	for (int8_t x = start_pos; x < finish_pos; x++) {
-		// отрисовка столбца (x - горизонтальная позиция, y - вертикальная)
-		if(color == 2) letterColor = CHSV(byte(((offset + x) << 3) + hs), 255, 255);
-		if(color == 4) letterColor = CHSV(byte(((index * LW + x) << 2) + hs), 255, 255);
-		uint8_t fontColumn = getFont(letter, x);
-		for (int8_t y = 0; y < LH; y++)
-			if(fontColumn & (1 << (LH - 1 - y))) 
-				drawPixelXY(offset + x, TEXT_BASELINE + y, led_brightness > 1 && fl_5v ? letterColor: CRGB::Red);
-	}
 	return LW;
 }
 
@@ -137,7 +125,7 @@ void drawString() {
 				c = (c << 8) | (byte)_runningText[i++];
 			}
 		}
-		delta += drawLetter(j++, c, currentOffset + delta, _currentColor) + SPACE;
+		delta += drawLetter(c, currentOffset + delta, _currentColor, j++) + SPACE;
 	}
 
 	if(runningMode) {
@@ -148,6 +136,7 @@ void drawString() {
 		if(currentOffset < -delta) { // строка полностью пробежала
 			screenIsFree = true;
 			_runningText[0] = 0;
+			last_time_display = millis();
 		}
 	}
 }
@@ -159,6 +148,7 @@ void initRunning(uint32_t color, int16_t posX) {
 	if(_runningText[0]==32) currentOffset -= gs.wide_font ? (LET_WIDTH + SPACE) >> 1: LET_WIDTH >> 1;
 	if(_runningText[0]==49 && gs.wide_font) currentOffset--;
 	screenIsFree = false;
+	itsTinyText = false;
 }
 // Инициализация строки, которая будет отображаться на экране
 // txt - сама строка

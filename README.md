@@ -91,15 +91,15 @@ IP адрес только автоматический. Не вижу смыс�
 
 (сборка не мой конёк, нож + термоклей не дадут шедевр эстетики)
 
-[8x32 RGB WS2812B](https://ledplus.com.ua/ua/p1416606496-svetodiodnaya-matritsa-adresnaya.html),
-[3PIN M/F](https://ledplus.com.ua/ua/p1511573942-konnektor-3pin-provodami.html),
-[WiFi NodeMCU Lua V3](https://ledplus.com.ua/ua/p1013294902-modul-wifi-nodemcu.html) или [Wemos D1 mini](https://ledplus.com.ua/ua/p1162788418-plata-razrabotki-wemos.html),
-[MP3-TF-16P](https://ledplus.com.ua/ua/p1219714846-modul-plejera-mp3.html),
-[RCWL-0516](https://ledplus.com.ua/ua/p1259627889-datchik-dvizheniya-mikrovolnovyj.html),
-[TTP223B](https://ledplus.com.ua/ua/p1121404110-modul-sensornaya-knopka.html),
-[Модуль реле](https://ledplus.com.ua/ua/p1284992864-modul-rele-high.html),
-[TP4056](https://ledplus.com.ua/ua/p1307577265-modul-zaryadki-tp4056.html),
-[остальное](https://www.k206.net/catalog/)
+- [8x32 RGB WS2812B](https://ledplus.com.ua/ua/p1416606496-svetodiodnaya-matritsa-adresnaya.html),
+- [3PIN M/F](https://ledplus.com.ua/ua/p1511573942-konnektor-3pin-provodami.html),
+- [WiFi NodeMCU Lua V3](https://ledplus.com.ua/ua/p1013294902-modul-wifi-nodemcu.html) или [Wemos D1 mini](https://ledplus.com.ua/ua/p1162788418-plata-razrabotki-wemos.html),
+- [MP3-TF-16P](https://ledplus.com.ua/ua/p1219714846-modul-plejera-mp3.html),
+- [RCWL-0516](https://ledplus.com.ua/ua/p1259627889-datchik-dvizheniya-mikrovolnovyj.html),
+- [TTP223B](https://ledplus.com.ua/ua/p1121404110-modul-sensornaya-knopka.html),
+- [Модуль реле](https://ledplus.com.ua/ua/p1284992864-modul-rele-high.html),
+- [TP4056](https://ledplus.com.ua/ua/p1307577265-modul-zaryadki-tp4056.html),
+- [остальное](https://www.k206.net/catalog/)
 
 ## Сборка
 
@@ -176,8 +176,9 @@ PlatformIO само скачает нужные файлы платформы и
 - Перенёс наработки из своего проекта мини-часиков, отображение текущей погоды и случайных цитат.
 - Упростил настройку будильников, почистил те проблемы, которые заметил.
 - Синхронизировал порядок и названия циферблатов с проектом мини-часики. Добавил выбор 12/24 часа.
-- альтернативный вариант цвета текста "радуга" и "разные".
-- адаптация под актуальную версию [fastbot](https://github.com/GyverLibs/FastBot)
-- мелкие изменения, адаптация под esp32c3.
+- Альтернативный вариант цвета текста "радуга" и "разные".
+- Адаптация под актуальную версию [fastbot](https://github.com/GyverLibs/FastBot)
+- Мелкие изменения, адаптация под esp32c3.
+- Перенёс поддержку модулей измерения температуры/давления/влажности и модуля часов.
 
 # Слава Украине!

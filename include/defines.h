@@ -5,45 +5,83 @@
 
 /*** описание констант, которые описывают конкретное "железо" ***/
 
+// ВНИМАНИЕ! следующая опция переключает раскладку PIO cо старой на новую, с датчиками i2c.
+// Будьте внимательны! Проверьте раскладку назначений PIO перед подключением модулей!
+#define USE_I2C 0 // использовать I2C для датчики. 1 - схема с i2c, 0 - схема без i2c.
+
+// Назначение PIO для разных типов микроконтроллеров. Сверяйтесь с pinout вашего модуля.
 #if ESP32C3 == 1 // ESP32-c3
-#define PIN_LED 6 // LED матрица
-#define PIN_PHOTO_SENSOR A0 // фоторезистор
-#define PIN_BUTTON 1 // кнопка управления
-#define PIN_MOTION 10 // детектор движения
-#define PIN_5V 3 // детектор наличия питания (5 Вольт). Закомментировать, если не подключен
-#define PIN_RELAY 7 // реле выключатель питания матрицы
-#define RELAY_TYPE 1 // тип реле, срабатывает по: 0 - низкому, 1 - высокому уровню. 
-#define LED_MOTION 5 // светодиод индикатор движения. Закомментировать для вывода на матрицу.
-#define SRX 20 // hardware serial RX DFPlayer. Закомментировать, если не подключен
-#define STX 21 // hardware serial TX DFPlayer
-// #define SDA 8 // I2C SDA
-// #define SCL 9 // I2C SCL
-// #define BAT 4 // напряжение аккумулятора
+	#define PIN_LED 6 // LED матрица
+	#define PIN_PHOTO_SENSOR A0 // фоторезистор
+	#define PIN_BUTTON 1 // кнопка управления
+	#define PIN_MOTION 10 // детектор движения
+	#define PIN_5V 3 // детектор наличия питания (5 Вольт). Закомментировать, если не подключен
+	#define PIN_RELAY 7 // реле выключатель питания матрицы
+	#define LED_MOTION 5 // светодиод индикатор движения. Закомментировать для вывода на матрицу.
+	#define SRX 20 // hardware serial RX DFPlayer. Закомментировать, если не подключен
+	#define STX 21 // hardware serial TX DFPlayer
+	// -> SDA 8 // I2C SDA Для справки, определены в Arduino
+	// -> SCL 9 // I2C SCL
+	#define BAT_LEVEL 4 // напряжение аккумулятора
 #elif ESP32 == 1 // ESP32
-#define PIN_LED 22 // LED матрица
-#define PIN_PHOTO_SENSOR 36 // фоторезистор
-#define PIN_BUTTON 19 // кнопка управления
-#define PIN_MOTION 18 // детектор движения
-#define PIN_5V 21 // детектор наличия питания (5 Вольт). Закомментировать, если не подключен
-#define PIN_RELAY 26 // реле выключатель питания матрицы
-#define RELAY_TYPE 1 // тип реле, срабатывает по: 0 - низкому, 1 - высокому уровню. 
-#define LED_MOTION 17 // светодиод индикатор движения. Закомментировать для вывода на матрицу.
-#define SRX 23 // software serial RX DFPlayer. Закомментировать, если не подключен
-#define STX 5 // software serial TX DFPlayer
+	#define PIN_PHOTO_SENSOR 36 // фоторезистор
+	#define PIN_BUTTON 19 // кнопка управления
+	#define PIN_MOTION 18 // детектор движения
+	#define PIN_RELAY 26 // реле выключатель питания матрицы
+	#if USE_I2C == 0
+		// ------8<------ old, compatible with ESP8266 Wemos D1 mini
+		// #define PIN_LED 22 // LED матрица
+		// #define LED_MOTION 17 // светодиод индикатор движения. Закомментировать для вывода на матрицу.
+		// #define PIN_5V 21 // детектор наличия питания (5 Вольт). Закомментировать, если не подключен
+		// #define SRX 23 // software serial RX DFPlayer. Закомментировать, если не подключен
+		// #define STX 5 // software serial TX DFPlayer
+		// ------8<------
+	#else
+		// ------8<------ new, for esp32
+		#define PIN_LED 23 // LED матрица
+		#define LED_MOTION 4 // светодиод индикатор движения. Закомментировать для вывода на матрицу.
+		#define PIN_5V 5 // детектор наличия питания (5 Вольт). Закомментировать, если не подключен
+		#define SRX 16 // hardware serial RX DFPlayer. Закомментировать, если не подключен
+		#define STX 17 // hardware serial TX DFPlayer
+		// -> SDA 21 // I2C SDA Для справки, определены в Arduino
+		// -> SCL 22 // I2C SCL
+		#define BAT_LEVEL 35 // напряжение аккумулятора
+		// ------8<------
+	#endif
 #else // ESP8266
-#define PIN_LED 5 // LED матрица
-#define PIN_PHOTO_SENSOR A0 // фоторезистор
-#define PIN_BUTTON 12 // кнопка управления
-#define PIN_MOTION 14 // детектор движения
-#define PIN_5V 4 // детектор наличия питания (5 Вольт). Закомментировать, если не подключен
-#define PIN_RELAY 16 // реле выключатель питания матрицы
-#define RELAY_TYPE 1 // тип реле, срабатывает по: 0 - низкому, 1 - высокому уровню. 
-#define LED_MOTION 0 // светодиод индикатор движения. Закомментировать для вывода на матрицу.
-#define SRX 13 // software serial RX DFPlayer. Закомментировать, если не подключен
-#define STX 15 // software serial TX DFPlayer
+	#define PIN_PHOTO_SENSOR A0 // фоторезистор
+	#define PIN_BUTTON 12 // кнопка управления
+	#define PIN_MOTION 14 // детектор движения
+	#define SRX 13 // software serial RX DFPlayer. Закомментировать, если не подключен
+	#define STX 15 // software serial TX DFPlayer
+	#if USE_I2C == 0
+		// ------8<------ old, без i2c, начальная схема
+		#define PIN_LED 5 // LED матрица
+		#define PIN_5V 4 // детектор наличия питания (5 Вольт). Закомментировать, если не подключен
+		#define LED_MOTION 0 // светодиод индикатор движения. Закомментировать для вывода на матрицу.
+		#define PIN_RELAY 16 // реле выключатель питания матрицы
+		// ------8<------
+	#else
+		// ------8<------ new, с i2c, альтернативная схема, не рекомендую для esp8266
+		#define PIN_LED 2 // LED матрица
+		#define PIN_5V 16 // детектор наличия питания (5 Вольт). Закомментировать, если не подключен
+		#define PIN_RELAY 0 // реле выключатель питания матрицы
+		// -> SDA 4 // I2C SDA Для справки, определены в Arduino
+		// -> SCL 5 // I2C SCL
+		// LED_MOTION не поместился, пины закончились, будет отображаться на матрице
+		// ------8<------
+	#endif
 #endif
+
 #define SENSOR_BUTTON 1 // сенсорная кнопка - 1, обычная - 0
+
 #define RELAY_OP_TIME 10 // время срабатывания реле по даташиту. ms
+#define RELAY_TYPE 1 // тип реле, срабатывает по: 0 - низкому, 1 - высокому уровню.
+
+// если схема с i2c.
+#define USE_NVRAM 0 // использовать отдельный чип на плате RTC, вместо flash esp8266/esp32. 0 - файлы, 1 - чип NVRAM
+#define USE_RTC 1	// использовать аппаратный чип RTC (часы). 0 - только интернет, 1 - использовать
+#define USE_BMP 1	// использовать датчик давления/температуры (BMP180). 0 - не использовать, 1 - использовать
 
 /*** ограничение потребления матрицей ***/
 

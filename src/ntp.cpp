@@ -3,11 +3,29 @@
 */
 
 #include <Arduino.h>
-#include <time.h>
 #include "defines.h"
 #include "settings.h"
+#include "rtc.h"
+#include <WiFiUdp.h>
+#ifdef ESP8266
+#include <ESP8266WiFi.h>
+#else
+#include <WiFi.h>
+#endif
 
-#define REQUEST_TIMEOUT 10000 // таймаут запроса к NTP серверу.
+
+#define REQUEST_TIMEOUT 6000 // таймаут запроса к NTP серверу (ms). 
+#define NTP_LOCAL_PORT 1234 // порт с которого делаются запросы
+#define NTP_PORT 123 // порт NTP (123 по стандарту)
+
+// сервера времени
+const char PROGMEM NTP1[] = "pool.ntp.org";
+const char PROGMEM NTP2[] = "time.nist.gov";
+const char PROGMEM NTP3[] = "pool.time.in.ua";
+const char PROGMEM NTP4[] = "ntp.ps.od.ua";
+const char* PROGMEM NTP[] = {NTP1, NTP2, NTP3, NTP4};
+
+WiFiUDP ntp_udp;
 
 time_t start_time = 0;
 bool fl_needStartTime = true;
@@ -17,44 +35,115 @@ unsigned long request_time = 0;
 
 void DuskTillDawn();
 
-void syncTimeRequest() {
-	int tz           = gs.tz_shift;
-	int dst          = gs.tz_dst;
-	configTime(tz * 3600, dst * 3600, "pool.ntp.org", "time.nist.gov");
-	LOG(println, PSTR("Request for NTP time sync is send"));
-	fl_ntpRequestIsSend = true;
+/*
+	встроенная функция даёт странные эффекты на слабом интернете, пришлось получать время "ручками"
+	за основу взята реализация https://github.com/GyverLibs/GyverNTP
+ */
+
+// формирование и отправка запроса
+bool syncTimeRequest() {
+	static uint8_t server_num = 0;
+	char host[128];
+	uint8_t buf[48];
+	memset(buf, 0, 48);
+	// https://ru.wikipedia.org/wiki/NTP
+	buf[0] = 0b11100011;                    // LI 0x3, v4, client
+	ntp_udp.begin(NTP_LOCAL_PORT);
+	strncpy_P(host, NTP[server_num], sizeof(host)); // выбор сервера ntp из массива
+	LOG(printf, PSTR("NTP host: %s index: %u\n"), host, server_num);
+	if(!ntp_udp.beginPacket(host, NTP_PORT)) return false;
+	ntp_udp.write(buf, 48);
+	if(!ntp_udp.endPacket()) return false;
 	request_time = millis();
+	ntp_udp.flush();
+	delay(0);
+	fl_ntpRequestIsSend = true;
+	server_num = (server_num + 1) % (sizeof(NTP)/sizeof(char*)); // прокрутка номера сервера
+	return true;
 }
 
+// получение ответа от сервера
+time_t ntpReadAnswer() {
+	if(ntp_udp.remotePort() != NTP_PORT) return 0;     // не наш порт
+	uint8_t buf[48];
+	ntp_udp.read(buf, 48);                      // читаем
+	if (buf[40] == 0) return 0;         // некорректное время
+	unsigned long rtt = millis() - request_time;          // время между запросом и ответом
+	uint16_t a_ms = ((buf[44] << 8) | buf[45]) * 1000L >> 16;    // мс ответа сервера
+	uint16_t r_ms = ((buf[36] << 8) | buf[37]) * 1000L >> 16;    // мс запроса клиента
+	int16_t err = a_ms - r_ms;          // время обработки сервером
+	if (err < 0) err += 1000;           // переход через секунду
+	rtt = (rtt - err) / 2;              // текущий пинг
+	uint32_t _unix = (((uint32_t)buf[40] << 24) | ((uint32_t)buf[41] << 16) | ((uint32_t)buf[42] << 8) | buf[43]);    // 1900
+	_unix -= 2208988800ul;                  // перевод в UNIX (1970)
+	_unix += rtt / 1000;
+	return _unix;
+}
+
+// запрос на синхронизацию времени
 bool syncTime() {
-	time_t now = time(nullptr);
-	if( ! fl_ntpRequestIsSend ) {
-		syncTimeRequest();
-		return false;
-	}
-	// Сутки от 1го января 1970. Если системное время больше, значит или прошли сутки, или как-то время установилось, например вручную.
-	if( now < 86400 ) {
-		if((millis() - request_time) > REQUEST_TIMEOUT) {
-			// увы, ответ на запрос таки не пришел и время не установилось. Повезёт в следующий раз. 
-			LOG(println, PSTR("\n[ERROR] Failed to get NTP time."));
-			fl_ntpRequestIsSend = false;
-			return false;
+	static uint8_t ntp_try = 0;
+	static bool fl_next_try = false;
+
+	// если запрос ещё не отправлен, то отправить
+	if( ! fl_ntpRequestIsSend || fl_next_try ) {
+		if(syncTimeRequest()) {
+			LOG(println, PSTR("Request for NTP time sync is send"));
+		} else {
+			LOG(println, PSTR("Error in send request to NTP server"));
 		}
+		if( !fl_next_try ) ntp_try = 0;
+		fl_next_try = false;
 		return false;
 	}
-	// время установлено
-	if(fl_needStartTime) {
-		// это первое обновление времени после включения, вычисление времени запуска с учётом времени на получение времени и запись в лог
-		start_time = now - millis()/1000;
-		fl_needStartTime = false;
-		if(sec_enable) save_log_file(SEC_TEXT_BOOT);
-		last_telegram = now;
+	// ожидание ответа в течении REQUEST_TIMEOUT
+	if((millis() - request_time) < REQUEST_TIMEOUT) {
+		if(ntp_udp.parsePacket() == 48) {
+			time_t t = ntpReadAnswer();
+			LOG(printf_P,PSTR("Got from NTP: %lu (GMT)\n"),t);
+			if( t > 0 ) {
+				// что-то похожее на время получено, устанавливаем его как системное + сдвиг часового пояса
+				time_t tz = (gs.tz_shift + gs.tz_dst)*3600;
+				time_t now = t + tz;
+				timeval tv = { now, 0 };
+				settimeofday(&tv, nullptr);
+				fl_timeNotSync = false;
+				fl_ntpRequestIsSend = false;
+				ntp_udp.stop();
+				LOG(printf_P,PSTR("Set time from NTP to: %lu (GMT)\n"),t);
+				if(fl_needStartTime) {
+					start_time = now - millis()/1000;
+					fl_needStartTime = false;
+				}
+				rtc_saveTIME(t); // сохранить полученное время в модуле часов RTC (GMT)
+				DuskTillDawn();
+				return true;
+			}
+		}
 	}
-	DuskTillDawn();
-	fl_timeNotSync = false;
-	fl_ntpRequestIsSend = false;
-	LOG(println, PSTR("time is synced"));
-	return true;
+	// Запрос не прошел, повезёт в следующий раз
+	if((millis() - request_time) > REQUEST_TIMEOUT) {
+		ntp_udp.stop();
+		fl_ntpRequestIsSend = false;
+		LOG(println, PSTR("NTP sync failed"));
+		if( ++ntp_try < sizeof(NTP)/sizeof(char*) ) {
+			// время ожидания вышло, но ещё не все сервера перебраны, следующая попытка
+			fl_next_try = true;
+			return syncTime();
+		}
+		if( time(nullptr) > 86400 ) {
+			// время как-то установлено, может быть руками, может через web, может платой RTC
+			// всё как и при успешном обновлении, но без обновления RTC
+			if(fl_needStartTime) {
+				start_time = time(nullptr) - millis()/1000;
+				fl_needStartTime = false;
+			}
+			DuskTillDawn();
+			return true;
+		}
+		// время не установлено, наверное отсутствует плата RTC, мы в 1 января 1970 года, надо долбится до посинения
+	}
+	return false;
 }
 
 // Function that gets current epoch time
@@ -114,7 +203,7 @@ void sunCalculate(const tm &now, const bool isRise, uint8_t &hour, uint8_t &minu
 	const float RAD = DEG_TO_RAD; // PI/180;
 
 	float zenith = 90.8f;
-	switch (gs.boost_mode)	{
+	switch(gs.boost_mode) {
 		case 2:
 			zenith = 96.0f;
 			break;

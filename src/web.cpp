@@ -20,7 +20,10 @@
 #include "web.h"
 #include "settings.h"
 #include "runningText.h"
+#include "textTiny.h"
 #include "ntp.h"
+#include "rtc.h"
+#include "barometer.h"
 #include "dfplayer.h"
 #include "security.h"
 #include "clock.h"
@@ -28,6 +31,7 @@
 #include "webClient.h"
 
 #define HPP(txt, ...) HTTP.client().printf_P(PSTR(txt), __VA_ARGS__)
+const char* PROGMEM txt_save = "save";
 
 #ifdef ESP32
 WebServer HTTP(80);
@@ -49,6 +53,7 @@ void save_quote();
 void show_quote();
 void save_weather();
 void show_weather();
+void show_sensors();
 void show();
 void sysinfo();
 void play();
@@ -59,12 +64,17 @@ void send();
 void logout();
 void sensors();
 void registration();
+void show_status();
 
 bool fileSend(String path);
 bool need_save = false;
 bool fl_mdns = false;
 
 bool fl_playStarted = false;
+
+const char PROGMEM one[] = "1";
+const char PROGMEM zero[] = "0";
+const char PROGMEM text_plain[] = "text/plain";
 
 // отключение веб сервера для активации режима настройки wifi
 void web_disable() {
@@ -83,7 +93,10 @@ void web_disable() {
 
 // отправка простого текста
 void text_send(String s, uint16_t r = 200) {
-	HTTP.send(r, F("text/plain"), s);
+	HTTP.send(r, text_plain, s);
+}
+void text_send_P(const char* s, uint16_t r = 200) {
+	HTTP.send_P(r, text_plain, s);
 }
 // отправка сообщение "не найдено"
 void not_found() {
@@ -110,6 +123,7 @@ void web_process() {
 		HTTP.on(F("/show_quote"), show_quote);
 		HTTP.on(F("/save_weather"), save_weather);
 		HTTP.on(F("/show_weather"), show_weather);
+		HTTP.on(F("/show_sensors"), show_sensors);
 		HTTP.on(F("/show"), show);
 		HTTP.on(F("/sysinfo"), sysinfo);
 		HTTP.on(F("/play"), play);
@@ -120,6 +134,7 @@ void web_process() {
 		HTTP.on(F("/logout"), logout);
 		HTTP.on(F("/sensors"), sensors);
 		HTTP.on(F("/registration"), registration);
+		HTTP.on(F("/status"), show_status);
 		HTTP.on(F("/who"), [](){
 			text_send(ts.clock_name);
 		});
@@ -402,6 +417,7 @@ void save_settings() {
 	set_simple_int(F("dots_style"), gs.dots_style, 0, 11);
 	set_simple_checkbox(F("t12h"), gs.t12h);
 	set_simple_checkbox(F("date_short"), gs.show_date_short);
+	set_simple_checkbox(F("tiny_date"), gs.tiny_date);
 	if( set_simple_int(F("date_period"), gs.show_date_period, 20, 1439) )
 		clockDate.setInterval(1000U * gs.show_date_period);
 	set_simple_int(F("time_color"), gs.show_time_color, 0, 5);
@@ -453,6 +469,8 @@ void save_settings() {
 		ntpSyncTimer.setInterval(3600000U * gs.sync_time_period);
 	if( set_simple_int(F("scroll_period"), gs.scroll_period, 0, 50) )
 		scrollTimer.setInterval(60 - gs.scroll_period);
+	set_simple_int(F("slide_show"), gs.slide_show, 1, 10);
+	set_simple_int(F("minim_show"), gs.minim_show, 0, 20);
 	bool need_web_restart = false;
 	if( set_simple_string(F("web_login"), gs.web_login) )
 		need_web_restart = true;
@@ -463,7 +481,8 @@ void save_settings() {
 	HTTP.send(303);
 	delay(1);
 	if( need_save ) save_config_main();
-	initRString(PSTR("Настройки сохранены"));
+	// initRString(PSTR("Настройки сохранены"));
+	printTinyText(txt_save,1,9);
 	if( sync_time ) syncTime();
 	if( need_bright ) old_bright_boost = !old_bright_boost;
 	if(need_web_restart) httpUpdater.setup(&HTTP, gs.web_login, gs.web_password);
@@ -501,7 +520,8 @@ void save_telegram() {
 	HTTP.send(303);
 	delay(1);
 	if( need_save ) save_config_telegram();
-	initRString(PSTR("Настройки сохранены"));
+	// initRString(PSTR("Настройки сохранены"));
+	printTinyText(txt_save,1,9);
 	if(fl_setTelegram) setup_telegram();
 }
 
@@ -637,11 +657,11 @@ void off_alarm() {
 		if( alarms[target].settings & 512 ) {
 			alarms[target].settings &= ~(512U);
 			save_config_alarms();
-			text_send(F("1"));
+			text_send_P(one);
 			initRString(PSTR("Будильник отключён"));
 		}
 	} else
-		text_send(F("0"));
+		text_send_P(zero);
 }
 
 // сохранение настроек бегущей строки. Строки настраиваются по одной.
@@ -696,11 +716,11 @@ void off_text() {
 		if( texts[target].repeat_mode & 512 ) {
 			texts[target].repeat_mode &= ~(512U);
 			save_config_texts();
-			text_send(F("1"));
+			text_send_P(one);
 			initRString(PSTR("Текст отключён"));
 		}
 	} else
-		text_send(F("0"));
+		text_send_P(zero);
 }
 
 // костыль для настройки режима повтора. Работает 50/50
@@ -791,7 +811,7 @@ void play() {
 	}
 	char buff[20];
 	sprintf_P(buff, PSTR("%i:%i:%i:%i"), mp3_current, mp3_all, cur_Volume, mp3_isPlay());
-	text_send(buff);
+	text_send(String(buff));
 }
 
 // "proxy" отправка сообщений в телеграм через web запрос, для сторонних устройств
@@ -803,12 +823,12 @@ void send() {
 			name = F("msg");
 			if( HTTP.hasArg(name) ) {
 				tb_send_msg(HTTP.arg(name));
-				text_send(F("1"));
+				text_send_P(one);
 				return;
 			}
 		}
 	}
-	text_send(F("0"));
+	text_send_P(zero);
 }
 
 // Установка времени. Для крайних случаев, когда интернет отсутствует
@@ -890,7 +910,7 @@ void onoff() {
 			}
 		}
 	}
-	text_send(cond?F("1"):F("0"));
+	text_send_P(cond?one:zero);
 }
 
 #ifdef ESP32
@@ -971,6 +991,10 @@ void sysinfo() {
 	HPP("\"fl_5v\":%i,", fl_5v);
 	HPP("\"Rssi\":%i,", wifi_rssi());
 	HPP("\"IP\":\"%s\",", wifi_currentIP().c_str());
+	HPP("\"Barometer\":%u,", fl_barometerIsInit);
+	HPP("\"RTC\":%u,", rtc_enable);
+	HPP("\"TimeDrift\":%i,", rtc_enable ? getTimeU() - (gs.tz_shift+gs.tz_dst)*3600 - getRTCTimeU(): 0);
+	HPP("\"NVRAM\":%u,", nvram_enable ? eeprom_chip: 0);
 	HPP("\"FreeHeap\":%i,", ESP.getFreeHeap());
 	#ifdef ESP32
 	HPP("\"MaxFreeBlockSize\":%i,", ESP.getMaxAllocHeap());
@@ -1053,14 +1077,14 @@ void registration() {
 				}
 				if(fl_found) {
 					LOG(printf_P,PSTR("registered \"%s\" ip %s\n"), HTTP.arg(name).c_str(), sensor_ip.toString().c_str());
-					text_send(F("1"));
+					text_send_P(one);
 					return;
 				}
 			}
 		}
 	}
 	// любая ошибка, в том числе закончились свободные ячейки
-	text_send(F("0"));
+	text_send_P(zero);
 }
 
 // сохранение настроек цитат
@@ -1099,7 +1123,8 @@ void save_quote() {
 		save_config_quote();
 		quote.fl_init = false;
 	}
-	initRString(PSTR("Настройки сохранены"));
+	// initRString(PSTR("Настройки сохранены"));
+	printTinyText(txt_save,1,9);
 }
 
 void show_quote() {
@@ -1171,7 +1196,7 @@ void show() {
 		HTTP.send(303);
 		delay(1);
 	} else
-		text_send(cond?F("1"):F("0"));
+		text_send_P(cond?one:zero);
 }
 
 void save_weather() {
@@ -1180,6 +1205,14 @@ void save_weather() {
 	bool need_weather = false;
 	bool fl_change_color = false;
 
+	set_simple_checkbox(F("sensors"), ws.sensors);
+	set_simple_int(F("term_period"), ws.term_period, 20, 60000);
+	set_simple_int(F("term_color_mode"), ws.term_color_mode, 0, 4);
+	set_simple_color(F("term_color"), ws.term_color);
+	set_simple_checkbox(F("tiny_term"), ws.tiny_term);
+	set_simple_float(F("term_cor"), ws.term_cor, -100.0f, 100.0f, 1.0f);
+	set_simple_int(F("bar_cor"), ws.bar_cor, -1000, 1000);
+	set_simple_int(F("term_pool"), ws.term_pool, 30, 600);
 	need_weather = set_simple_checkbox(F("weather"), ws.weather);
 	if(set_simple_int(F("sync_weather_period"), ws.sync_weather_period, 15, 1439))
 		syncWeatherTimer.setInterval(60000U * ws.sync_weather_period);
@@ -1210,14 +1243,22 @@ void save_weather() {
 	if( need_save ) {
 		save_config_weather();
 		if( ws.weather ) {
-			if( need_weather ) syncWeatherTimer.setReady();
+			if( need_weather ) syncWeatherTimer.setNext(50);
 			char txt[512];
 			messages[MESSAGE_WEATHER].text = String(generate_weather_string(txt));
 		} else {
 			messages[MESSAGE_WEATHER].count = 0;
 		}
 	}
-	initRString(PSTR("Настройки сохранены"));
+	// initRString(PSTR("Настройки сохранены"));
+	printTinyText(txt_save,1,9);
+}
+
+void show_sensors() {
+	if(is_no_auth()) return;
+	char txt[100];
+	currentPressureTemp(txt);
+	text_send(String(txt));
 }
 
 void show_weather() {
@@ -1226,3 +1267,23 @@ void show_weather() {
 	text_send(String(generate_weather_string(txt)));
 }
 
+void show_status() {
+	// char buf[100];
+	HTTP.client().print(PSTR("HTTP/1.1 200\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n{"));
+	HPP("\"hostname\":\"%s\",", ts.clock_name);
+	HPP("\"is_auth\":%i,", HTTP.authenticate(gs.web_login.c_str(), gs.web_password.c_str()) && gs.web_password.length() > 0 ? 1 : 0);
+	HPP("\"use_i2c\":%i,", USE_I2C);
+	HPP("\"use_rtc\":%i,", USE_RTC);
+	HPP("\"use_nvram\":%i,", USE_NVRAM);
+	HPP("\"use_bmp\":%i,", USE_BMP);
+	HPP("\"use_mp3\":%i}",
+		#ifdef SRX
+		1 
+		#else
+		0 
+		#endif
+	);
+	#ifdef ESP8266
+	HTTP.client().stop();
+	#endif
+}

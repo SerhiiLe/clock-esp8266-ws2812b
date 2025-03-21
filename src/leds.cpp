@@ -5,14 +5,66 @@
 #include "defines.h"
 #include "leds.h"
 #include "runningText.h"
+#include "textTiny.h"
 
 CRGB leds[NUM_LEDS];
+
+bool screenIsFree = true; // экран свободен (текст полностью прокручен, слайды выведены)
+bool itsTinyText = false; // сейчас время выводить слайды (tiny) вместо бегущей строки
 
 // залить все
 void fillAll(CRGB color) {
 	for (int i = 0; i < NUM_LEDS; i++) {
 		leds[i] = color;
 	}
+}
+
+// очистить всё
+void clearALL() {
+	FastLED.clearData();
+}
+
+/*
+отрисовка буквы
+pointer - указатель на первый байт буквы в массиве шрифта
+startX - начальная позиция по горизонтали, 0 левый край
+startY - начальная позиция по вертикали, 0 нижний край
+LH - высота буквы
+LW - ширина буквы
+color - цвет или режим цвета
+index - порядковый номер буквы в тексте, нужно для подсвечивания разными цветами
+*/
+CRGB drawChar(const uint8_t* pointer, int16_t startX, int16_t startY, uint8_t LH, uint8_t LW, uint32_t color, uint16_t index) {
+	uint8_t start_col = 0, finish_col = LW;
+	CRGB pixel_color, letterColor;
+
+	uint8_t hs = gs.hue_shift ? hue_shift: 0;
+	if(color == 1) letterColor = CHSV(byte((startX << 3) + hs), 255, 255); // цвет в CHSV (прозрачность, оттенок, насыщенность, яркость) (0,0,255 - белый)
+	else if(color == 3) letterColor = CHSV(byte((index << 5) + hs), 255, 255);
+	else if(color == 5) letterColor = gs.show_time_col[index & 0x07];
+	else letterColor = color;
+
+	if( startX < -LW || startX > WIDTH ) return CRGB::Black; // буква за пределами видимости, пропустить
+	if( startX < 0 ) start_col = -startX;
+	if( startX > WIDTH - LW ) finish_col = WIDTH - startX;
+
+	for (int8_t x = start_col; x < finish_col; x++) {
+		// отрисовка столбца (x - горизонтальная позиция, y - вертикальная)
+		if(color == 2) letterColor = CHSV(byte(((startX + x) << 3) + hs), 255, 255);
+		if(color == 4) letterColor = CHSV(byte(((index * LW + x) << 2) + hs), 255, 255);
+		uint8_t fontColumn = pgm_read_byte(pointer + x); // все шрифты читаются как однобайтовые, 8 точек высотой!
+		for (int8_t y = 0; y < LH; y++) {
+			if( y + startY + TEXT_BASELINE >= 0 && y + startY + TEXT_BASELINE < HEIGHT ) { // отображать только видимую часть
+				// в этой матрице отрисовка снизу вверх, шрифты записаны сверху вниз, ставить надо все точки, черные тоже
+				// pixel_color = fontColumn & (1 << (LH - 1 - y)) ? (led_brightness > 1 && fl_5v ? letterColor: CRGB::Red) : CRGB::Black;
+				// drawPixelXY(startX + x, startY + y + TEXT_BASELINE, pixel_color);
+				pixel_color = led_brightness > 1 && fl_5v ? letterColor: CRGB::Red;
+				if( fontColumn & (1 << (LH - 1 - y)) )
+					drawPixelXY(startX + x, startY + y + TEXT_BASELINE, pixel_color);
+			}
+		}
+	}
+	return pixel_color;
 }
 
 // функция отрисовки точки по координатам X Y
@@ -135,13 +187,20 @@ void display_setup() {
 	// delay(1000);
 }
 
-void display_tick() {
+void display_tick(bool clear) {
 	if(screenIsFree) return;
-	if(fl_tiny_clock) {
+	if(itsTinyText) {
+		drawSlide();
+	} else if(fl_tiny_clock) {
 		screenIsFree = true;
 		fl_tiny_clock = false;
-	} else
+	} else {
+		// очистить буфер для заполнения новыми данными, чтобы не накладывались кадры
+		// только в режиме циферблата и бегущей строки
+		if( clear ) FastLED.clearData();
 		drawString();
+	}
+
 	if(!fl_allowLEDS) return;
 	#ifndef LED_MOTION
 	if(fl_led_motion) drawPixelXY(WIDTH - 1, 0, CRGB::Green);
@@ -154,6 +213,4 @@ void display_tick() {
 		// if(abs((long)(micros()-start-REFRESH_TIME))>(REFRESH_TIME >> 2))
 			// LOG(printf_P, PSTR("время обновления: %d (%d)\n"), micros()-start, REFRESH_TIME);
 	} while (abs((long)(micros()-start-REFRESH_TIME))>(REFRESH_TIME >> 2));
-	// очистить буфер для заполнения новыми данными, чтобы не накладывались кадры
-	FastLED.clearData();
 }

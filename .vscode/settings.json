@@ -1,12 +1,16 @@
 {
     "cSpell.words": [
         "юникоде",
+        "Adafruit",
+        "AHTX",
         "CHSV",
         "CRGB",
         "DSTSHIFT",
+        "eeprom",
         "EMCU_PI",
         "Gyver",
         "Holded",
+        "Lebedenko",
         "leds",
         "Lquadrant",
         "MDNS",
@@ -19,6 +23,7 @@
         "RRGGBB",
         "Rssi",
         "SENSOR",
+        "Serhii",
         "SSID",
         "wifi"
     ],

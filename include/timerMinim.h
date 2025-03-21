@@ -3,23 +3,43 @@
 
 #include <Arduino.h>
 
+/*
+	Таймер для переодически повторяющихся операций.
+
+	Отсчёт каждого цикла начинается с момента опроса готовности таймера, если он к этому времени сработал.
+	Это приводит к тому, что периоды не равномерны, время каждого цикла не может быть меньше заданного,
+	но может быть намного больше заданного. Таким образом таймер не отсчитывает равные промежутки,
+	а скорее гарантирует пропуск заданного времени для приписанной к таймеру операции.
+
+	В фоне ничего не считается, ресурсов не потребляет, все расчёты только в момент вызова isReady()
+
+	Для разовых ожиданий проще использовать millis() напрямую.
+*/
+
 class timerMinim
 {
 	public:
 		// объявление таймера с указанием интервала
 		timerMinim(uint32_t interval=60000) {
-			_interval = interval;
-			_timer = millis();
+			setInterval(interval);
+			reset();
 		}
 		// установка интервала работы таймера
 		void setInterval(uint32_t interval) {
-			_interval = interval;
+			// хотя-бы одна миллисекунда, для приличия
+			_interval = interval == 0 ? 1: interval;
 		}
 		// возвращает true, когда пришло время.
 		boolean isReady() {
-			if(millis() - _timer >= _interval || is_ready) {
-				_timer = millis();
-				is_ready = false;
+			unsigned long time = millis();
+			if(_overflow) { // попытка защититься от переполнения
+				if(time < _time) // ждём переполнения, которое наступает каждые 49 дней
+					_overflow = false;
+				else
+					return false;
+			}
+			if(time >= _next) {
+				reset();
 				return true;
 			} else {
 				return false;
@@ -27,17 +47,22 @@ class timerMinim
 		}
 		// ручной сброс таймера на установленный интервал
 		void reset() {
-			_timer = millis();
+			_time = millis();
+			_next = _time + _interval;
+			_overflow = _time > _next; 
 		}
-		// ручное взведение таймера на сработку
-		void setReady() {
-			is_ready = true;
+		// выставить время следующего срабатывания
+		void setNext(uint32_t next = 0) {
+			_time = millis();
+			_next = _time + next;
+			_overflow = _time > _next; 
 		}
 
 	private:
-		unsigned long _timer = 0;
 		uint32_t _interval = 0;
-		bool is_ready = false;
+		unsigned long _time = 0;
+		unsigned long _next = 0;
+		bool _overflow = false;
 };
 
 #endif

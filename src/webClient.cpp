@@ -44,6 +44,7 @@ void https_Init() {
 
 struct weatherData {
 	int utc_offset_seconds;
+	int16_t elevation;
 	float temperature;
 	float apparent_temperature;
 	uint8_t humidity;
@@ -207,7 +208,8 @@ uint8_t parseWeather(const char* json) {
 	}
 
 	const char current[] = "current";
-	wd.utc_offset_seconds = doc[F("utc_offset_seconds")];
+	wd.utc_offset_seconds = doc[F("utc_offset_seconds")]; // относительно GMT
+	wd.elevation = doc[F("elevation")]; // высота над уровнем моря
 	time_t cur_time = doc[current][F("time")];
 	int16_t interval = doc[current][F("interval")];
 	wd.temperature = doc[current][F("temperature_2m")];
@@ -251,6 +253,18 @@ uint8_t parseWeather(const char* json) {
 	}
 
 	return 1;
+}
+
+int16_t weatherGetElevation() {
+	return wd.elevation;
+}
+
+float weatherGetTemperature() {
+	return wd.temperature;
+}
+
+int16_t weatherGetPressure() {
+	return static_cast<int16_t>(wd.pressure*100);
 }
 
 // https://api.open-meteo.com/v1/forecast?latitude=46.4857&longitude=30.7438&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms&timeformat=unixtime&timezone=auto&past_days=1&forecast_days=1

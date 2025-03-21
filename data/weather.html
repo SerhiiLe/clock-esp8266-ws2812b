@@ -21,6 +21,53 @@
 		</div>
 		<div class="content holder narrow">
 			<form action="save_weather" autocomplete="off" method="post" name="settings">
+				<div class="one i b center">Датчики в часах</div>
+				<div class="row">
+					<div>Включить отображение датчиков:</div>
+					<div><input type="checkbox" name="sensors" value="1" onchange="show_sensors_block()"></div>
+				</div>
+				<div class="sensors">
+					<fieldset style="margin-bottom: 1em;">
+						<legend>Показания датчиков</legend>
+						<p id="cur_sensors"></p>
+					</fieldset>
+					<div class="row">
+						<div>Периодичность отображения температуры (&gt;30 сек.)</div>
+						<div><input name="term_period" type="number" value="60"></div>
+					</div>
+					<div class="row">
+						<div>Режим цвета для датчиков</div>
+						<div>
+							<select name="term_color_mode" onchange="show_color_block('color00', 'term_color_mode')">
+								<option value="0">Один</option>
+								<option value="1">Радуга</option>
+								<option value="2">Радуга2</option>
+								<option value="3">Разные</option>
+								<option value="4">Разные2</option>
+							</select>
+						</div>
+					</div>
+					<div class="row color00">
+						<div>Цвет цифр (<span class="red">RR</span><span class="green">GG</span><span class="blue">BB</span>)</div><div class="color_demo" id="term_color"></div>
+						<div class="fix"><input name="term_color" type="color" value="#FFFFFF" oninput="color_demo(this)"></div>
+					</div>
+					<div class="row">
+						<div>Отображать температуру крошечными цифрами</div>
+						<div><input name="tiny_term" type="checkbox" value="1"></div>
+					</div>
+					<div class="row">
+						<div>Корректировка показаний температуры (-100..+100)</div>
+						<div><input name="term_cor" type="text" value="0.0" inputmode="decimal" pattern="[-+]?[0-9]*[.,]?[0-9]+"></div>
+					</div>
+					<div class="row">
+						<div>Корректировка показаний давления (-1000..+1000)</div>
+						<div><input name="bar_cor" type="number" value="0"></div>
+					</div>
+					<div class="row">
+						<div>Минимальное время между опросом датчика температуры (от 30 до 600 сек)</div>
+						<div><input name="term_pool" type="number" value="120"></div>
+					</div>
+				</div>
 				<div class="one i b center">Погода из Internet</div>
 				<div class="row">
 					<div>Использовать погоду из&nbsp;<a href="https://open-meteo.com/en/docs" target="_blank" class="nb">https://open-meteo.com</a>
@@ -49,7 +96,7 @@
 						<div class="nb"><input type="number" name="show_weather_period" value="120"> секунд</div>
 					</div>
 					<div class="row">
-						<div>Режим цвета</div>
+						<div>Режим цвета для погоды</div>
 						<div>
 							<select name="color_mode" onchange="show_color_block()">
 								<option value="0">Один</option>
@@ -95,6 +142,10 @@
 							<div><input name="wind_speed" type="checkbox" value="1"></div>
 						</div>
 						<div class="row">
+							<div>Порывы ветра</div>
+							<div><input name="wind_gusts" type="checkbox" value="1"></div>
+						</div>
+						<div class="row">
 							<div>Направление ветра</div>
 							<div><input name="wind_direction" type="checkbox" value="1"></div>
 						</div>
@@ -102,11 +153,22 @@
 							<div>Направление ветра словами</div>
 							<div><input name="wind_direction2" type="checkbox" value="1"></div>
 						</div>
-						<div class="row">
-							<div>Порывы ветра</div>
-							<div><input name="wind_gusts" type="checkbox" value="1"></div>
-						</div>
 					</fieldset>
+				</div>
+				<div class="forecast">
+					<div class="one i b center">Автономный прогноз погоды</div>
+					<div class="row">
+						<div>Показывать изменение атмосферного давления</div>
+						<div><input name="pressure_dir" type="checkbox" value="1"></div>
+					</div>
+					<div class="row">
+						<div>Краткосрочный прогноз на основе атмосферного давления</div>
+						<div><input name="forecast" type="checkbox" value="1" onchange="show_altitude_block()"></div>
+					</div>
+					<div class="row altitude">
+						<div>Высота местности над уровнем моря в метрах (можно посмотреть в гугле)</div>
+						<div><input name="altitude" type="number" value="60"></div>
+					</div>
 				</div>
 				<button>Сохранить</button>
 			</form>
@@ -119,20 +181,47 @@
 		<div id="shadow"><div>Загрузка...</div></div>
 	</body>
 <script type="text/javascript" encoding="UTF-8">
+function show_sensors_block() {
+	if(document.forms["settings"].elements["sensors"].checked)
+		toggle_by_class("sensors",true);
+	else
+		toggle_by_class("sensors",false);
+	show_forecast_block();
+}
 function show_weather_block() {
 	if(document.forms["settings"].elements["weather"].checked)
 		toggle_by_class("weather",true);
 	else
 		toggle_by_class("weather",false);
+	show_forecast_block();
+}
+function show_forecast_block() {
+	if(document.forms["settings"].elements["weather"].checked ||
+		document.forms["settings"].elements["sensors"].checked)
+		toggle_by_class("forecast",true);
+	else
+		toggle_by_class("forecast",false);
+}
+function show_altitude_block() {
+	if(document.forms["settings"].elements["forecast"].checked)
+		toggle_by_class("altitude",true);
+	else
+		toggle_by_class("altitude",false);
 }
 function start() {
 	if (typeof ajaxRequest !== "undefined") {
 		fill_settings("weather.json", "settings", ()=> {
+			show_sensors_block();
 			show_weather_block();
+			show_altitude_block();
 			init_color_demo();
 			show_color_block();
+			show_color_block('color00', 'term_color_mode');
 			$g("shadow").style.display = "none";
 		});
+		ajaxRequest("show_sensors", "GET", null, function(ajaxResp) {
+			$g("cur_sensors").innerHTML = ajaxResp.responseText;
+		}, dummy);
 		ajaxRequest("show_weather", "GET", null, function(ajaxResp) {
 			$g("cur_weather").innerHTML = ajaxResp.responseText;
 		}, dummy);

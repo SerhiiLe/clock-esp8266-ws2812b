@@ -16,8 +16,16 @@ extern bool ftp_isAllow;
 extern bool fl_5v;
 extern bool fl_allowLEDS;
 extern bool fl_timeNotSync;
+extern bool fl_needStartTime;
 extern bool fl_ntpRequestIsSend;
 extern bool fl_led_motion;
+extern bool nvram_enable;
+extern uint8_t rtc_enable;
+extern uint8_t fl_barometerIsInit;
+extern uint8_t eeprom_chip;
+extern uint8_t rtc_chip;
+extern uint8_t address_bme280;
+extern unsigned long last_time_display;
 
 // таймеры должны быть доступны в разных местах
 #include "timerMinim.h"
@@ -30,8 +38,10 @@ extern timerMinim textTimer[];          // Таймеры бегущих стр�
 extern timerMinim telegramTimer;		// Таймер периодичности опроса новых сообщений
 extern timerMinim alarmStepTimer;		// Таймер увеличения громкости будильника
 extern timerMinim timeoutMp3Timer;
+extern timerMinim showTermTimer;
 extern timerMinim syncWeatherTimer;
 extern timerMinim quoteUpdateTimer;
+extern timerMinim forecasterTimer;
 
 // управление плейером
 extern int mp3_all;
@@ -55,6 +65,7 @@ struct Global_Settings {
 	uint8_t tz_dst = DSTSHIFT; // смещение летнего времени
 	uint8_t tz_adjust = 0; // корректировать часовой пояс по серверу погоды
 	uint8_t show_date_short = 0; // показывать дату в коротком формате
+	uint8_t tiny_date = 0; // выводить дату крошечными цифрами
 	uint16_t show_date_period = 30; // периодичность вывода даты в секундах
 	uint8_t tiny_clock = 0; // вариант циферблата
 	uint8_t dots_style = 0; // вариант отображение разделителя (двоеточия)
@@ -82,6 +93,9 @@ struct Global_Settings {
 	uint8_t timeout_mp3 = 36; // таймаут до принудительного сброса модуля mp3, в часах
 	uint8_t sync_time_period = 8; // периодичность синхронизации ntp, в часах
 	uint8_t scroll_period = 25; // 60 - задержка между обновлениями бегущей строки, определяет скорость движения
+	uint8_t slide_show = 2; // время показа одного слайда в режиме крошечных цифр
+	uint8_t minim_show = 5; // минимальное время показа циферблата
+	uint8_t reserved1 = 0; // зарезервировано для будущего использования
 	String web_login = "admin"; // логин для вэб
 	String web_password = ""; // пароль для вэб
 };
@@ -133,6 +147,14 @@ extern uint16_t sunset; // время заката в минутах от нач
 extern bool old_bright_boost; // флаг для изменения уровня яркости
 
 struct Weather_Settings {
+	uint8_t sensors = 0;
+	uint16_t term_period = 60;
+	uint8_t term_color_mode = 0; // режим цвета, как везде (0 )
+	uint32_t term_color = 0xFFFFFF; // по умолчанию - белый
+	uint8_t tiny_term = 0;
+	float term_cor = -1.5f;
+	int16_t bar_cor = 7;
+	uint16_t term_pool = 120;
 	uint8_t weather = 0;
 	uint8_t sync_weather_period = 30;
 	uint8_t show_weather_period = 120;
@@ -150,6 +172,7 @@ struct Weather_Settings {
 	uint8_t wind_gusts = 1;
 	uint8_t pressure_dir = 1;
 	uint8_t forecast = 1;
+	int16_t altitude = 50;
 };
 extern Weather_Settings ws;
 

@@ -14,10 +14,13 @@
 #include "defines.h"
 #include "dfplayer.h"
 #ifdef SRX
-	#if ESP32C3 == 1
+	#if ESP32C3 == 1 // ESP32-c3
 		#include <HardwareSerial.h>
 		HardwareSerial mp3Serial(0);
-	#else
+	#elif ESP32 == 1 // ESP32
+		#include <HardwareSerial.h>
+		HardwareSerial mp3Serial(2);
+	#else // ESP8266
 		#include <SoftwareSerial.h>
 		EspSoftwareSerial::UART mp3Serial;
 	#endif
@@ -66,8 +69,8 @@ void mp3_init() {
 		mp3Serial.flush();
 		dfPlayer.reset();
 	} else {
-		#if ESP32C3 == 1
-			mp3Serial.begin(115200, SERIAL_8N1, SRX, STX);
+		#if ESP32 == 1
+			mp3Serial.begin(9600, SERIAL_8N1, SRX, STX);
 		#else
 			mp3Serial.begin(9600, SWSERIAL_8N1, SRX, STX, false);
 		#endif
