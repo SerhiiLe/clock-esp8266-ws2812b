@@ -33,15 +33,15 @@ int16_t drawTinyLetter(int16_t x, int16_t y, uint32_t c, uint32_t color, int16_t
 	if( (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ) // A-Z maps to 1-26
 		cn = c & 0x1F;
 	else if (c >= 0x21 && c <= 0x40)
-		cn = (c - 0x21) + 27;
+		cn = c - 0x21 + 27;
 	else if (c == ' ') // space
 		cn = 0;
 	else if (c>=0xd090 && c<=0xd0af) // А-Я
-		cn = (c - 0xd090) + 59;
+		cn = c - 0xd090 + 59;
 	else if (c>=0xd0b0 && c<=0xd0bf) // а-п
-		cn = (c - 0xd0b0) + 59;
+		cn = c - 0xd0b0 + 59;
 	else if (c>=0xd180 && c<=0xd18f) // р-я
-		cn = (c - 0xd180) + 75;
+		cn = c - 0xd180 + 75;
 	else if (c==0xd081 || c==0xd191) // Ёё
 		cn = 64;
 	else if (c==0xd084 || c==0xd194) // Єє
@@ -63,18 +63,11 @@ int16_t drawTinyLetter(int16_t x, int16_t y, uint32_t c, uint32_t color, int16_t
 		fw = 1; cn = 0;
 	}
 
-	CRGB last_color = drawChar(fontTiny[cn], x, y, LET_HEIGHT, fw, color, index);
+	drawChar(fontTiny[cn], x, y, fw, LET_HEIGHT, color, index);
 
 	// костыль для отрисовки буквы Ю, единственной которая ну совсем не лезет в три пикселя ширины, хотя сказать, что другие сильно хорошо выглядят тоже неправда.
 	if( cn==89 ) {
-		if(3 + x > WIDTH) return fw;
-		dots = 0x0e;
-		for(uint8_t row = 0; row < LET_HEIGHT; row++) {
-			if(row + TEXT_BASELINE >= 0 && row + TEXT_BASELINE < HEIGHT) {
-				drawPixelXY(x + 3, TEXT_BASELINE + row,
-					dots & (1 << (LET_HEIGHT - 1 - row)) ? last_color : CRGB::Black);
-			}
-		}
+		drawChar(fontTinyU, x+3, y, 1, LET_HEIGHT, color, index);
 		fw++;
 	}
 

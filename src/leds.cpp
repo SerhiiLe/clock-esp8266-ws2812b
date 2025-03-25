@@ -34,9 +34,9 @@ LW - ширина буквы
 color - цвет или режим цвета
 index - порядковый номер буквы в тексте, нужно для подсвечивания разными цветами
 */
-CRGB drawChar(const uint8_t* pointer, int16_t startX, int16_t startY, uint8_t LH, uint8_t LW, uint32_t color, uint16_t index) {
-	uint8_t start_col = 0, finish_col = LW;
-	CRGB pixel_color, letterColor;
+void drawChar(const uint8_t* pointer, int16_t startX, int16_t startY, uint8_t LW, uint8_t LH, uint32_t color, uint16_t index) {
+		uint8_t start_col = 0, finish_col = LW;
+	CRGB letterColor;
 
 	uint8_t hs = gs.hue_shift ? hue_shift: 0;
 	if(color == 1) letterColor = CHSV(byte((startX << 3) + hs), 255, 255); // цвет в CHSV (прозрачность, оттенок, насыщенность, яркость) (0,0,255 - белый)
@@ -44,7 +44,7 @@ CRGB drawChar(const uint8_t* pointer, int16_t startX, int16_t startY, uint8_t LH
 	else if(color == 5) letterColor = gs.show_time_col[index & 0x07];
 	else letterColor = color;
 
-	if( startX < -LW || startX > WIDTH ) return CRGB::Black; // буква за пределами видимости, пропустить
+	if( startX < -LW || startX > WIDTH ) return; // буква за пределами видимости, пропустить
 	if( startX < 0 ) start_col = -startX;
 	if( startX > WIDTH - LW ) finish_col = WIDTH - startX;
 
@@ -55,16 +55,12 @@ CRGB drawChar(const uint8_t* pointer, int16_t startX, int16_t startY, uint8_t LH
 		uint8_t fontColumn = pgm_read_byte(pointer + x); // все шрифты читаются как однобайтовые, 8 точек высотой!
 		for (int8_t y = 0; y < LH; y++) {
 			if( y + startY + TEXT_BASELINE >= 0 && y + startY + TEXT_BASELINE < HEIGHT ) { // отображать только видимую часть
-				// в этой матрице отрисовка снизу вверх, шрифты записаны сверху вниз, ставить надо все точки, черные тоже
-				// pixel_color = fontColumn & (1 << (LH - 1 - y)) ? (led_brightness > 1 && fl_5v ? letterColor: CRGB::Red) : CRGB::Black;
-				// drawPixelXY(startX + x, startY + y + TEXT_BASELINE, pixel_color);
-				pixel_color = led_brightness > 1 && fl_5v ? letterColor: CRGB::Red;
+				// в этой матрице отрисовка снизу вверх, шрифты записаны сверху вниз
 				if( fontColumn & (1 << (LH - 1 - y)) )
-					drawPixelXY(startX + x, startY + y + TEXT_BASELINE, pixel_color);
+					drawPixelXY(startX + x, startY + y + TEXT_BASELINE, led_brightness > 1 && fl_5v ? letterColor: CRGB::Red);
 			}
 		}
 	}
-	return pixel_color;
 }
 
 // функция отрисовки точки по координатам X Y

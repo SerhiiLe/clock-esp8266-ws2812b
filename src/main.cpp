@@ -649,7 +649,7 @@ void loop() {
 
 	// если экран освободился, то выбор, что сейчас надо выводить.
 	// проверка разрешения выводить бегущую строку
-	if(fl_run_allow && alarmStartTime == 0) { // && (millis()-last_time_display > 1000UL*gs.minim_show))  {
+	if(fl_run_allow && alarmStartTime == 0 && millis()-last_time_display > 1000UL*gs.minim_show)  {
 		fl_save = false;
 		// в приоритете бегущая строка
 		for(i=0; i<MAX_RUNNING; i++)

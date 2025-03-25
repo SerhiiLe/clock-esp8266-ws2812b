@@ -96,7 +96,7 @@ int16_t drawLetter(uint32_t letter, int16_t offset, uint32_t color, uint16_t ind
 	if (LH > HEIGHT) LH = HEIGHT;
 
 	// отрисовка буквы
-	drawChar(pointer, offset, TEXT_BASELINE, LH, LW, color, index);
+	drawChar(pointer, offset, TEXT_BASELINE, LW, LH, color, index);
 
 	return LW;
 }

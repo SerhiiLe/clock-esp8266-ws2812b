@@ -204,7 +204,7 @@ int16_t drawMedium(const char c, int16_t x, uint8_t font_style, uint8_t index, i
 		}
 	}
 
-	drawChar(font + cn * fontWidth, x, string_offset, LET_HEIGHT, fontWidth,
+	drawChar(font + cn * fontWidth, x, string_offset, fontWidth, LET_HEIGHT,
 		gs.show_time_color > 0 ? gs.show_time_color: gs.show_time_color0, index);
 
 	return cw;
