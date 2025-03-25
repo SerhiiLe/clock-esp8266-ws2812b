@@ -184,8 +184,8 @@ struct Quote_Settings {
 	uint8_t update = 1;
 	uint8_t server = 0;
 	uint8_t lang = 2;
-	String url;
-	String params;
+	String url = "";
+	String params = "";
 	uint8_t method = 0;
 	uint8_t type = 0;
 	String quote_field;

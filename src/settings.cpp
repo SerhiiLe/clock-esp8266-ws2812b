@@ -297,7 +297,7 @@ bool load_config_alarms() {
 
 	File configFile = LittleFS.open(F("/alarms.json"), "r");
 	if (!configFile) {
-		// если файл не найден  
+		// если файл не найден
 		LOG(println, PSTR("Failed to open config for alarms file"));
 		return false;
 	}
@@ -306,7 +306,7 @@ bool load_config_alarms() {
 
 	DeserializationError error = deserializeJson(doc, configFile);
 	configFile.close();
-	
+
 	// Test if parsing succeeds.
 	if (error) {
 		LOG(printf_P, PSTR("deserializeJson() failed: %s\n"), error.c_str());
@@ -621,6 +621,8 @@ void save_config_quote() {
 	configFile.flush();
 	configFile.close(); // не забыть закрыть файл
 	delay(4);
+
+	LOG(println, PSTR("Quote config saved."));
 }
 
 // чтение конфигурации сервера погоды
@@ -715,4 +717,6 @@ void save_config_weather() {
 	configFile.flush();
 	configFile.close(); // не забыть закрыть файл
 	delay(4);
+
+	LOG(println, PSTR("Weather config saved."));
 }
