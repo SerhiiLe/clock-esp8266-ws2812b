@@ -27,7 +27,6 @@ uint32_t _tinyColor = 1;
 // color - цвет
 // index - символа в слайде
 int16_t drawTinyLetter(int16_t x, int16_t y, uint32_t c, uint32_t color, int16_t index) {
-	byte dots;
 	uint8_t cn = 0;
 	uint8_t fw = 3;
 	if( (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ) // A-Z maps to 1-26
@@ -155,6 +154,7 @@ void printTinyText(const char *txt, uint32_t color, int16_t posX, bool instant, 
 	_curPosition = 0;
 	itsTinyText = true;
 	screenIsFree = false;
+	fl_tiny_clock = false;
 	_oneSlide = instant;
 	_tinyColor = color;
 	if( clear ) clearALL();

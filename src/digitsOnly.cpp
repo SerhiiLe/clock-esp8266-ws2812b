@@ -223,6 +223,7 @@ int16_t printMedium(const char* txt, uint8_t font, int16_t pos, uint8_t limit, u
 	}
 	screenIsFree = false;
 	fl_tiny_clock = true;
+	itsTinyText = false;
 
 	return pos;
 }
