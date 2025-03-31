@@ -19,7 +19,7 @@ Adafruit_BMP280 bmp2;
 Adafruit_BME280 bme;
 Adafruit_AHTX0 aht;
 
-uint8_t fl_barometerIsInit = 0; // флаг наличия барометра 0 - нет, 1 - BMP180, 2 - BMP280, 4 - BME180, 8 - AHTX0
+uint8_t fl_barometerIsInit = 0; // флаг наличия барометра 0 - нет, 1 - BMP180, 2 - BMP280, 4 - BME280, 8 - AHTX0
 float Temperature = 0.0f; // температура последнего опроса
 int32_t Pressure = 0; // давление последнего опроса
 float Humidity = 0.0f; // влажность последнего опроса
@@ -69,6 +69,8 @@ float getTemperature(bool fl_cor) {
 		t = bmp0.readTemperature();
 	} else if( fl_barometerIsInit & 2 ) {
 		t = bmp2.readTemperature();
+	} else if( fl_barometerIsInit & 4 ) {
+		t = bme.readTemperature();
 	} else if( fl_barometerIsInit & 8 ) {
 		sensors_event_t humidity, temp;
 		aht.getEvent(&humidity, &temp);

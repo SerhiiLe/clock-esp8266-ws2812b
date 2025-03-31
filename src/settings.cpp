@@ -614,7 +614,7 @@ void save_config_quote() {
 
 	File configFile = LittleFS.open(F("/quote.json"), "w"); // открытие файла на запись
 	if (!configFile) {
-		LOG(println, PSTR("Failed to open config file for writing"));
+		LOG(println, PSTR("Failed to open quote config file for writing"));
 		return;
 	}
 	serializeJson(doc, configFile); // Записываем строку json в файл
@@ -710,7 +710,7 @@ void save_config_weather() {
 
 	File configFile = LittleFS.open(F("/weather.json"), "w"); // открытие файла на запись
 	if (!configFile) {
-		LOG(println, PSTR("Failed to open config file for writing"));
+		LOG(println, PSTR("Failed to open weather config file for writing"));
 		return;
 	}
 	serializeJson(doc, configFile); // Записываем строку json в файл
